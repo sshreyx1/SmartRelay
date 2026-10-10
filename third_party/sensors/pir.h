@@ -1,0 +1,11 @@
+#ifndef PIR_H
+#define PIR_H
+
+#include <stdbool.h>
+
+#define PIR_PIN 0 // Connected to GP0
+
+void pir_init(void);
+bool pir_is_motion_detected(void);
+
+#endif

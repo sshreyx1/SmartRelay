@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""
+demo_feed.py - MANUAL-ONLY demo data for the smartrelay dashboard.
+
+This is for showing the dashboard UI when no hardware is around (e.g.
+presenting indoors). It is never started automatically by the backend --
+you run it yourself, on purpose, every time:
+
+    python3 simulator/demo_feed.py --once --node 3
+    python3 simulator/demo_feed.py --burst 5
+    python3 simulator/demo_feed.py --continuous --every 20
+
+It builds text in the EXACT real wire format the bridge streams
+(common/uplink.h: "@ALFP FILE ... / @D <base64> / @ALFP END"), using the
+real capture_meta.h layout (backend/live_bridge.py decodes it with the same
+parser as the real bridge, imported straight from tools/bridge_receiver.py --
+there is no separate "fake" decode path). It POSTs that text to the
+backend's /api/demo/ingest endpoint rather than writing to the database
+directly, specifically so it goes through the identical parsing and
+validation a real transfer would.
+
+Every row this produces is stored with is_demo=1 and the dashboard always
+shows a "SIMULATED" badge on it -- it is never mixed into node status or
+counted as a real mesh capture. If you need a sample image to look right on
+the dashboard, point --image at a real jpg; otherwise a small placeholder
+is generated so the transfer still has a non-trivial size to fragment-count
+realistically.
+"""
+from __future__ import annotations
+
+import argparse
+import base64
+import json
+import random
+import struct
+import sys
+import time
+import zlib
+
+try:
+    import requests
+except ImportError:
+    requests = None
+
+WEATHER = {0: "Cloudy", 1: "Hot_Dry", 2: "Humid_Rainy"}
+SOUND = {0: "AMBIENT_NOISE", 1: "LOUD_ANIMAL_CALL", 2: "HIGH_FREQ_RUSTLE"}
+MISSING_I16 = -32768
+MISSING_U16 = 0xFFFF
+UNKNOWN_U8 = 0xFF
+
+_session_counter = random.randint(1, 500)
+_capture_counter = {}
+
+
+def _placeholder_jpeg(seed: int) -> bytes:
+    """A tiny, clearly-synthetic JPEG-like blob -- enough bytes to fragment
+    and show a size on the dashboard, not a real photo. If you have an
+    actual sample image, pass --image instead."""
+    rnd = random.Random(seed)
+    body = bytes(rnd.randrange(256) for _ in range(4000 + rnd.randrange(4000)))
+    return b"\xff\xd8\xff" + body  # JPEG magic so the backend's kind-sniffing is exercised too
+
+
+def build_meta(node_id: int, capture_id: int, trigger_pir: bool, trigger_sound: bool) -> bytes:
+    rnd = random.Random(node_id * 1000 + capture_id)
+    temp_x10 = round(rnd.uniform(24.0, 33.0) * 10)   # Singapore-ish trail temperature, 24-33 C
+    hum_x10 = round(rnd.uniform(60, 95) * 10)
+    light = rnd.randrange(0, 4096)
+    weather = rnd.choice(list(WEATHER.keys()))
+    sound_class = rnd.choice(list(SOUND.keys())) if trigger_sound else UNKNOWN_U8
+    sound_rms = rnd.randrange(100, 4000) if trigger_sound else MISSING_U16
+    sound_zcr = rnd.randrange(50, 2000) if trigger_sound else MISSING_U16
+    trig = (1 if trigger_pir else 0) | (2 if trigger_sound else 0)
+
+    return struct.pack(
+        "<BBIIBhHHBBBBBHHB",
+        1,                      # version
+        node_id,
+        capture_id,
+        int(time.time() * 1000) % (2**32),  # uptime_ms stand-in
+        trig,
+        temp_x10,
+        hum_x10,
+        light,
+        weather,
+        rnd.randrange(50, 95),   # weather_conf
+        UNKNOWN_U8,               # trigger_trust -- real firmware never fills this either (see sensing.c)
+        sound_class,
+        rnd.randrange(50, 95) if trigger_sound else UNKNOWN_U8,
+        sound_rms,
+        sound_zcr,
+        0,                        # image_index
+    )
+
+
+def build_transfer_lines(node_id: int, image_bytes: bytes | None = None) -> list[str]:
+    global _session_counter
+    _session_counter += 1
+    sid = _session_counter
+    cap_id = _capture_counter.get(node_id, 0) + 1
+    _capture_counter[node_id] = cap_id
+
+    trigger_pir = True
+    trigger_sound = random.random() < 0.7
+    data = image_bytes if image_bytes is not None else _placeholder_jpeg(sid)
+    meta = build_meta(node_id, cap_id, trigger_pir, trigger_sound)
+    crc = zlib.crc32(data) & 0xFFFFFFFF
+    radio = random.choice(["lora", "wifi"])
+    frags = max(1, (len(data) + 191) // 192)  # ALFP's real MAX_PAYLOAD-ish chunking, for a realistic count
+
+    lines = [
+        f"@ALFP FILE v1 src={node_id} sid={sid:05d} size={len(data)} crc={crc:08x} "
+        f"radio={radio} frags={frags} meta={meta.hex()}"
+    ]
+    for i in range(0, len(data), 48):
+        chunk = data[i:i + 48]
+        lines.append("@D " + base64.b64encode(chunk).decode())
+    lines.append(f"@ALFP END crc={crc:08x}")
+    return lines
+
+
+def send(backend_url: str, lines: list[str]) -> None:
+    if requests is None:
+        print("pip install requests  (needed to talk to the backend)", file=sys.stderr)
+        sys.exit(2)
+    r = requests.post(f"{backend_url}/api/demo/ingest", json={"lines": lines}, timeout=5)
+    r.raise_for_status()
+    print(f"[DEMO] sent 1 simulated capture -> {r.json()}")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--backend", default="http://localhost:8000", help="backend base URL")
+    ap.add_argument("--node", type=int, default=None, help="node id 2-5 (random field node if omitted)")
+    ap.add_argument("--once", action="store_true", help="send a single simulated capture and exit")
+    ap.add_argument("--burst", type=int, default=0, help="send N simulated captures back to back")
+    ap.add_argument("--continuous", action="store_true", help="keep sending until Ctrl+C")
+    ap.add_argument("--every", type=float, default=20.0, help="seconds between captures in --continuous")
+    ap.add_argument("--image", help="path to a real JPEG to use instead of the synthetic placeholder")
+    args = ap.parse_args()
+
+    print("=" * 70)
+    print(" DEMO MODE -- this sends SIMULATED captures, clearly tagged is_demo=1.")
+    print(" It is NOT reading your real nodes. Run bridge_receiver.py / the backend")
+    print(" with SMARTRELAY_BRIDGE_PORT set for real data.")
+    print("=" * 70)
+
+    image_bytes = open(args.image, "rb").read() if args.image else None
+
+    def one():
+        node_id = args.node or random.choice([2, 3, 4, 5])
+        send(args.backend, build_transfer_lines(node_id, image_bytes))
+
+    if args.continuous:
+        try:
+            while True:
+                one()
+                time.sleep(args.every)
+        except KeyboardInterrupt:
+            print("\nstopped")
+        return 0
+
+    n = args.burst if args.burst else 1
+    for _ in range(n):
+        one()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

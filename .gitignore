@@ -1,0 +1,23 @@
+# firmware build
+build/
+build-fw/
+deps/
+sim_out/
+
+# backend
+__pycache__/
+*.pyc
+*.db
+backend/received/*
+!backend/received/.gitkeep
+.venv/
+venv/
+
+# dashboard
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.vite/
+
+# misc
+.DS_Store
+*.log

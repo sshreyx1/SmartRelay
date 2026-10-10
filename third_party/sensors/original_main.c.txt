@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <string.h>
+#include "pico/stdlib.h"
+#include "hardware/adc.h"
+#include "pir.h"
+#include "sound.h"
+#include "mic.h"
+#include "DHT22.h"
+#include "weather_tree.h"
+#include "lora.h"
+
+#define LIGHT_ADC_PIN 27 // Light AO connected to GP27 (ADC1)
+
+static uint16_t audio_buffer[NUM_SAMPLES];
+
+int main() {
+    stdio_init_all();
+    sleep_ms(3000);
+
+    printf("=== Fully Integrated Edge Node (Audio + Weather + LoRa) ===\n");
+
+    // Initialize Audio & Motion Subsystems
+    pir_init();
+    sound_init();
+    mic_init();
+
+    // Initialize Environmental Sensors & LoRa
+    DHT_init();
+    adc_gpio_init(LIGHT_ADC_PIN);
+    lora_init();
+
+    float temperature = 0.0f;
+    float humidity = 0.0f;
+    uint32_t last_env_read = 0;
+    uint16_t event_counter = 0;
+
+    while (true) {
+        uint32_t current_time = to_ms_since_boot(get_absolute_time());
+
+        // ---------------------------------------------------------
+        // 1. Routine Environmental Telemetry (Every 2 seconds)
+        // ---------------------------------------------------------
+        if (current_time - last_env_read >= 2000) {
+            last_env_read = current_time;
+
+            adc_select_input(1); // Select GP27 (ADC1) for Light Sensor
+            uint16_t light_raw = adc_read();
+
+            if (DHT_read(&temperature, &humidity)) {
+                float env_features[3] = {temperature, humidity, (float)light_raw};
+                int weather_pred = weather_predict(env_features);
+
+                printf("[ENV] Temp: %.1f C | Hum: %.1f%% | Light: %d | Weather: %s\n",
+                       temperature, humidity, light_raw, weather_label(weather_pred));
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 2. Dual-Trigger Audio Capture (PIR Motion + Sound Noise)
+        // ---------------------------------------------------------
+        if (sound_is_triggered() && pir_is_motion_detected()) {
+            event_counter++;
+            printf("\n[ALERT] Dual Trigger Fired! Event #%d. Recording 5s Audio...\n", event_counter);
+
+            // Record 5 seconds of audio on GP26 (ADC0)
+            adc_select_input(0);
+            mic_record_buffer(audio_buffer, NUM_SAMPLES);
+
+            SoundAnalysis audio_analysis = mic_analyze_buffer(audio_buffer, NUM_SAMPLES);
+
+            // Read Light Sensor again for combined event snapshot
+            adc_select_input(1);
+            uint16_t current_light = adc_read();
+            float env_features[3] = {temperature, humidity, (float)current_light};
+            int weather_pred = weather_predict(env_features);
+
+            // Transmit compact 16-byte packet over LoRa mesh
+            LoRaMeshPacket packet;
+            packet.node_id       = 1;
+            packet.event_id      = event_counter;
+            packet.sound_class   = (uint8_t)audio_analysis.class_id;
+            packet.sound_energy  = (uint16_t)audio_analysis.energy;
+            packet.weather_class = (uint8_t)weather_pred;
+            packet.temp_c_x10    = (int16_t)(temperature * 10.0f);
+            packet.humidity_x10  = (uint16_t)(humidity * 10.0f);
+            packet.light_raw     = current_light;
+
+            printf("[LORA] Transmitting 16-byte telemetry packet...\n");
+            lora_send_packet((uint8_t *)&packet, sizeof(LoRaMeshPacket));
+
+            // Print JSON metadata header over USB Serial
+            printf("JSON_HEADER:{\"node\":1,\"event\":%d,\"weather\":\"%s\",\"sound\":{\"class\":%d,\"energy\":%.1f},\"pcm_bytes\":%d}\n",
+                   event_counter, weather_label(weather_pred), audio_analysis.class_id, audio_analysis.energy, NUM_SAMPLES * 2);
+            stdio_flush();
+
+            // Stream raw PCM audio in 512-byte USB blocks to prevent CDC timeout
+            uint8_t *raw_bytes = (uint8_t *)audio_buffer;
+            size_t total_bytes = NUM_SAMPLES * sizeof(uint16_t);
+            size_t bytes_sent = 0;
+
+            while (bytes_sent < total_bytes) {
+                size_t chunk_size = (total_bytes - bytes_sent > 512) ? 512 : (total_bytes - bytes_sent);
+                for (size_t i = 0; i < chunk_size; i++) {
+                    putchar_raw(raw_bytes[bytes_sent + i]);
+                }
+                stdio_flush();
+                bytes_sent += chunk_size;
+                sleep_us(100); // Brief pacing delay for USB CDC driver
+            }
+
+            printf("\n[COMPLETE] Cooldown for 5 seconds...\n\n");
+            sleep_ms(5000); // PIR sensor settlement cooldown
+        }
+
+        sleep_ms(10);
+    }
+
+    return 0;
+}
