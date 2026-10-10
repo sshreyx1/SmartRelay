@@ -1,55 +1,70 @@
-# SmartRelay (CSC09 trail mesh)
+# SmartRelay
 
-A field-node mesh (PIR/sound-triggered camera captures over LoRa or WiFi,
-reassembled by a bridge node) with a live dashboard on top.
+**A dual-radio mesh prototype for trail wildlife monitoring**
 
-This repo = the real ALFP firmware and protocol code (unchanged) **plus**
-a new backend and dashboard that show that real data, and a clearly
-separate, manual-only simulator for demoing the UI without hardware.
+SmartRelay is a five-node embedded systems project that collects sensor
+readings and transfers image files across a trail-style mesh. Field nodes
+use a Raspberry Pi Pico W with PIR, sound, temperature, humidity and light
+sensors. A capture is triggered when motion and sound are detected
+together. Each capture includes environmental readings and compact sound
+features, along with an image payload sent to the bridge node.
 
-**Real vs. simulated, and why it matters:** the dashboard must never
-present invented data as if it came from the mesh. So:
+The current prototype uses JPEG sample images stored on microSD in place
+of a camera module. The firmware processes microphone input into basic
+sound features and a coarse sound label; it does not identify wildlife
+species. The environmental readings also produce an on-device weather
+label.
 
-- The backend only ever gets real captures by actually reading the
-  bridge's USB serial port — automatically, the moment it's plugged in.
-  Nothing about that path is faked.
-- The `simulator/` only runs when a person runs it, by hand, on purpose.
-  Every row it sends is tagged `is_demo=1` end to end — stored that way,
-  returned that way by the API, and shown with a **SIMULATED** badge in
-  the dashboard. Demo rows are also excluded from node "last seen"
-  status, so a demo run can never make a node look alive.
-- Node status is never a fabricated heartbeat. The real firmware doesn't
-  send a laptop-facing heartbeat, so "last seen" is derived only from
-  real captures actually received — see `backend/storage.py:node_last_seen()`.
-- Any sensor field the firmware didn't fill in (e.g. no DHT22 reading
-  that cycle) is sent as an explicit missing/unknown sentinel
-  (`common/capture_meta.h`) and shown in the dashboard as `-`, never a
-  guessed number.
+## System Overview
 
-## Layout
+- **Field nodes:** FreeRTOS firmware reads the sensors, evaluates the
+  trigger, and selects the next sample image from microSD. Captures are
+  queued locally when the bridge is unavailable.
+- **Mesh transfer:** LoRa and WiFi operate as separate flooding meshes.
+  Each transfer selects one radio and stays on it. The ALFP protocol
+  fragments files, checks packets and complete files with CRCs, and
+  retransmits missing fragments rather than restarting the transfer.
+- **Bridge:** Node 1 reassembles and verifies incoming files, stores them
+  on microSD, and sends the capture data to a laptop over USB serial.
+- **Backend and dashboard:** A FastAPI service reads the bridge stream,
+  stores captures and metadata in SQLite, and provides REST and WebSocket
+  endpoints. The React dashboard displays captures, sensor readings,
+  node activity, and the bridge log.
+- **Demo mode:** `simulator/demo_feed.py` can be run manually to exercise
+  the dashboard without hardware. Demo captures are marked as simulated
+  and kept distinct from real bridge data.
 
-- `alfp/` — the ALFP protocol library (C11, no malloc). Unchanged.
-- `mesh/`, `third_party/` — radio + sensor drivers from the rest of the
-  team (LoRa mesh, WiFi mesh, PIR/DHT22/weather, sound trigger). Unchanged.
-- `common/` — capture metadata wire format (`capture_meta.h`) and the
-  bridge→laptop USB uplink text protocol (`uplink.h`/`uplink.c`). Unchanged.
-- `firmware/` — Pico W firmware for all 5 nodes, sensor test, SD
-  self-test, LoRa photo test. Unchanged.
-- `host/` — laptop-side mesh simulator and test suite for the protocol
-  itself (not the dashboard). Unchanged.
-- `tools/` — `bridge_receiver.py` (the original CLI bridge reader) and
-  other original helper scripts. Unchanged; `backend/` reuses its
-  decode functions directly rather than re-implementing the wire format.
-- `uf2/`, `docs/` — ready-to-flash images and the original design docs.
-- **`backend/`** — *new*. A FastAPI service that reads the bridge's
-  serial port automatically, parses the real ALFP uplink protocol,
-  stores captures in SQLite, and serves them over REST + WebSocket.
-- **`dashboard/`** — *new*. A React + TypeScript dashboard that shows
-  only real backend fields: node status, the live capture feed (photo +
-  sensor metadata), and the raw serial log.
-- **`simulator/`** — *new*. `demo_feed.py`, a manual-only script that
-  posts synthetic-but-correctly-formatted captures to the backend for
-  demoing the dashboard without hardware. Never started automatically.
+## Current Scope
+
+SmartRelay demonstrates sensor-triggered capture, dual-radio mesh
+transport, selective fragment recovery, local store-and-forward, and a
+laptop-side monitoring interface. It is a prototype rather than a
+finished wildlife camera system: images are supplied from microSD, and
+species identification, species review, and trigger-confidence scoring
+are not implemented. Node activity in the dashboard is based on received
+captures; the firmware does not provide a periodic laptop-facing
+heartbeat.
+
+Protocol tests and mesh simulations are included in `host/` and
+`docs/results/`. The design notes report simulator measurements, including
+lower LoRa airtime for selective retransmission than resending a complete
+file. These results are simulation measurements, not a claim of equivalent
+field performance. See [docs/DESIGN.md](docs/DESIGN.md) and
+[docs/BRINGUP.md](docs/BRINGUP.md) for the design rationale, test evidence,
+and hardware bring-up status.
+
+## Repository Structure
+
+- `alfp/` — C11 application-layer fragmentation and transfer protocol.
+- `firmware/`, `mesh/`, `third_party/` — Pico W firmware, radio meshes,
+  and sensor integrations.
+- `common/` — capture metadata and the bridge-to-laptop serial format.
+- `backend/`, `dashboard/` — capture ingestion, storage, API, and user
+  interface.
+- `host/` — protocol tests, simulations, and integration test programs.
+- `simulator/` — manually started dashboard demo feed.
+- `tools/`, `uf2/`, `docs/` — project utilities, firmware images, and
+  design and test documentation.
 
 ## Running it
 
