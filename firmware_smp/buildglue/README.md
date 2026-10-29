@@ -38,24 +38,64 @@ The script overlays `firmware_smp/app/*` and `firmware_smp/rtos_port*` into
 (replacing the port's own demo, which defines the same `usermain()` symbol) -
 nothing is committed into the submodule itself (`../../MTK3SMP_PROVENANCE.md`).
 
-## What is NOT wired in yet
+## What is NOT wired in yet, and a bigger issue found in round 2
 
 `sources.mk` compiles the kernel, `firmware_smp/app`, `alfp/`, `firmware/sensing`,
-and the raw sensor drivers (`third_party/sensors`). It does **not** yet compile:
+and the raw sensor drivers (`third_party/sensors`). `third_party/lora_mesh`,
+`third_party/wifi_mesh`, `firmware/app/{radios.c,storage_fatfs.c,hw_config.c,
+board.c}`, and the external `no-OS-FatFS-SD-SDIO-SPI-RPi-Pico` dependency are
+still not compiled in.
 
-- `third_party/lora_mesh` (the full LR1121 driver + GPIO/SPI glue) - `radios.c`'s
-  `radio_lora()` will fail to link without it.
-- `third_party/wifi_mesh` (`wifi_mesh.c`, `wst_link.c`) - `radios.c`'s
-  `radio_wifi()` will fail to link without it.
-- `firmware/app/{radios.c,storage_fatfs.c,hw_config.c,board.c}` themselves, and the
-  external `no-OS-FatFS-SD-SDIO-SPI-RPi-Pico` dependency (`tools/fetch_deps.sh`).
+**Round 2 found something more fundamental than "these files aren't added yet",
+and this PR deliberately stops short of wiring any of them in until it's
+resolved.** This port "does not link the pico-sdk runtime" - it only compiles
+the *headers* of a few Pico SDK modules plus a hand-picked handful of real
+`.c` sources for its own USB-CDC console and (if `WIFI=cyw43`) its own
+CYW43439 driver (`docs/GETTING_STARTED.md:30-42`). Every SmartRelay source
+file wired in so far - `third_party/sensors/*.c`, `firmware/sensing/*.c` -
+calls real Pico SDK runtime functions: `gpio_init`, `adc_init`/`adc_read`,
+`sleep_ms`, `get_absolute_time`/`to_ms_since_boot`, `get_rand_32`, and (once
+`radios.c`/`board.c`/`wifi_mesh.c`/`wst_link.c`/`lora_mesh`'s `gpio.c`/`spi.c`
+are added) `spi_init`, `uart_init`, `dma_channel_claim_unused`, and more.
+**None of these have a compiled implementation anywhere in this Make build.**
+Adding more `-I` include paths (headers) does not fix this - it needs the
+actual Pico SDK driver `.c` files (`hardware_gpio/gpio.c`,
+`hardware_spi/spi.c`, `hardware_adc/adc.c`, `hardware_dma/dma.c`,
+`hardware_uart/uart.c`, `pico_rand`, `pico_time`) compiled in too, the same
+way `pico_rp2040.mk`'s `WIFI=cyw43` block already does for the three it
+needs (`hardware_pio`/`hardware_dma`/`hardware_gpio`, pico_rp2040.mk:292-388).
 
-Each is a mechanical addition to `sources.mk` in the same wildcard-per-directory
-style already used for `alfp`/`sensing`/`sensors` - the reason this PR stops here
-is the sheer file count (the LR1121 driver tree alone is ~40 files) combined with
-having no toolchain in this environment to verify any of it compiles, which makes
-hand-wiring that many paths blind higher-risk than valuable. This is the next step
-for whoever picks this up with real hardware and a working toolchain.
+That alone would very likely satisfy the linker. It is **not** necessarily
+safe at runtime: this kernel does its own from-scratch clock/PLL setup with
+direct register writes, independent of the Pico SDK's clock-tracking state
+(`third_party/mtk3smp_rp2040/kernel/sysdepend/pico_rp2040/cpu_clock.c`'s
+`init_pll()`). Pico SDK driver functions like `spi_init()`/`uart_init()`
+call `clock_get_hz(clk_peri)` internally to compute baud-rate dividers from
+the SDK's *own* clock bookkeeping, which this kernel's PLL setup never
+populates - so even a build that links clean could configure SPI/UART at
+the wrong baud rate silently, rather than failing loudly. This is a real
+hardware-behaviour risk, not a style question, and not something to guess
+past without a toolchain and a real board to check it against.
+
+**What to run, and what to send back**, to make real (not guessed) progress
+on this next:
+```sh
+export PATH="/path/to/arm-gnu-toolchain/bin:$PATH"
+export PICO_SDK_PATH=/path/to/pico-sdk
+git submodule update --init third_party/mtk3smp_rp2040
+SMP=1 NODE_ID=2 firmware_smp/buildglue/build_smp.sh
+```
+Send back the **full** output, especially the linker's `undefined reference
+to ...` list if it gets that far (it tells us exactly which Pico-SDK
+functions are actually missing, rather than us guessing the full set) - and
+if it links and flashes, send back a scope trace or logic analyzer capture
+of the SPI or UART clock line next to what `board.h`/`SPI1_BAUD_HZ`/
+`WST_BAUD` expect, since that is the only way to catch the clock-tracking
+problem above before it causes a flaky LoRa/SD/WiFi-bridge link in the
+field. Each missing `gpio_*`/`spi_*`/`adc_*`/`dma_*`/`uart_*` symbol can then
+be resolved one at a time, citing the real Pico SDK source file for each,
+rather than this PR adding ~40 more files on a foundation that was not
+actually confirmed to work.
 
 ## Running the node images
 
