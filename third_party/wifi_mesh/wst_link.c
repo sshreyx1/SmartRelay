@@ -14,6 +14,7 @@
 
 #include <string.h>
 #include "pico/stdlib.h"
+#include "pico/platform.h" /* get_core_num(), CURVEBALL 3.4 */
 #include "hardware/uart.h"
 #include "hardware/irq.h"
 
@@ -52,13 +53,28 @@ static volatile uint16_t rx_head, rx_tail;
 
 static wst_link_stats_t stats;
 
+/* CURVEBALL 3.4: on an SMP build the ISR and wst_link_poll() both run on
+ * core 0 (comms_task owns the UART and enables this IRQ from there, so the
+ * IRQ is taken on the core that enabled it) -- there is no cross-core race
+ * on this ring, but the compiler barrier still stops the store to rxbuf[]
+ * from being reordered past the index publish, and logging the core once
+ * gives T2 something to check against. */
+static volatile bool s_rx_isr_core_logged;
+
 static void on_uart_rx(void) {
+    if (!s_rx_isr_core_logged) {
+        s_rx_isr_core_logged = true;
+        stats.rx_isr_core = (uint8_t)get_core_num();
+    }
     while (uart_is_readable(WST_UART)) {
         uint8_t b = (uint8_t)uart_getc(WST_UART);
         uint16_t next = (rx_head + 1) & (RXBUF_SIZE - 1);
         if (next == rx_tail) { stats.uart_overflow++; continue; }
         rxbuf[rx_head] = b;
+        __asm volatile("" ::: "memory"); /* data write before index publish */
         rx_head = next;
+        uint16_t fill = (uint16_t)((rx_head - rx_tail) & (RXBUF_SIZE - 1));
+        if (fill > stats.rx_high_watermark) stats.rx_high_watermark = fill;
     }
 }
 
@@ -204,6 +220,7 @@ void wst_link_poll(void) {
     /* 1. Rebuild frames from bytes the interrupt collected */
     while (rx_tail != rx_head) {
         uint8_t b = rxbuf[rx_tail];
+        __asm volatile("" ::: "memory"); /* data read before index publish */
         rx_tail = (rx_tail + 1) & (RXBUF_SIZE - 1);
         parse_byte(b);
     }

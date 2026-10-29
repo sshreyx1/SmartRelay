@@ -48,6 +48,8 @@ typedef struct {
     uint32_t rx_crc_err;      /* frames thrown away for bad CRC           */
     uint32_t rx_queue_full;   /* packets lost because nobody read them    */
     uint32_t uart_overflow;   /* bytes lost because poll() was too slow   */
+    uint16_t rx_high_watermark; /* peak RX ring fill, bytes of RXBUF_SIZE (CURVEBALL 3.4) */
+    uint8_t  rx_isr_core;       /* core the UART0 RX IRQ ran on, logged once (CURVEBALL 3.4) */
 } wst_link_stats_t;
 
 /* Set up UART0 on GP16/GP17 at 115200 and ask the WST for its MAC. */
