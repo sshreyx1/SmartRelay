@@ -43,7 +43,8 @@
 static alfp_ctx_t g_alfp;
 static alfp_outbox_t g_outbox;
 static rtos_id_t g_capture_q = -1;
-static capture_meta_t g_capture_q_buf[4];
+#define CAPTURE_Q_DEPTH 4
+static uint8_t g_capture_q_buf[RTOS_MSGQ_BYTES(sizeof(capture_meta_t), CAPTURE_Q_DEPTH)];
 static const mesh_radio_t* g_radios[2];
 static uint32_t g_capture_id;
 static uint8_t g_n_samples, g_next_sample;
@@ -54,7 +55,7 @@ static rtos_id_t g_sensors_task_id = -1;
 static rtos_id_t g_owner_task_id = -1;
 
 /* Section 7 stats additions. */
-static uint32_t g_capture_queue_full_count;
+static volatile uint32_t g_capture_queue_full_count;
 static uint32_t g_longest_comms_loop_ms;
 
 /* ---- platform ---------------------------------------------------------------------------- */
@@ -125,7 +126,7 @@ bool app_request_capture(const capture_meta_t* sensors)
     {
         return true;
     }
-    g_capture_queue_full_count++;
+    rtos_atomic_add_u32(&g_capture_queue_full_count, 1); /* app_request_capture runs on sensors (core 1) and comms/usb_owner (core 0) */
     log_write_line("capture queue full");
     return false;
 }
@@ -509,11 +510,10 @@ static void usb_owner_task(void* arg)
             }
         }
 
-        /* tm_getchar(0): non-blocking per app_main.c's tm_usb_state()/
-         * tm_usb_dropped_bytes() demo pattern - verify the exact "no key
-         * ready" return value against tm library source before relying on
-         * it for anything other than "!= a known key letter" (as here). */
-        int ch = tm_getchar(0);
+        /* Round 2 review fix A2: tm_getchar(0) is dead on CONSOLE=usb_cdc
+         * (see firmware_smp/buildglue/usb_tinyusb_glue_overlay.c); this
+         * reads the same CDC RX bytes via the build-time overlay instead. */
+        int ch = rtos_console_getchar();
         if (ch == 'c')
         {
             rtos_flags_set(g_flags, EVT_FORCE_CAPTURE);
@@ -555,9 +555,21 @@ static void usb_owner_task(void* arg)
 
 void app_main_smp(void)
 {
+    rtos_atomic_init();
     log_init();
+
+    /* Round 2 review fix A4: confirm both queues really hold exactly the
+     * depth they are supposed to, before any task starts using either one.
+     * The log ring's own selftest must run (and finish, leaving it empty)
+     * before the first real log_write_line. */
+    char selftest_line[LOG_LINE_MAX];
+    log_selftest(selftest_line, sizeof(selftest_line));
+    log_write_line(selftest_line);
+
     g_flags = rtos_flags_create();
-    g_capture_q = rtos_msgq_create(sizeof(capture_meta_t), 4, g_capture_q_buf);
+    g_capture_q = rtos_msgq_create(sizeof(capture_meta_t), CAPTURE_Q_DEPTH, g_capture_q_buf);
+    rtos_msgq_selftest(g_capture_q, sizeof(capture_meta_t), CAPTURE_Q_DEPTH, selftest_line, sizeof(selftest_line));
+    log_write_line(selftest_line);
 
     g_comms_task_id =
         rtos_task_create("comms", comms_task, NULL, RTOS_PRIO_COMMS, 8192, RTOS_CORE_0);

@@ -14,6 +14,11 @@
 
 void log_init(void);
 
+/* Round 2 review fix A4: call once, right after log_init(), before any
+ * log_write_line - confirms the ring really holds LOG_RING_DEPTH lines, no
+ * more, no less, and leaves it empty afterward. */
+bool log_selftest(char* out_line, uint32_t out_line_max);
+
 /* Never blocks. Drops the line and counts it if the ring is full - a
  * stalled terminal/dashboard must never stall comms or sensors (3.6). */
 void log_write_line(const char* line);
