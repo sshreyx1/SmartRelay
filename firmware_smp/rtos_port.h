@@ -51,20 +51,41 @@ void rtos_delay_ms(uint32_t ms);
 rtos_id_t rtos_flags_create(void);
 void rtos_flags_set(rtos_id_t flags, uint32_t bits);
 void rtos_flags_clear(rtos_id_t flags, uint32_t bits);
-/* Waits for ANY bit in mask; on success *out_bits holds the flags, pre-clear.
+/* Waits for ANY bit in mask; on success *out_bits holds the matched flags.
  * timeout_ms: RTOS_NO_WAIT, RTOS_WAIT_FOREVER, or a ms value. Returns false
- * on timeout. The matched bits are cleared atomically on return (TWF_CLR). */
+ * on timeout. Only the matched bits are cleared on return (TWF_BITCLR, not
+ * TWF_CLR - round 2 review fix A3: TWF_CLR would zero every bit in the
+ * group, including ones a different task is still waiting on, since
+ * EVT_WANT_STATS/EVT_FORCE_CAPTURE/etc. all share one group in
+ * main_smp.c - see the citation in rtos_port_mtk3.c). */
 bool rtos_flags_wait_any(rtos_id_t flags, uint32_t mask, uint32_t* out_bits, int32_t timeout_ms);
+
+/* Required backing_buf size for rtos_msgq_create (round 2 review fix A4):
+ * each queued message costs 4 bytes of header plus msg_size rounded up to a
+ * multiple of 4, not just msg_size - verified in
+ * third_party/mtk3smp_rp2040/kernel/tkernel/messagebuf.c/.h (HEADERSZ=4,
+ * ROUNDSZ rounds to a multiple of 4). Sizing backing_buf as msg_size*count
+ * under-allocates it relative to what T_CMBF.bufsz is told it is, which is
+ * a real buffer overflow risk, not just a capacity mismatch. */
+#define RTOS_MSGQ_BYTES(msg_size, count) \
+    ((uint32_t)(count) * (4u + (((uint32_t)(msg_size) + 3u) & ~3u)))
 
 /* Fixed-size message buffer, msg_size bytes per message, count messages deep.
  * backing_buf must be caller-allocated static/global storage of at least
- * msg_size*count bytes that outlives the queue (the kernel's T_CMBF keeps a
- * bare pointer into it, not a copy - see rtos_port_mtk3.c). */
+ * RTOS_MSGQ_BYTES(msg_size, count) bytes that outlives the queue (the
+ * kernel's T_CMBF keeps a bare pointer into it, not a copy). */
 rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* backing_buf);
 /* Never blocks (TMO_POL). Returns false ("queue full") without sending. */
 bool rtos_msgq_send_nowait(rtos_id_t q, const void* msg, uint32_t msg_size);
 /* timeout_ms: RTOS_NO_WAIT, RTOS_WAIT_FOREVER, or a ms value. */
 bool rtos_msgq_recv(rtos_id_t q, void* msg, uint32_t msg_size, int32_t timeout_ms);
+
+/* Round 2 review fix A4: startup self-check. Sends `count` dummy messages,
+ * confirms the (count+1)th is refused, drains everything back out (leaves
+ * the queue empty), and returns whether all three held. If log_line is
+ * non-NULL and log_line_max >= 64, writes a one-line summary into it (the
+ * caller logs it - rtos_port does not depend on log.h). */
+bool rtos_msgq_selftest(rtos_id_t q, uint32_t msg_size, uint32_t count, char* log_line, uint32_t log_line_max);
 
 /* Free-running millisecond counter, for every timeout the brief moves off
  * FreeRTOS ticks (3.3): TXDONE 100 ms, heartbeat 3 s, bridge-lost 10 s. This
@@ -80,6 +101,12 @@ uint32_t rtos_elapsed_ms(uint32_t start_ms);
 /* 0 or 1. Every task logs this once at start (brief 3.6). */
 unsigned rtos_core_id(void);
 
+/* Round 2 review fix A2: tm_getchar(0) is dead on the CONSOLE=usb_cdc
+ * profile (see firmware_smp/buildglue/usb_tinyusb_glue_overlay.c for why
+ * and the build-time overlay that fixes it). This is what usb_owner_task
+ * calls instead. Returns the byte, or -1 if none is waiting. */
+int rtos_console_getchar(void);
+
 /* For the DHT22 priority boost (brief 3.7/3.8, Gap 14 default: keep as is). */
 unsigned rtos_priority_self_get(void);
 void rtos_priority_self_set(unsigned prio);
@@ -90,6 +117,15 @@ void rtos_priority_self_set(unsigned prio);
  * lowest byte ever touched). Returns bytes never touched, or 0 if task is
  * not a valid rtos_port-created task id. */
 uint32_t rtos_task_stack_free(rtos_id_t task);
+
+/* Round 2 review fix A8: a plain x++ on these diagnostic counters is not
+ * atomic across the two Cortex-M0+ cores (no LDREX/STREX on armv6m), so an
+ * increment from the "wrong" core relative to another one in flight can be
+ * lost. rtos_atomic_init() must run once, before any task starts (called
+ * from app_main_smp()); rtos_atomic_add_u32 is then safe to call from any
+ * task/core for a counter only ever touched this way. */
+void rtos_atomic_init(void);
+void rtos_atomic_add_u32(volatile uint32_t* counter, uint32_t delta);
 
 #ifdef __cplusplus
 }
