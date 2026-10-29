@@ -22,9 +22,9 @@ Vendored as a git submodule, pinned at commit `900e86306dc3f3dcd8bbbd23f0e986941
   read) -- flagged in the PR for a human to check before shipping.
 - Build system: GNU Make (`build_make/`), not CMake -- see
   ../docs/curveball_findings.md Step 2 item 8 for why this repo's build
-  integration lives in ../firmware_smp/build/ rather than patching this
+  integration lives in ../firmware_smp/buildglue/ rather than patching this
   submodule directly.
 
 Do not edit files inside this submodule. Build-time customization (app sources,
-`sources.mk`) lives in ../firmware_smp/build/ and is copied in by the build
+`sources.mk`) lives in ../firmware_smp/buildglue/ and is copied in by the build
 script, never committed into the submodule itself.
