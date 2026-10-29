@@ -452,9 +452,36 @@ static void sensors_task(void* arg)
 
 static void print_help(void)
 {
-    log_write_line(
-        "keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | h help");
+    log_write_line("keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle "
+                    "WiFi topology filter | x T6: fire 5 captures fast | z T8: simulate a stalled "
+                    "terminal for 5s | h help");
 }
+
+/* T6 helper (brief Section 8): app_request_capture() is a plain exported
+ * function, safe to call from any task, so this fires 5 requests back to
+ * back from the console task itself rather than waiting on sensors_task's
+ * slower, gated trigger path - the 5th should return false. Not perfectly
+ * deterministic (comms_task could drain between calls if it is scheduled
+ * in between), but close enough to demonstrate the full-queue path on
+ * demand per the brief's "trigger 5+ captures quickly". */
+static void t6_fire_captures(void)
+{
+    capture_meta_t m;
+    capture_meta_clear(&m);
+    for (int i = 0; i < 5; i++)
+    {
+        bool ok = app_request_capture(&m);
+        char line[LOG_LINE_MAX];
+        tm_sprintf((UB*)line, (UB*)"[T6] capture request %d: %s", i + 1, ok ? "queued" : "refused");
+        log_write_line(line);
+    }
+}
+
+/* T8 helper: stop draining the log ring for 5 s, as if a terminal/dashboard
+ * had stopped reading. comms/sensors keep running on their own loops the
+ * whole time (they only ever do a non-blocking send); log_dropped_count()
+ * should climb instead of anything stalling. */
+static uint32_t s_stall_until_ms;
 
 static void usb_owner_task(void* arg)
 {
@@ -471,10 +498,15 @@ static void usb_owner_task(void* arg)
 
     for (;;)
     {
-        char drained[LOG_LINE_MAX];
-        while (log_drain_one(drained, RTOS_NO_WAIT))
+        bool stalled = s_stall_until_ms != 0 && (int32_t)(rtos_now_ms() - s_stall_until_ms) < 0;
+        if (!stalled)
         {
-            tm_printf((UB*)"%s\n", drained);
+            s_stall_until_ms = 0;
+            char drained[LOG_LINE_MAX];
+            while (log_drain_one(drained, RTOS_NO_WAIT))
+            {
+                tm_printf((UB*)"%s\n", drained);
+            }
         }
 
         /* tm_getchar(0): non-blocking per app_main.c's tm_usb_state()/
@@ -505,6 +537,14 @@ static void usb_owner_task(void* arg)
         else if (ch == 'd')
         {
             rtos_flags_set(g_flags, EVT_TOGGLE_DROP);
+        }
+        else if (ch == 'x')
+        {
+            t6_fire_captures();
+        }
+        else if (ch == 'z')
+        {
+            s_stall_until_ms = rtos_now_ms() + 5000u;
         }
         /* Drain the log ring at least this often even with no console input
          * (brief 3.6: a stalled terminal must never stall comms/sensors - the
