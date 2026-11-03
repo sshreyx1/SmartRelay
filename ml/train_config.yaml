@@ -4,6 +4,9 @@ phase: A
 features: data/features_v1.csv
 # full = the plan's grid; fast = DecisionTree depth 6/8 + RandomForest n=10 depth 8 (minutes, not hours)
 grid: full
+# features the trees may not use (still computed by the node; e.g. loudness, which the MAX9814 AGC and the
+# speaker volume change between sessions)
+ignore_features: []
 random_state: 0
 # split_key -> role (ESC-50 folds; Phase B uses recordists)
 train_keys: [1, 2, 3]

@@ -1,6 +1,7 @@
 .venv/
 # audio: downloads, raw Pico recordings and the software-converted backup takes stay local
 data/raw/
+data/raw_old/
 data/esc50/
 data/xc/
 data/direct/

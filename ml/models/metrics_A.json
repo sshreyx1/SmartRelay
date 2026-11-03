@@ -1,12 +1,18 @@
 {
  "phase": "A",
  "date": "2026-11-03",
- "features_csv": "data/features_esc50_direct.csv",
+ "features_csv": "data/features_v1.csv",
  "grid": "full",
- "data_note": "BACKUP MODEL: trained on ESC-50 clips converted directly to ADC-like samples (ml/esc50_direct.py), NOT recorded through the Pico mic. Retrain on mic recordings (docs/sound/TONIGHT.md).",
- "n_takes": 2000,
- "n_train_val": 1600,
- "n_test": 400,
+ "ignored_features": [
+  "loud_std",
+  "loud_range",
+  "log_rms",
+  "active_frac"
+ ],
+ "data_note": "",
+ "n_takes": 510,
+ "n_train_val": 408,
+ "n_test": 102,
  "feature_names": [
   "band_62_250_mean",
   "band_250_500_mean",
@@ -34,1175 +40,1175 @@
   "flux_mean",
   "log_rms"
  ],
- "stage2_min_conf": 44,
+ "stage2_min_conf": 101,
  "test": {
-  "group_accuracy": 0.57,
-  "group_macro_f1": 0.6129,
-  "label_accuracy": 0.4075,
-  "label_macro_f1": 0.3097,
-  "coverage": 0.241,
-  "finer_label_precision": 0.8511,
-  "animal_vs_not_accuracy": 0.7925,
-  "legacy_animal_vs_not_accuracy": 0.4675,
+  "group_accuracy": 0.4902,
+  "group_macro_f1": 0.4993,
+  "label_accuracy": 0.2255,
+  "label_macro_f1": 0.0947,
+  "coverage": 0.0,
+  "finer_label_precision": 0.0,
+  "animal_vs_not_accuracy": 0.8137,
+  "legacy_animal_vs_not_accuracy": 0.4706,
   "stage1_quantised_vs_sklearn_agreement": 1.0
  },
  "chosen": {
   "stage1": {
-   "model": "RF n=20 d=8",
-   "val_macro_f1": 0.6375,
-   "nodes": 3326
+   "model": "RF n=10 d=8",
+   "val_macro_f1": 0.5552,
+   "nodes": 856
   },
   "1": {
-   "model": "RF n=10 d=6",
-   "val_macro_f1": 0.8911,
-   "nodes": 372
+   "model": "ET n=20 d=6",
+   "val_macro_f1": 0.8161,
+   "nodes": 512
   },
   "2": {
-   "model": "RF n=20 d=8",
-   "val_macro_f1": 0.8023,
-   "nodes": 1170
+   "model": "DT d=4 leaf=2",
+   "val_macro_f1": 0.6325,
+   "nodes": 15
   },
   "3": {
-   "model": "ET n=20 d=6",
-   "val_macro_f1": 0.8741,
-   "nodes": 848
+   "model": "RF n=20 d=6",
+   "val_macro_f1": 0.9153,
+   "nodes": 214
   }
  },
- "model_flash_bytes": 48361,
+ "model_flash_bytes": 12629,
  "candidates": [
   {
    "stage": "stage1 group",
    "model": "DT d=4 leaf=2",
-   "val_macro_f1": 0.365,
-   "nodes": 25,
-   "flash_bytes": 199,
+   "val_macro_f1": 0.3729,
+   "nodes": 17,
+   "flash_bytes": 135,
    "chosen": false
   },
   {
    "stage": "stage1 group",
    "model": "DT d=4 leaf=5",
-   "val_macro_f1": 0.3648,
-   "nodes": 23,
-   "flash_bytes": 183,
+   "val_macro_f1": 0.3729,
+   "nodes": 17,
+   "flash_bytes": 135,
    "chosen": false
   },
   {
    "stage": "stage1 group",
    "model": "DT d=6 leaf=2",
-   "val_macro_f1": 0.4495,
-   "nodes": 63,
-   "flash_bytes": 503,
+   "val_macro_f1": 0.4768,
+   "nodes": 49,
+   "flash_bytes": 391,
    "chosen": false
   },
   {
    "stage": "stage1 group",
    "model": "DT d=6 leaf=5",
-   "val_macro_f1": 0.4518,
-   "nodes": 57,
-   "flash_bytes": 455,
+   "val_macro_f1": 0.4992,
+   "nodes": 45,
+   "flash_bytes": 359,
    "chosen": false
   },
   {
    "stage": "stage1 group",
    "model": "DT d=8 leaf=2",
-   "val_macro_f1": 0.5174,
+   "val_macro_f1": 0.4402,
+   "nodes": 91,
+   "flash_bytes": 727,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "DT d=8 leaf=5",
+   "val_macro_f1": 0.4306,
+   "nodes": 73,
+   "flash_bytes": 583,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "DT d=10 leaf=2",
+   "val_macro_f1": 0.4497,
+   "nodes": 129,
+   "flash_bytes": 1031,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "DT d=10 leaf=5",
+   "val_macro_f1": 0.4306,
+   "nodes": 83,
+   "flash_bytes": 663,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "RF n=5 d=6",
+   "val_macro_f1": 0.4857,
+   "nodes": 233,
+   "flash_bytes": 1859,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "RF n=5 d=8",
+   "val_macro_f1": 0.5105,
+   "nodes": 429,
+   "flash_bytes": 3427,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "RF n=10 d=6",
+   "val_macro_f1": 0.522,
+   "nodes": 478,
+   "flash_bytes": 3814,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "RF n=10 d=8",
+   "val_macro_f1": 0.5552,
+   "nodes": 856,
+   "flash_bytes": 6838,
+   "chosen": true
+  },
+  {
+   "stage": "stage1 group",
+   "model": "RF n=20 d=6",
+   "val_macro_f1": 0.5542,
+   "nodes": 940,
+   "flash_bytes": 7500,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "RF n=20 d=8",
+   "val_macro_f1": 0.4861,
+   "nodes": 1718,
+   "flash_bytes": 13724,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "ET n=5 d=6",
+   "val_macro_f1": 0.4091,
+   "nodes": 299,
+   "flash_bytes": 2387,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "ET n=5 d=8",
+   "val_macro_f1": 0.4707,
+   "nodes": 577,
+   "flash_bytes": 4611,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "ET n=10 d=6",
+   "val_macro_f1": 0.4406,
+   "nodes": 624,
+   "flash_bytes": 4982,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "ET n=10 d=8",
+   "val_macro_f1": 0.5157,
+   "nodes": 1148,
+   "flash_bytes": 9174,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "ET n=20 d=6",
+   "val_macro_f1": 0.5355,
+   "nodes": 1370,
+   "flash_bytes": 10940,
+   "chosen": false
+  },
+  {
+   "stage": "stage1 group",
+   "model": "ET n=20 d=8",
+   "val_macro_f1": 0.5445,
+   "nodes": 2420,
+   "flash_bytes": 19340,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=4 leaf=2",
+   "val_macro_f1": 0.6317,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=4 leaf=5",
+   "val_macro_f1": 0.556,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=6 leaf=2",
+   "val_macro_f1": 0.6317,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=6 leaf=5",
+   "val_macro_f1": 0.556,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=8 leaf=2",
+   "val_macro_f1": 0.6317,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=8 leaf=5",
+   "val_macro_f1": 0.556,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=10 leaf=2",
+   "val_macro_f1": 0.6317,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "DT d=10 leaf=5",
+   "val_macro_f1": 0.556,
+   "nodes": 11,
+   "flash_bytes": 69,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "RF n=5 d=6",
+   "val_macro_f1": 0.5444,
+   "nodes": 67,
+   "flash_bytes": 423,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "RF n=5 d=8",
+   "val_macro_f1": 0.5444,
+   "nodes": 67,
+   "flash_bytes": 423,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "RF n=10 d=6",
+   "val_macro_f1": 0.6139,
+   "nodes": 132,
+   "flash_bytes": 833,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "RF n=10 d=8",
+   "val_macro_f1": 0.6139,
+   "nodes": 132,
+   "flash_bytes": 833,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "RF n=20 d=6",
+   "val_macro_f1": 0.6139,
+   "nodes": 264,
+   "flash_bytes": 1666,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "RF n=20 d=8",
+   "val_macro_f1": 0.6139,
+   "nodes": 264,
+   "flash_bytes": 1666,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "ET n=5 d=6",
+   "val_macro_f1": 0.6484,
    "nodes": 119,
-   "flash_bytes": 951,
+   "flash_bytes": 761,
    "chosen": false
   },
   {
-   "stage": "stage1 group",
+   "stage": "stage2 BIRD",
+   "model": "ET n=5 d=8",
+   "val_macro_f1": 0.5429,
+   "nodes": 123,
+   "flash_bytes": 787,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "ET n=10 d=6",
+   "val_macro_f1": 0.6976,
+   "nodes": 260,
+   "flash_bytes": 1665,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "ET n=10 d=8",
+   "val_macro_f1": 0.6976,
+   "nodes": 278,
+   "flash_bytes": 1782,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "ET n=20 d=6",
+   "val_macro_f1": 0.8161,
+   "nodes": 512,
+   "flash_bytes": 3278,
+   "chosen": true
+  },
+  {
+   "stage": "stage2 BIRD",
+   "model": "ET n=20 d=8",
+   "val_macro_f1": 0.7476,
+   "nodes": 548,
+   "flash_bytes": 3512,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "DT d=4 leaf=2",
+   "val_macro_f1": 0.6325,
+   "nodes": 15,
+   "flash_bytes": 103,
+   "chosen": true
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "DT d=4 leaf=5",
+   "val_macro_f1": 0.4724,
+   "nodes": 15,
+   "flash_bytes": 103,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "DT d=6 leaf=2",
+   "val_macro_f1": 0.531,
+   "nodes": 19,
+   "flash_bytes": 131,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "DT d=6 leaf=5",
+   "val_macro_f1": 0.4724,
+   "nodes": 17,
+   "flash_bytes": 117,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "DT d=8 leaf=2",
+   "val_macro_f1": 0.531,
+   "nodes": 19,
+   "flash_bytes": 131,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
    "model": "DT d=8 leaf=5",
-   "val_macro_f1": 0.5357,
+   "val_macro_f1": 0.4724,
+   "nodes": 17,
+   "flash_bytes": 117,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "DT d=10 leaf=2",
+   "val_macro_f1": 0.531,
+   "nodes": 19,
+   "flash_bytes": 131,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "DT d=10 leaf=5",
+   "val_macro_f1": 0.4724,
+   "nodes": 17,
+   "flash_bytes": 117,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "RF n=5 d=6",
+   "val_macro_f1": 0.4976,
+   "nodes": 95,
+   "flash_bytes": 655,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "RF n=5 d=8",
+   "val_macro_f1": 0.3874,
+   "nodes": 101,
+   "flash_bytes": 697,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "RF n=10 d=6",
+   "val_macro_f1": 0.47,
+   "nodes": 188,
+   "flash_bytes": 1296,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "RF n=10 d=8",
+   "val_macro_f1": 0.3867,
+   "nodes": 194,
+   "flash_bytes": 1338,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "RF n=20 d=6",
+   "val_macro_f1": 0.5476,
+   "nodes": 382,
+   "flash_bytes": 2634,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "RF n=20 d=8",
+   "val_macro_f1": 0.4952,
+   "nodes": 396,
+   "flash_bytes": 2732,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "ET n=5 d=6",
+   "val_macro_f1": 0.4424,
+   "nodes": 163,
+   "flash_bytes": 1131,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "ET n=5 d=8",
+   "val_macro_f1": 0.4731,
+   "nodes": 213,
+   "flash_bytes": 1481,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "ET n=10 d=6",
+   "val_macro_f1": 0.499,
+   "nodes": 314,
+   "flash_bytes": 2178,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "ET n=10 d=8",
+   "val_macro_f1": 0.4667,
+   "nodes": 414,
+   "flash_bytes": 2878,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "ET n=20 d=6",
+   "val_macro_f1": 0.5714,
+   "nodes": 666,
+   "flash_bytes": 4622,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 MAMMAL",
+   "model": "ET n=20 d=8",
+   "val_macro_f1": 0.5214,
+   "nodes": 816,
+   "flash_bytes": 5672,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=4 leaf=2",
+   "val_macro_f1": 0.5333,
+   "nodes": 11,
+   "flash_bytes": 63,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=4 leaf=5",
+   "val_macro_f1": 0.7504,
+   "nodes": 9,
+   "flash_bytes": 51,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=6 leaf=2",
+   "val_macro_f1": 0.5333,
+   "nodes": 11,
+   "flash_bytes": 63,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=6 leaf=5",
+   "val_macro_f1": 0.7504,
+   "nodes": 9,
+   "flash_bytes": 51,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=8 leaf=2",
+   "val_macro_f1": 0.5333,
+   "nodes": 11,
+   "flash_bytes": 63,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=8 leaf=5",
+   "val_macro_f1": 0.7504,
+   "nodes": 9,
+   "flash_bytes": 51,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=10 leaf=2",
+   "val_macro_f1": 0.5333,
+   "nodes": 11,
+   "flash_bytes": 63,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "DT d=10 leaf=5",
+   "val_macro_f1": 0.7504,
+   "nodes": 9,
+   "flash_bytes": 51,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "RF n=5 d=6",
+   "val_macro_f1": 0.7504,
+   "nodes": 53,
+   "flash_bytes": 303,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "RF n=5 d=8",
+   "val_macro_f1": 0.7504,
+   "nodes": 53,
+   "flash_bytes": 303,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "RF n=10 d=6",
+   "val_macro_f1": 0.8222,
+   "nodes": 108,
+   "flash_bytes": 618,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "RF n=10 d=8",
+   "val_macro_f1": 0.8222,
+   "nodes": 108,
+   "flash_bytes": 618,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "RF n=20 d=6",
+   "val_macro_f1": 0.9153,
+   "nodes": 214,
+   "flash_bytes": 1224,
+   "chosen": true
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "RF n=20 d=8",
+   "val_macro_f1": 0.9153,
+   "nodes": 214,
+   "flash_bytes": 1224,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "ET n=5 d=6",
+   "val_macro_f1": 0.6722,
+   "nodes": 97,
+   "flash_bytes": 567,
+   "chosen": false
+  },
+  {
+   "stage": "stage2 INSECT_FROG",
+   "model": "ET n=5 d=8",
+   "val_macro_f1": 0.8381,
    "nodes": 103,
-   "flash_bytes": 823,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "DT d=10 leaf=2",
-   "val_macro_f1": 0.5122,
-   "nodes": 217,
-   "flash_bytes": 1735,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "DT d=10 leaf=5",
-   "val_macro_f1": 0.515,
-   "nodes": 181,
-   "flash_bytes": 1447,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "RF n=5 d=6",
-   "val_macro_f1": 0.5671,
-   "nodes": 411,
-   "flash_bytes": 3283,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "RF n=5 d=8",
-   "val_macro_f1": 0.5678,
-   "nodes": 833,
-   "flash_bytes": 6659,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "RF n=10 d=6",
-   "val_macro_f1": 0.5785,
-   "nodes": 768,
-   "flash_bytes": 6134,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "RF n=10 d=8",
-   "val_macro_f1": 0.6036,
-   "nodes": 1630,
-   "flash_bytes": 13030,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "RF n=20 d=6",
-   "val_macro_f1": 0.5705,
-   "nodes": 1570,
-   "flash_bytes": 12540,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "RF n=20 d=8",
-   "val_macro_f1": 0.6375,
-   "nodes": 3326,
-   "flash_bytes": 26588,
-   "chosen": true
-  },
-  {
-   "stage": "stage1 group",
-   "model": "ET n=5 d=6",
-   "val_macro_f1": 0.4994,
-   "nodes": 449,
-   "flash_bytes": 3587,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "ET n=5 d=8",
-   "val_macro_f1": 0.5599,
-   "nodes": 1139,
-   "flash_bytes": 9107,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "ET n=10 d=6",
-   "val_macro_f1": 0.5383,
-   "nodes": 848,
-   "flash_bytes": 6774,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "ET n=10 d=8",
-   "val_macro_f1": 0.5673,
-   "nodes": 2022,
-   "flash_bytes": 16166,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "ET n=20 d=6",
-   "val_macro_f1": 0.5798,
-   "nodes": 1864,
-   "flash_bytes": 14892,
-   "chosen": false
-  },
-  {
-   "stage": "stage1 group",
-   "model": "ET n=20 d=8",
-   "val_macro_f1": 0.588,
-   "nodes": 4246,
-   "flash_bytes": 33948,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=4 leaf=2",
-   "val_macro_f1": 0.7202,
-   "nodes": 21,
-   "flash_bytes": 134,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=4 leaf=5",
-   "val_macro_f1": 0.7514,
-   "nodes": 19,
-   "flash_bytes": 121,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=6 leaf=2",
-   "val_macro_f1": 0.7964,
-   "nodes": 33,
-   "flash_bytes": 212,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=6 leaf=5",
-   "val_macro_f1": 0.7484,
-   "nodes": 27,
-   "flash_bytes": 173,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=8 leaf=2",
-   "val_macro_f1": 0.8294,
-   "nodes": 41,
-   "flash_bytes": 264,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=8 leaf=5",
-   "val_macro_f1": 0.8154,
-   "nodes": 31,
-   "flash_bytes": 199,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=10 leaf=2",
-   "val_macro_f1": 0.8294,
-   "nodes": 41,
-   "flash_bytes": 264,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "DT d=10 leaf=5",
-   "val_macro_f1": 0.8154,
-   "nodes": 31,
-   "flash_bytes": 199,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "RF n=5 d=6",
-   "val_macro_f1": 0.8607,
-   "nodes": 177,
-   "flash_bytes": 1138,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "RF n=5 d=8",
-   "val_macro_f1": 0.8348,
-   "nodes": 197,
-   "flash_bytes": 1268,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "RF n=10 d=6",
-   "val_macro_f1": 0.8911,
-   "nodes": 372,
-   "flash_bytes": 2393,
-   "chosen": true
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "RF n=10 d=8",
-   "val_macro_f1": 0.8447,
-   "nodes": 412,
-   "flash_bytes": 2653,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "RF n=20 d=6",
-   "val_macro_f1": 0.8625,
-   "nodes": 746,
-   "flash_bytes": 4799,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "RF n=20 d=8",
-   "val_macro_f1": 0.831,
-   "nodes": 840,
-   "flash_bytes": 5410,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "ET n=5 d=6",
-   "val_macro_f1": 0.7718,
-   "nodes": 285,
-   "flash_bytes": 1840,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "ET n=5 d=8",
-   "val_macro_f1": 0.8367,
-   "nodes": 401,
-   "flash_bytes": 2594,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "ET n=10 d=6",
-   "val_macro_f1": 0.8101,
-   "nodes": 554,
-   "flash_bytes": 3576,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "ET n=10 d=8",
-   "val_macro_f1": 0.8206,
-   "nodes": 780,
-   "flash_bytes": 5045,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "ET n=20 d=6",
-   "val_macro_f1": 0.8229,
-   "nodes": 1120,
-   "flash_bytes": 7230,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 BIRD",
-   "model": "ET n=20 d=8",
-   "val_macro_f1": 0.8404,
-   "nodes": 1634,
-   "flash_bytes": 10571,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=4 leaf=2",
-   "val_macro_f1": 0.5357,
-   "nodes": 25,
-   "flash_bytes": 173,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=4 leaf=5",
-   "val_macro_f1": 0.5357,
-   "nodes": 25,
-   "flash_bytes": 173,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=6 leaf=2",
-   "val_macro_f1": 0.6434,
-   "nodes": 57,
-   "flash_bytes": 397,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=6 leaf=5",
-   "val_macro_f1": 0.5723,
-   "nodes": 45,
-   "flash_bytes": 313,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=8 leaf=2",
-   "val_macro_f1": 0.6434,
-   "nodes": 57,
-   "flash_bytes": 397,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=8 leaf=5",
-   "val_macro_f1": 0.5723,
-   "nodes": 45,
-   "flash_bytes": 313,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=10 leaf=2",
-   "val_macro_f1": 0.6434,
-   "nodes": 57,
-   "flash_bytes": 397,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "DT d=10 leaf=5",
-   "val_macro_f1": 0.5723,
-   "nodes": 45,
-   "flash_bytes": 313,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "RF n=5 d=6",
-   "val_macro_f1": 0.7174,
-   "nodes": 241,
-   "flash_bytes": 1677,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "RF n=5 d=8",
-   "val_macro_f1": 0.6132,
-   "nodes": 295,
-   "flash_bytes": 2055,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "RF n=10 d=6",
-   "val_macro_f1": 0.6974,
-   "nodes": 486,
-   "flash_bytes": 3382,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "RF n=10 d=8",
-   "val_macro_f1": 0.7404,
-   "nodes": 594,
-   "flash_bytes": 4138,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "RF n=20 d=6",
-   "val_macro_f1": 0.7505,
-   "nodes": 922,
-   "flash_bytes": 6414,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "RF n=20 d=8",
-   "val_macro_f1": 0.8023,
-   "nodes": 1170,
-   "flash_bytes": 8150,
-   "chosen": true
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "ET n=5 d=6",
-   "val_macro_f1": 0.6129,
-   "nodes": 339,
-   "flash_bytes": 2363,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "ET n=5 d=8",
-   "val_macro_f1": 0.5403,
-   "nodes": 529,
-   "flash_bytes": 3693,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "ET n=10 d=6",
-   "val_macro_f1": 0.6461,
-   "nodes": 684,
-   "flash_bytes": 4768,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "ET n=10 d=8",
-   "val_macro_f1": 0.6626,
-   "nodes": 1082,
-   "flash_bytes": 7554,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "ET n=20 d=6",
-   "val_macro_f1": 0.6495,
-   "nodes": 1328,
-   "flash_bytes": 9256,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 MAMMAL",
-   "model": "ET n=20 d=8",
-   "val_macro_f1": 0.7666,
-   "nodes": 2118,
-   "flash_bytes": 14786,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=4 leaf=2",
-   "val_macro_f1": 0.6126,
-   "nodes": 21,
-   "flash_bytes": 123,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=4 leaf=5",
-   "val_macro_f1": 0.6572,
-   "nodes": 19,
-   "flash_bytes": 111,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=6 leaf=2",
-   "val_macro_f1": 0.6126,
-   "nodes": 21,
-   "flash_bytes": 123,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=6 leaf=5",
-   "val_macro_f1": 0.6572,
-   "nodes": 19,
-   "flash_bytes": 111,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=8 leaf=2",
-   "val_macro_f1": 0.6126,
-   "nodes": 21,
-   "flash_bytes": 123,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=8 leaf=5",
-   "val_macro_f1": 0.6572,
-   "nodes": 19,
-   "flash_bytes": 111,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=10 leaf=2",
-   "val_macro_f1": 0.6126,
-   "nodes": 21,
-   "flash_bytes": 123,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "DT d=10 leaf=5",
-   "val_macro_f1": 0.6572,
-   "nodes": 19,
-   "flash_bytes": 111,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "RF n=5 d=6",
-   "val_macro_f1": 0.7546,
-   "nodes": 115,
-   "flash_bytes": 675,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "RF n=5 d=8",
-   "val_macro_f1": 0.7546,
-   "nodes": 115,
-   "flash_bytes": 675,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "RF n=10 d=6",
-   "val_macro_f1": 0.7738,
-   "nodes": 236,
-   "flash_bytes": 1386,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "RF n=10 d=8",
-   "val_macro_f1": 0.7738,
-   "nodes": 236,
-   "flash_bytes": 1386,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "RF n=20 d=6",
-   "val_macro_f1": 0.8538,
-   "nodes": 466,
-   "flash_bytes": 2736,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "RF n=20 d=8",
-   "val_macro_f1": 0.8538,
-   "nodes": 466,
-   "flash_bytes": 2736,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "ET n=5 d=6",
-   "val_macro_f1": 0.7118,
-   "nodes": 207,
-   "flash_bytes": 1227,
-   "chosen": false
-  },
-  {
-   "stage": "stage2 INSECT_FROG",
-   "model": "ET n=5 d=8",
-   "val_macro_f1": 0.5724,
-   "nodes": 271,
-   "flash_bytes": 1611,
+   "flash_bytes": 603,
    "chosen": false
   },
   {
    "stage": "stage2 INSECT_FROG",
    "model": "ET n=10 d=6",
-   "val_macro_f1": 0.7891,
-   "nodes": 412,
-   "flash_bytes": 2442,
+   "val_macro_f1": 0.581,
+   "nodes": 198,
+   "flash_bytes": 1158,
    "chosen": false
   },
   {
    "stage": "stage2 INSECT_FROG",
    "model": "ET n=10 d=8",
-   "val_macro_f1": 0.8321,
-   "nodes": 508,
-   "flash_bytes": 3018,
+   "val_macro_f1": 0.7389,
+   "nodes": 216,
+   "flash_bytes": 1266,
    "chosen": false
   },
   {
    "stage": "stage2 INSECT_FROG",
    "model": "ET n=20 d=6",
-   "val_macro_f1": 0.8741,
-   "nodes": 848,
-   "flash_bytes": 5028,
-   "chosen": true
+   "val_macro_f1": 0.581,
+   "nodes": 416,
+   "flash_bytes": 2436,
+   "chosen": false
   },
   {
    "stage": "stage2 INSECT_FROG",
    "model": "ET n=20 d=8",
-   "val_macro_f1": 0.8741,
-   "nodes": 1050,
-   "flash_bytes": 6240,
+   "val_macro_f1": 0.581,
+   "nodes": 434,
+   "flash_bytes": 2544,
    "chosen": false
   }
  ],
  "rejection_curve_val": [
   {
    "t": 0,
-   "emitted": 207,
-   "wrong": 100,
-   "wrong_share": 0.4830917874396135
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 1,
-   "emitted": 207,
-   "wrong": 100,
-   "wrong_share": 0.4830917874396135
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 2,
-   "emitted": 207,
-   "wrong": 100,
-   "wrong_share": 0.4830917874396135
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 3,
-   "emitted": 207,
-   "wrong": 100,
-   "wrong_share": 0.4830917874396135
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 4,
-   "emitted": 207,
-   "wrong": 100,
-   "wrong_share": 0.4830917874396135
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 5,
-   "emitted": 207,
-   "wrong": 100,
-   "wrong_share": 0.4830917874396135
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 6,
-   "emitted": 207,
-   "wrong": 100,
-   "wrong_share": 0.4830917874396135
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 7,
-   "emitted": 206,
-   "wrong": 99,
-   "wrong_share": 0.48058252427184467
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 8,
-   "emitted": 206,
-   "wrong": 99,
-   "wrong_share": 0.48058252427184467
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 9,
-   "emitted": 205,
-   "wrong": 98,
-   "wrong_share": 0.47804878048780486
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 10,
-   "emitted": 202,
-   "wrong": 95,
-   "wrong_share": 0.47029702970297027
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 11,
-   "emitted": 201,
-   "wrong": 94,
-   "wrong_share": 0.46766169154228854
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 12,
-   "emitted": 198,
-   "wrong": 91,
-   "wrong_share": 0.4595959595959596
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 13,
-   "emitted": 193,
-   "wrong": 86,
-   "wrong_share": 0.44559585492227977
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 14,
-   "emitted": 192,
-   "wrong": 85,
-   "wrong_share": 0.4427083333333333
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 15,
-   "emitted": 186,
-   "wrong": 79,
-   "wrong_share": 0.42473118279569894
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 16,
-   "emitted": 182,
-   "wrong": 76,
-   "wrong_share": 0.4175824175824176
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 17,
-   "emitted": 177,
-   "wrong": 73,
-   "wrong_share": 0.4124293785310734
+   "emitted": 48,
+   "wrong": 29,
+   "wrong_share": 0.6041666666666666
   },
   {
    "t": 18,
-   "emitted": 170,
-   "wrong": 69,
-   "wrong_share": 0.40588235294117647
+   "emitted": 46,
+   "wrong": 27,
+   "wrong_share": 0.5869565217391305
   },
   {
    "t": 19,
-   "emitted": 159,
-   "wrong": 61,
-   "wrong_share": 0.3836477987421384
+   "emitted": 44,
+   "wrong": 27,
+   "wrong_share": 0.6136363636363636
   },
   {
    "t": 20,
-   "emitted": 152,
-   "wrong": 56,
-   "wrong_share": 0.3684210526315789
+   "emitted": 42,
+   "wrong": 27,
+   "wrong_share": 0.6428571428571429
   },
   {
    "t": 21,
-   "emitted": 149,
-   "wrong": 53,
-   "wrong_share": 0.35570469798657717
+   "emitted": 40,
+   "wrong": 25,
+   "wrong_share": 0.625
   },
   {
    "t": 22,
-   "emitted": 144,
-   "wrong": 49,
-   "wrong_share": 0.3402777777777778
+   "emitted": 40,
+   "wrong": 25,
+   "wrong_share": 0.625
   },
   {
    "t": 23,
-   "emitted": 125,
-   "wrong": 36,
-   "wrong_share": 0.288
+   "emitted": 39,
+   "wrong": 24,
+   "wrong_share": 0.6153846153846154
   },
   {
    "t": 24,
-   "emitted": 120,
-   "wrong": 33,
-   "wrong_share": 0.275
+   "emitted": 37,
+   "wrong": 24,
+   "wrong_share": 0.6486486486486487
   },
   {
    "t": 25,
-   "emitted": 109,
-   "wrong": 28,
-   "wrong_share": 0.25688073394495414
+   "emitted": 35,
+   "wrong": 23,
+   "wrong_share": 0.6571428571428571
   },
   {
    "t": 26,
-   "emitted": 102,
+   "emitted": 35,
    "wrong": 23,
-   "wrong_share": 0.22549019607843138
+   "wrong_share": 0.6571428571428571
   },
   {
    "t": 27,
-   "emitted": 98,
-   "wrong": 23,
-   "wrong_share": 0.23469387755102042
+   "emitted": 33,
+   "wrong": 22,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 28,
-   "emitted": 92,
-   "wrong": 22,
-   "wrong_share": 0.2391304347826087
+   "emitted": 31,
+   "wrong": 21,
+   "wrong_share": 0.6774193548387096
   },
   {
    "t": 29,
-   "emitted": 79,
-   "wrong": 19,
-   "wrong_share": 0.24050632911392406
+   "emitted": 30,
+   "wrong": 20,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 30,
-   "emitted": 74,
-   "wrong": 19,
-   "wrong_share": 0.25675675675675674
+   "emitted": 30,
+   "wrong": 20,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 31,
-   "emitted": 69,
-   "wrong": 17,
-   "wrong_share": 0.2463768115942029
+   "emitted": 29,
+   "wrong": 20,
+   "wrong_share": 0.6896551724137931
   },
   {
    "t": 32,
-   "emitted": 66,
-   "wrong": 16,
-   "wrong_share": 0.24242424242424243
+   "emitted": 26,
+   "wrong": 19,
+   "wrong_share": 0.7307692307692307
   },
   {
    "t": 33,
-   "emitted": 63,
-   "wrong": 16,
-   "wrong_share": 0.25396825396825395
+   "emitted": 26,
+   "wrong": 19,
+   "wrong_share": 0.7307692307692307
   },
   {
    "t": 34,
-   "emitted": 60,
-   "wrong": 16,
-   "wrong_share": 0.26666666666666666
+   "emitted": 25,
+   "wrong": 18,
+   "wrong_share": 0.72
   },
   {
    "t": 35,
-   "emitted": 59,
-   "wrong": 15,
-   "wrong_share": 0.2542372881355932
+   "emitted": 25,
+   "wrong": 18,
+   "wrong_share": 0.72
   },
   {
    "t": 36,
-   "emitted": 52,
-   "wrong": 13,
-   "wrong_share": 0.25
+   "emitted": 24,
+   "wrong": 17,
+   "wrong_share": 0.7083333333333334
   },
   {
    "t": 37,
-   "emitted": 48,
-   "wrong": 12,
-   "wrong_share": 0.25
+   "emitted": 23,
+   "wrong": 17,
+   "wrong_share": 0.7391304347826086
   },
   {
    "t": 38,
-   "emitted": 46,
-   "wrong": 12,
-   "wrong_share": 0.2608695652173913
+   "emitted": 23,
+   "wrong": 17,
+   "wrong_share": 0.7391304347826086
   },
   {
    "t": 39,
-   "emitted": 43,
-   "wrong": 10,
-   "wrong_share": 0.23255813953488372
+   "emitted": 21,
+   "wrong": 15,
+   "wrong_share": 0.7142857142857143
   },
   {
    "t": 40,
-   "emitted": 40,
-   "wrong": 9,
-   "wrong_share": 0.225
+   "emitted": 20,
+   "wrong": 14,
+   "wrong_share": 0.7
   },
   {
    "t": 41,
-   "emitted": 37,
-   "wrong": 8,
-   "wrong_share": 0.21621621621621623
+   "emitted": 20,
+   "wrong": 14,
+   "wrong_share": 0.7
   },
   {
    "t": 42,
-   "emitted": 31,
-   "wrong": 8,
-   "wrong_share": 0.25806451612903225
+   "emitted": 19,
+   "wrong": 13,
+   "wrong_share": 0.6842105263157895
   },
   {
    "t": 43,
-   "emitted": 27,
-   "wrong": 5,
-   "wrong_share": 0.18518518518518517
+   "emitted": 19,
+   "wrong": 13,
+   "wrong_share": 0.6842105263157895
   },
   {
    "t": 44,
-   "emitted": 24,
-   "wrong": 3,
-   "wrong_share": 0.125
+   "emitted": 18,
+   "wrong": 12,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 45,
-   "emitted": 23,
-   "wrong": 3,
-   "wrong_share": 0.13043478260869565
+   "emitted": 17,
+   "wrong": 12,
+   "wrong_share": 0.7058823529411765
   },
   {
    "t": 46,
-   "emitted": 22,
-   "wrong": 3,
-   "wrong_share": 0.13636363636363635
+   "emitted": 17,
+   "wrong": 12,
+   "wrong_share": 0.7058823529411765
   },
   {
    "t": 47,
-   "emitted": 16,
-   "wrong": 2,
-   "wrong_share": 0.125
+   "emitted": 15,
+   "wrong": 10,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 48,
    "emitted": 13,
-   "wrong": 1,
-   "wrong_share": 0.07692307692307693
+   "wrong": 8,
+   "wrong_share": 0.6153846153846154
   },
   {
    "t": 49,
-   "emitted": 9,
-   "wrong": 1,
-   "wrong_share": 0.1111111111111111
+   "emitted": 11,
+   "wrong": 6,
+   "wrong_share": 0.5454545454545454
   },
   {
    "t": 50,
-   "emitted": 9,
-   "wrong": 1,
-   "wrong_share": 0.1111111111111111
+   "emitted": 11,
+   "wrong": 6,
+   "wrong_share": 0.5454545454545454
   },
   {
    "t": 51,
-   "emitted": 8,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 11,
+   "wrong": 6,
+   "wrong_share": 0.5454545454545454
   },
   {
    "t": 52,
-   "emitted": 7,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 10,
+   "wrong": 6,
+   "wrong_share": 0.6
   },
   {
    "t": 53,
-   "emitted": 5,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 10,
+   "wrong": 6,
+   "wrong_share": 0.6
   },
   {
    "t": 54,
-   "emitted": 5,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 10,
+   "wrong": 6,
+   "wrong_share": 0.6
   },
   {
    "t": 55,
-   "emitted": 5,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 10,
+   "wrong": 6,
+   "wrong_share": 0.6
   },
   {
    "t": 56,
-   "emitted": 5,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 10,
+   "wrong": 6,
+   "wrong_share": 0.6
   },
   {
    "t": 57,
-   "emitted": 5,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 9,
+   "wrong": 5,
+   "wrong_share": 0.5555555555555556
   },
   {
    "t": 58,
-   "emitted": 4,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 9,
+   "wrong": 5,
+   "wrong_share": 0.5555555555555556
   },
   {
    "t": 59,
-   "emitted": 3,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 9,
+   "wrong": 5,
+   "wrong_share": 0.5555555555555556
   },
   {
    "t": 60,
-   "emitted": 3,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 7,
+   "wrong": 3,
+   "wrong_share": 0.42857142857142855
   },
   {
    "t": 61,
-   "emitted": 2,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 7,
+   "wrong": 3,
+   "wrong_share": 0.42857142857142855
   },
   {
    "t": 62,
-   "emitted": 2,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 7,
+   "wrong": 3,
+   "wrong_share": 0.42857142857142855
   },
   {
    "t": 63,
-   "emitted": 2,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 7,
+   "wrong": 3,
+   "wrong_share": 0.42857142857142855
   },
   {
    "t": 64,
-   "emitted": 2,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 6,
+   "wrong": 3,
+   "wrong_share": 0.5
   },
   {
    "t": 65,
-   "emitted": 2,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 6,
+   "wrong": 3,
+   "wrong_share": 0.5
   },
   {
    "t": 66,
-   "emitted": 2,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 6,
+   "wrong": 3,
+   "wrong_share": 0.5
   },
   {
    "t": 67,
-   "emitted": 2,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 4,
+   "wrong": 2,
+   "wrong_share": 0.5
   },
   {
    "t": 68,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 4,
+   "wrong": 2,
+   "wrong_share": 0.5
   },
   {
    "t": 69,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 4,
+   "wrong": 2,
+   "wrong_share": 0.5
   },
   {
    "t": 70,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 3,
+   "wrong": 2,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 71,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 3,
+   "wrong": 2,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 72,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 3,
+   "wrong": 2,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 73,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 3,
+   "wrong": 2,
+   "wrong_share": 0.6666666666666666
   },
   {
    "t": 74,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 2,
+   "wrong": 1,
+   "wrong_share": 0.5
   },
   {
    "t": 75,
-   "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 2,
+   "wrong": 1,
+   "wrong_share": 0.5
   },
   {
    "t": 76,
    "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "wrong": 1,
+   "wrong_share": 1.0
   },
   {
    "t": 77,
    "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "wrong": 1,
+   "wrong_share": 1.0
   },
   {
    "t": 78,
    "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "wrong": 1,
+   "wrong_share": 1.0
   },
   {
    "t": 79,
    "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "wrong": 1,
+   "wrong_share": 1.0
   },
   {
    "t": 80,
    "emitted": 1,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "wrong": 1,
+   "wrong_share": 1.0
   },
   {
    "t": 81,
-   "emitted": 0,
-   "wrong": 0,
-   "wrong_share": 0.0
+   "emitted": 1,
+   "wrong": 1,
+   "wrong_share": 1.0
   },
   {
    "t": 82,
