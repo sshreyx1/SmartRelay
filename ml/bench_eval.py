@@ -4,7 +4,7 @@ bench_eval.py - on-device evaluation: play every test-fold clip at the Pico runn
 let the PICO classify what it heard (@CLS), and compare with the truth and with the offline numbers.
 
 Writes docs/sound/evidence/bench_eval_<phase>_<date>.csv (one row per clip) and
-docs/sound/figures/confusion_bench_{group,label}.png, and prints on-device vs offline metrics
+docs/sound/figures/confusion_bench_{group,label}.png (--tag adds a suffix to both), and prints on-device vs offline metrics
 (offline = ml/models/metrics_<phase>.json, test fold).
 
 Run:      python ml/bench_eval.py --device 3                 (all test-fold clips, volume 1.0)
@@ -33,6 +33,7 @@ def main() -> int:
     ap.add_argument("--per-label", type=int, help="at most this many clips per label")
     ap.add_argument("--volume", type=float, default=1.0)
     ap.add_argument("--phase", default="A")
+    ap.add_argument("--tag", default="", help="added to the output names (e.g. board2), so runs do not overwrite each other")
     ap.add_argument("--port")
     ap.add_argument("--device", help="output (speaker) device index or name")
     ap.add_argument("--pre-ms", type=int, default=150)
@@ -73,16 +74,17 @@ def main() -> int:
             ok = "ok " if c["id"] == tid else ("grp" if sc.group(c["id"]) == sc.group(tid) else "   ")
             print(f"[{i}/{len(rows)}] {ok} true {sc.name(tid):<12} pico {c['name']:<12} {c['conf']:>3}%")
 
-    stamp = date.today().isoformat()
+    stamp = date.today().isoformat() + (f"_{args.tag}" if args.tag else "")
+    suffix = f"_{args.tag}" if args.tag else ""
     write_csv(REPO_ROOT / "docs" / "sound" / "evidence" / f"bench_eval_{args.phase}_{stamp}.csv", out, FIELDS)
     yt = np.array([o["true_id"] for o in out])
     yp = np.array([o["pico_id"] for o in out])
     gt = np.array([sc.group(int(i)) for i in yt])
     gp = np.array([sc.group(int(i)) if sc.group(int(i)) is not None else 255 for i in yp])
     fig = REPO_ROOT / "docs" / "sound" / "figures"
-    confusion_png(gt, gp, sc.GROUP_IDS, f"Group, on-device bench (n={len(out)})", fig / "confusion_bench_group.png")
+    confusion_png(gt, gp, sc.GROUP_IDS, f"Group, on-device bench (n={len(out)})", fig / f"confusion_bench_group{suffix}.png")
     ids = sorted(set(yt.tolist()) | set(yp.tolist()))
-    confusion_png(yt, yp, ids, f"Label, on-device bench (n={len(out)})", fig / "confusion_bench_label.png")
+    confusion_png(yt, yp, ids, f"Label, on-device bench (n={len(out)})", fig / f"confusion_bench_label{suffix}.png")
 
     bench = {"group_accuracy": float((gt == gp).mean()), "group_macro_f1": macro_f1(gt, gp),
              "label_accuracy": float((yt == yp).mean()), "label_macro_f1": macro_f1(yt, yp)}

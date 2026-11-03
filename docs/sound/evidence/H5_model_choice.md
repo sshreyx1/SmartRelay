@@ -71,3 +71,13 @@ overwrote the earlier run's CSV of the same date, whose numbers are kept above):
 
 Gap +0.013: the two-session model behaves on the node as it does offline (the session-1 model: 0.219 vs 0.617).
 Groups that work best: WEATHER 6/8, HUMAN 3/8, VEHICLE 3/8, BIRD 5/8 (as BIRD), MAMMAL 6/10, INSECT_FROG 2/6.
+
+## Replacement node 2 board (21:40)
+
+R swapped node 2 for a tidier board with the same MAX9814. First bench: group macro-F1 0.377. The dog clip on the new
+board differed from the old board's takes by 0.97 (normalised features; two old-board takes differ by 0.48): 34 vs
+49-60 std, centroid 4010 vs ~2900 Hz, 6x the relative 4-8 kHz power (hiss), so a lower gain on the new board. After R
+changed the wiring: std 91.6, centroid 2901 Hz, distance 0.41-0.62 on the features the model uses, dog -> MAMMAL.
+Bench after the fix (`bench_eval_A_2026-11-03_board2.csv`): group accuracy **0.479** (old board 0.500), 23/48 right
+(old 24/48), group macro-F1 **0.456** over the 6 groups in the test set (bench_eval printed 0.391 because one AMBIENT
+answer added a 7th, empty class to its average), animal vs not 0.729. Passes.

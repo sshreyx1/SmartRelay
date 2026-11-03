@@ -1,0 +1,40 @@
+    0.03  --- serial_log newnode2_wifi on /dev/cu.usbmodem101 at 2026-11-03 21:45:25 ---
+    2.73  >>> sent 's' (typed)
+    2.76  node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+    2.76    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    2.76    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    2.76    dht22 good 8 fail 0 | lora up | wifi up
+    2.76    bridge never heard on wifi
+    2.76    bridge never heard on lora
+    2.76    comms stack free: 1609 words, heap free 30592 bytes
+    4.12  [ENV] Temp: 31.8 C | Hum: 60.3% | Light: 3099 | Weather: Hot_Dry | PIR 0 Sound 0
+    9.01  >>> sent 's' (typed)
+    9.01  node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+    9.01    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    9.01    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    9.01    dht22 good 11 fail 0 | lora up | wifi up
+    9.01    bridge never heard on wifi
+    9.01    bridge never heard on lora
+    9.01    comms stack free: 1609 words, heap free 30592 bytes
+   14.13  [ENV] Temp: 31.8 C | Hum: 59.9% | Light: 3101 | Weather: Hot_Dry | PIR 1 Sound 0
+   17.33  >>> sent 'c' (typed)
+   17.38  
+   17.38  [ALERT] Manual capture (PIR 1, sound 0). Recording 5s of audio...
+   22.39  [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 1383.3 zcr 0.469 mean 2035, 80000 samples
+   22.39  [SOUND] group=AMBIENT label=AMBIENT id=0 conf=100 rms=35 zcr=7871 lost=0 feat_us=443355 maxcall_us=1456 model_us=256
+   22.39  [ENV] Temp: 31.8 C | Hum: 59.9% | Light: 3099 | Weather: Hot_Dry | PIR 1 Sound 0
+   22.53  capture N2-000011: no samples/*_NN.jpg on the SD card
+   23.26  >>> sent 's' (typed)
+   23.28  node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   23.28    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   23.28    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   23.28    dht22 good 16 fail 0 | lora up | wifi up
+   23.28    bridge never heard on wifi
+   23.28    bridge never heard on lora
+   23.28    comms stack free: 1609 words, heap free 30592 bytes
+   24.13  [ENV] Temp: 31.8 C | Hum: 59.8% | Light: 3103 | Weather: Hot_Dry | PIR 1 Sound 0
+   34.14  [ENV] Temp: 31.8 C | Hum: 59.6% | Light: 3099 | Weather: Hot_Dry | PIR 1 Sound 0
+   44.14  [ENV] Temp: 31.8 C | Hum: 59.6% | Light: 3098 | Weather: Hot_Dry | PIR 0 Sound 0
+   54.15  [ENV] Temp: 31.9 C | Hum: 59.8% | Light: 3100 | Weather: Hot_Dry | PIR 0 Sound 0
+   57.86  
+   57.86  [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...

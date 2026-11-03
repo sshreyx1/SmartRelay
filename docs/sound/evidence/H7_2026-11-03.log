@@ -1,0 +1,13 @@
+    0.03  --- serial_log H7 on /dev/cu.usbmodem101 at 2026-11-03 22:16:58 ---
+    5.22  [ENV] Temp: 31.7 C | Hum: 66.8% | Light: 2974 | Weather: Hot_Dry | PIR 1 Sound 0
+    5.43  >>> sent 'c' (typed)
+    5.47  
+    5.47  [ALERT] Manual capture (PIR 1, sound 0). Recording 5s of audio...
+   10.47  [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 51330.6 zcr 0.027 mean 2254, 80000 samples
+   10.47  [SOUND] group=AMBIENT label=AMBIENT id=0 conf=100 rms=93 zcr=6876 lost=0 feat_us=443216 maxcall_us=1454 model_us=258
+   10.47  [ENV] Temp: 31.7 C | Hum: 66.8% | Light: 3004 | Weather: Hot_Dry | PIR 1 Sound 0
+   10.62  capture N2-000032: heard AMBIENT (100%) -> samples/ambient_00.jpg
+   10.71  capture N2-000032 queued (samples/ambient_00.jpg), outbox 1
+   14.21  tx samples/ambient_00.jpg: done via wifi, 41 frags, 2 rounds, 4 resent, 3.5 s
+   15.22  [ENV] Temp: 31.7 C | Hum: 66.7% | Light: 2973 | Weather: Hot_Dry | PIR 0 Sound 0
+   15.76  --- stopped (Ctrl+C) ---

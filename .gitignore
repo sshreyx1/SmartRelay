@@ -22,3 +22,5 @@ dashboard/.vite/
 # misc
 .DS_Store
 *.log
+# hardware-test serial logs are evidence (tools/serial_log.py)
+!docs/sound/evidence/*.log

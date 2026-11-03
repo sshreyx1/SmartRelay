@@ -1,0 +1,53 @@
+    0.03  --- serial_log newnode2 on /dev/cu.usbmodem101 at 2026-11-03 21:42:25 ---
+    0.13  lora_radio: LR1121 firmware 0x0101, hardware 0x22
+    0.13  lora_radio: 924200000 Hz, SF7 BW125 CR4/5, 14 dBm, CRC on
+    2.14  wifi: the ESP-01 did not answer (seated in the ESP-01 socket? GP16/GP17). LoRa will be used.
+    2.53  node 2 ready (field node), outbox has 0 queued
+    2.53  sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20
+    3.05  >>> sent 'h' (typed)
+    3.08  keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | h help
+    4.33  >>> sent 'h' (typed)
+    4.33  keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | h help
+    7.09  [ENV] Temp: 31.6 C | Hum: 61.0% | Light: 3061 | Weather: Hot_Dry | PIR 1 Sound 0
+    8.44  >>> sent 'e' (typed)
+    8.49  [ENV] Temp: 31.6 C | Hum: 61.0% | Light: 3061 | Weather: Hot_Dry | PIR 1 Sound 0
+   11.31  >>> sent 's' (typed)
+   11.33  node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   11.33    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   11.33    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   11.33    dht22 good 5 fail 0 | lora up | wifi DOWN
+   11.33    bridge never heard on wifi
+   11.33    bridge never heard on lora
+   11.33    comms stack free: 1622 words, heap free 30592 bytes
+   15.69  >>> sent 'c' (typed)
+   15.73  
+   15.73  [ALERT] Manual capture (PIR 1, sound 0). Recording 5s of audio...
+   20.74  [AUDIO] legacy mic.c: AMBIENT_NOISE energy 4767.1 zcr 0.100 mean 2105, 80000 samples
+   20.74  [SOUND] group=AMBIENT label=AMBIENT id=0 conf=90 rms=38 zcr=7946 lost=0 feat_us=443360 maxcall_us=1467 model_us=263
+   20.74  [ENV] Temp: 31.7 C | Hum: 60.9% | Light: 3061 | Weather: Hot_Dry | PIR 1 Sound 0
+   20.84  capture N2-000001: no samples/*_NN.jpg on the SD card
+   20.86  [ENV] Temp: 31.7 C | Hum: 60.9% | Light: 3069 | Weather: Hot_Dry | PIR 1 Sound 0
+   27.82  --- stopped (Ctrl+C) ---
+    0.03  --- serial_log newnode2 on /dev/cu.usbmodem101 at 2026-11-03 21:43:49 ---
+    1.28  >>> sent 'h' (typed)
+    1.32  keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | h help
+    1.84  
+    1.85  [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+    2.57  >>> sent 'e' (typed)
+    4.86  >>> sent 's' (typed)
+    4.88  node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+    4.88    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    4.88    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    4.88    dht22 good 35 fail 0 | lora up | wifi DOWN
+    4.88    bridge never heard on wifi
+    4.88    bridge never heard on lora
+    4.88    comms stack free: 1622 words, heap free 30592 bytes
+    6.66  >>> sent 'c' (typed)
+    6.85  [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 188544.3 zcr 0.000 mean 1615, 80000 samples
+    6.85  [SOUND] group=AMBIENT label=AMBIENT id=0 conf=90 rms=40 zcr=7983 lost=0 feat_us=450906 maxcall_us=1442 model_us=260
+    6.85  [ENV] Temp: 31.7 C | Hum: 59.9% | Light: 2470 | Weather: Hot_Dry | PIR 0 Sound 1
+    6.99  capture N2-000004: no samples/*_NN.jpg on the SD card
+    7.01  [ENV] Temp: 31.7 C | Hum: 59.9% | Light: 2513 | Weather: Hot_Dry | PIR 0 Sound 1
+    7.01  
+    7.01  [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+    9.13  --- stopped (Ctrl+C) ---
