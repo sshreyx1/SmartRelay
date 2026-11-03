@@ -85,3 +85,7 @@ All 2026-11-03, R-approved per SOUND_PLAN.md rule 6:
     end marker (same transfer sizes);
   - capture ids restarted at 1 every run, so two runs both showed `N2-000001`; they now continue from a
     time-based start (minutes, mod 100000).
+- `host/integration/integ_node.c` (Shreya's file), additive: relay mode now stops on SIGINT/SIGTERM and prints
+  its mesh stats (before, `run_wifi_integration.sh` killed it silently), and with `-DUSE_WIFI` every stats line adds
+  `filtered N` (`wifi_mesh_filtered_count()`). Both integration scripts still PASS. Used by `tools/demo_multihop.py`.
+

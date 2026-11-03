@@ -6,8 +6,10 @@
  *
  *   ./integ_node 1 <dir>                 receiver: waits for one file, exits 0 when it is verified
  *   ./integ_node N <dir> <file>          sender: sends <file> (relative to <dir>) to node 1
- *   ./integ_node N <dir> relay           relay only: runs the mesh for 120 s (or until killed)
+ *   ./integ_node N <dir> relay           relay only: runs the mesh for 120 s, or until SIGINT/SIGTERM,
+ *                                        then prints its mesh stats
  */
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +34,15 @@ void fake_radio_set_node(int node_id);
 static alfp_ctx_t ctx;
 static int done, ok;
 static char rx_path[200];
+static volatile sig_atomic_t stop;
+
+static void on_stop(int sig) { (void)sig; stop = 1; }
+
+#ifdef USE_WIFI
+#define FILTERED() wifi_mesh_filtered_count() /* packets from non-neighbours, ignored */
+#else
+#define FILTERED() 0u
+#endif
 
 static uint32_t p_now(void* c) { (void)c; return to_ms_since_boot(get_absolute_time()); }
 static uint32_t p_rand(void* c) { (void)c; return get_rand_32(); }
@@ -84,11 +95,13 @@ int main(int argc, char** argv)
     uint32_t t0 = p_now(NULL);
     if (argc > 3 && strcmp(argv[3], "relay") == 0)
     {
-        while (p_now(NULL) - t0 < 120000) { RADIO.poll(); alfp_service(&ctx, radios, 1); sleep_ms(1); }
+        signal(SIGINT, on_stop);
+        signal(SIGTERM, on_stop);
+        while (!stop && p_now(NULL) - t0 < 120000) { RADIO.poll(); alfp_service(&ctx, radios, 1); sleep_ms(1); }
         mesh_stats_t m;
         RADIO.get_stats(&m);
-        printf("[relay %d] mesh stats: tx %u rx %u delivered %u relayed %u dup %u\n", id, m.tx, m.rx, m.delivered,
-               m.relayed, m.dup_dropped);
+        printf("[relay %d] mesh stats: tx %u rx %u delivered %u relayed %u dup %u filtered %u\n", id, m.tx, m.rx,
+               m.delivered, m.relayed, m.dup_dropped, (unsigned)FILTERED());
         return 0;
     }
     if (id != 1)
@@ -107,8 +120,8 @@ int main(int argc, char** argv)
     while (id == 1 && p_now(NULL) - t1 < 6000) { RADIO.poll(); alfp_service(&ctx, radios, 1); sleep_ms(1); }
     mesh_stats_t m;
     RADIO.get_stats(&m);
-    printf("[node %d] mesh stats: tx %u rx %u delivered %u relayed %u dup %u rx_error %u\n", id, m.tx, m.rx, m.delivered,
-           m.relayed, m.dup_dropped, m.rx_error);
+    printf("[node %d] mesh stats: tx %u rx %u delivered %u relayed %u dup %u rx_error %u filtered %u\n", id, m.tx, m.rx,
+           m.delivered, m.relayed, m.dup_dropped, m.rx_error, (unsigned)FILTERED());
     if (id == 1 && ok) printf("RX_FILE=%s\n", rx_path);
     return ok ? 0 : 1;
 }

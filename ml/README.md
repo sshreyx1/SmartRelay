@@ -54,6 +54,7 @@ Pipeline order: record -> extract -> train -> export -> flash -> bench. `docs/so
 | `plots.py` | Per-group box plots of the most informative features. |
 | `hosttools.py` | `find_host_tool("sound_featx")` finds the built host tool (also `.exe`, `Debug`/`Release`). |
 | `../tools/make_label_images.py` | Label photos -> `sd_card/samples/<prefix>_NN.jpg` (<= 10 kB) + `docs/sound/IMAGE_CREDITS.md`. |
+| `../tools/demo_multihop.py` | Demo: E -> C -> A with the real `wifi_mesh.c` + ALFP as 3 local processes, prints hop path and relay counters (macOS/Linux; Windows in WSL). |
 
 The host tool comes from `cmake -S host -B build && cmake --build build -j` (Windows/MSVC:
 `cmake -S host -B build -DSOUND_ONLY=ON` then `cmake --build build --config Release`).

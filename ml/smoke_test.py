@@ -33,7 +33,8 @@ IMPORTS = {
 CLIS = ["hosttools.py", "playback.py", "pico_audio.py", "prepare_esc50.py", "record_dataset.py",
         "extract_features.py", "check_parity.py", "plots.py", "esc50_direct.py", "train.py", "export_c.py",
         "bench_eval.py", TOOLS_DIR / "make_label_images.py", TOOLS_DIR / "fetch_label_images.py",
-        TOOLS_DIR / "gen_sound_tables.py", TOOLS_DIR / "bridge_receiver.py"]
+        TOOLS_DIR / "gen_sound_tables.py", TOOLS_DIR / "bridge_receiver.py",
+        TOOLS_DIR / "demo_multihop.py"]
 
 
 def dry_runs(tmp: Path) -> list:
@@ -71,7 +72,9 @@ def dry_runs(tmp: Path) -> list:
         ("make_label_images", [TOOLS_DIR / "make_label_images.py", "--src", tmp / "images_src", "--out",
                                tmp / "samples", "--credits", tmp / "credits.md"]),
         ("check_parity --dry-run (needs the host build)", [ML_DIR / "check_parity.py", "--dry-run"]),
-    ]
+    ] + ([] if platform.system() == "Windows" else [  # POSIX sockets: on Windows it runs in WSL
+        ("demo_multihop --build-only (needs a C compiler)", [TOOLS_DIR / "demo_multihop.py", "--build-only"]),
+    ])
 
 
 class Results:

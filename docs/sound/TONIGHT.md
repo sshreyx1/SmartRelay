@@ -22,7 +22,7 @@ not the mic; test group macro-F1 0.61). If anything below goes wrong, the demo c
 | 10 | **H8** copy `sd_card/samples/` to node 2's card; dog → `dog_0X.jpg`, rain → `weather_00.jpg` | 10 min | 01:15 |
 | 11 | **H7** 3 captures, reboot, 2 captures: ids continue | 5 min | 01:25 |
 | 12 | **H9** bridge + backend + dashboard, end to end | 20 min | 01:30 |
-| 13 | Demo run-through ×2 (below) | 20 min | 01:50 |
+| 13 | **H11** screen-record segment 1 of `DEMO.md`; then demo run-through ×2 (`DEMO.md`) | 25 min | 01:50 |
 | 14 | Commit tonight's evidence (block at the end) | 5 min | 02:10 |
 | | buffer | 45 min | 02:15-03:00 |
 
@@ -72,6 +72,8 @@ Every line must show `lost=0`. A group instead of the animal is the rejection wo
 Note which clips work best: those are the demo clips.
 
 ## Step 13: the demo (3 min, from SOUND_PLAN.md)
+
+**Superseded by `docs/sound/DEMO.md`** (windows to open, all segments, fallbacks). Kept below as the short version.
 
 1. The serial monitor on node 2 and the dashboard are side by side; the bridge and backend are running.
 2. "The Pico does all the analysis." Play the best dog (or rooster) clip and wave at the PIR.

@@ -125,7 +125,20 @@ cmake -S host -B build -DSOUND_ONLY=ON; cmake --build build --config Release; ct
 **Expect:** `smoke test: 34 passed, 0 failed` (check_parity's dry run needs the cmake build first) and the sound
 tests passing under MSVC. **This is the first time the sound C code meets MSVC.**
 
+## H11 (demo backup): screen recording of the real 2-node run
+
+After H8 passes (and before the demo run-through), record segment 1 of `docs/sound/DEMO.md` once, with
+W1 (dashboard) and W3 (node 2's monitor) side by side and the speaker audible.
+- macOS: Cmd+Shift+5 → "Record Selected Portion" (Options → Microphone: MacBook microphone, so the clip is heard),
+  or QuickTime → File → New Screen Recording. Stop with the ⏹ in the menu bar.
+- Windows: Snipping Tool → Record (Win+Shift+R), or Xbox Game Bar (Win+Alt+R; records one window only).
+
+**Expect** one video of about 60–90 s showing: the clip playing, `c` pressed, the `[SOUND] ... lost=0` line,
+`capture N2-...: heard ... -> samples/...jpg`, `done via wifi`, and the dashboard card with the same ID.
+Play it back once, start to end. Keep it **outside the repo** (e.g. Desktop; videos are large and are not
+committed) and copy it to the team drive. This is the "nothing works" fallback in DEMO.md.
+
 ## Not started (out of tonight's scope)
 
 - **A10:** T3 (audio under load) and T6 (queue full). `tools/serial_log.py` and the `H` console key are not written yet.
-- **A11:** docs v1 and the demo script (`TONIGHT.md` covers tonight's run-through).
+- **A11:** docs v1 (the demo script is `docs/sound/DEMO.md`).

@@ -1,0 +1,26 @@
+
+topology filter ON (third_party/wifi_mesh/wifi_mesh_config.h), running nodes A, C, E only:
+  A hears B, C, D
+  C hears A, B, D, E
+  E hears C, D
+  -> E cannot reach A directly; with B and D off, the only path is E -> C -> A
+
+  A (node 1, bridge)   | fake WST: node 1 (WST-1 MAC) on udp 47201, loss 0%
+  C (node 3, relay)    | fake WST: node 3 (WST-3 MAC) on udp 47203, loss 0%
+  E (node 5, field)    | fake WST: node 5 (WST-5 MAC) on udp 47205, loss 0%
+  A (node 1, bridge)   | [receiver] got inbox/n5_00444.bin from node 5: 10063 bytes, crc 98affd10 verified, 0 dup
+  E (node 5, field)    | [sender] photo.jpg: done, 10063 bytes, crc 98affd10, 43 frags, 1 rounds, 0 resent, 1.6 s
+  E (node 5, field)    | [node 5] mesh stats: tx 45 rx 46 delivered 1 relayed 0 dup 45 rx_error 0 filtered 1
+  A (node 1, bridge)   | [node 1] mesh stats: tx 1 rx 49 delivered 45 relayed 0 dup 4 rx_error 0 filtered 45
+  A (node 1, bridge)   | RX_FILE=inbox/n5_00444.bin
+  C (node 3, relay)    | [relay 3] mesh stats: tx 0 rx 49 delivered 0 relayed 49 dup 0 filtered 0
+
+========================================================================
+ HOP PATH   E (node 5)  --wifi-->  C (node 3, relay)  --wifi-->  A (node 1, bridge)
+========================================================================
+ file       dog_00.jpg, 10063 bytes, loss 0%
+ sender     photo.jpg: done, 10063 bytes, crc 98affd10, 43 frags, 1 rounds, 0 resent, 1.6 s
+ relay C    relayed 49 packets (E's data towards A, A's ACKs back to E), heard 49, duplicates dropped 0
+ bridge A   delivered 45 packets to ALFP; ignored 45 packets heard straight from E (not a neighbour)
+ field E    transmitted 45; ignored 1 packets from A
+ result     PASS: the file at A is byte-for-byte the photo E sent (8.7 s)
