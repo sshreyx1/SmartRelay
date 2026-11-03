@@ -1,0 +1,14 @@
+.venv/
+data/raw/
+data/esc50/
+data/xc/
+*.wav
+*.mp3
+*.zip
+*.npy
+models/*.pkl
+# regenerated in about a minute by esc50_direct.py
+data/direct/
+data/features_esc50_direct.csv
+# raw downloaded photos (tools/fetch_label_images.py); credits.csv is kept
+images_src/*/

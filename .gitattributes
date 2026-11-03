@@ -1,0 +1,10 @@
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+# one pattern per line: gitattributes has no multi-pattern lines
+*.uf2 binary
+*.npy binary
+*.scl binary
+*.jpg binary
+*.png binary
+*.wav binary
