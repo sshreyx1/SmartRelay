@@ -94,7 +94,7 @@ Priorities: **P0** = must have, **P1** = should have, **P2** = stretch.
 | [ ] | A6  | P0 | Classifier on the node + bench confusion matrix | on-node classify + [SOUND] line + bench_eval.py; 10 images build, node_2 131.7 kB RAM free; H6 pending |
 | [ ] | A7  | P0 | Persistent capture ID on SD + `N2-000042` naming everywhere | meta/next_id + outbox/clips scan, N2-000042 C/Py + tests, FF_USE_LFN=3; reboot check H7 pending |
 | [ ] | A8  | P0 | Pico picks the image from the sound label | sound_image_pick.c + test, 35 credited images ≤10 kB in sd_card/samples; H8 pending |
-| [x] | A9  | P1 | bridge_receiver / backend / dashboard / demo_feed: show the Pico's labels + capture ID | labels+display_id in bridge/backend (/api/species, 5 pytest), dashboard badge/chip/species, npm build OK; not browser-checked (D8) |
+| [x] | A9  | P1 | bridge_receiver / backend / dashboard / demo_feed: show the Pico's labels + capture ID | labels+display_id in bridge/backend (/api/species, 5 pytest), dashboard badge/chip/species, npm build OK; **H9 browser check PASS with the simulator** (fixed WS snapshot image_url + simulator placeholder); real bridge path is H8 |
 | [ ] | A10 | P0 | Hardware test T3 (audio under load) + T6 (queue full) | |
 | [ ] | A11 | P0 | Docs v1 + demo script 🪟 | |
 
