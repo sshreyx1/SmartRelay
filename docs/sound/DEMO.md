@@ -9,7 +9,7 @@
 | Multi-hop E → C → A | **real mesh code** (`wifi_mesh.c` + ALFP, unchanged) running as 3 laptop processes; only the ESP-01 is replaced by UDP |
 | Captures from nodes 3, 4, 5 on the dashboard | **simulated** (`demo_feed.py`), every card carries a **SIMULATED** badge |
 
-About **5 min** in full; the **3-min cut** is segments 1 + 3 + 4 (skip 2 and 5).
+About **5:30** in full; the **3-min cut** is segments 1 + 3 + 4 (skip 2 and 5). If H12c passed, swap segment 3 for 5 in the cut (the real hop beats the laptop run).
 
 ---
 
@@ -48,7 +48,7 @@ them apart). Below, `BRIDGE` = node 1's port and `NODE2` = node 2's port.
 
 **W4, ready to paste:** the player for the best clip from tonight's live test (`ml/demo_clips/playlist.csv`
 once `demo_playlist.py` exists; otherwise dog `5-203128-A-0.wav`):
-- both OS: `python ml/playback.py ml/data/esc50/audio/5-203128-A-0.wav --device <N>`
+- both OS: `python ml/playback.py ml/data/esc50/audio/5-203128-A-0.wav --device "MacBook Pro Speakers"` (by name: the numbers change when an iPhone connects)
 
 **Dry run once** (segments 1 and 4), then clean the slate again so the counters start at the demo.
 
@@ -59,22 +59,23 @@ once `demo_playlist.py` exists; otherwise dog `5-203128-A-0.wav`):
 **Say:** "This node listens, decides what it heard on the Pico itself, picks a picture for it, and sends both
 through the mesh. The laptop only displays."
 
-1. W4: start the clip. **Within half a second**, W3: press `c`. The node records 5 s.
-2. W3 shows (about 6 s later):
-   `[SOUND] group=MAMMAL label=DOG id=20 conf=82 ... lost=0 feat_us=... model_us=...`, then
-   `capture N2-000001: heard DOG (82%) -> samples/dog_01.jpg`, `capture N2-000001 queued`,
-   `tx samples/dog_01.jpg: done via wifi`.
-3. Point at **W1**: the card appears with the **same `N2-000001` badge**, the dog picture, the chip
-   `DOG · 82% · MAMMAL`, "identified on-node", and **no** SIMULATED badge. Open it: the transfer panel shows
+1. W4: start the playlist's first clip (`ml/demo_clips/playlist.csv`, from the latest bench). **Within half a
+   second**, W3: press `c`. The node records 5 s.
+2. W3 shows (about 6 s later), e.g. for a cat:
+   `[SOUND] group=MAMMAL label=MAMMAL id=2 conf=58 ... lost=0 feat_us=... model_us=...`, then
+   `capture N2-000001: heard MAMMAL (58%) -> samples/mammal_00.jpg`, `capture N2-000001 queued`,
+   `tx samples/mammal_00.jpg: done via wifi`.
+3. Point at **W1**: the card appears with the **same `N2-000001` badge**, the mammal picture, the chip
+   `MAMMAL (unidentified) · 58%` (group only), "identified on-node", and **no** SIMULATED badge. Open it: the transfer panel shows
    fragments, size and crc.
-4. Species tab (simulated **unticked**): Dog 1.
-5. Optional second clip: rain → `heard WEATHER (..%) -> samples/weather_00.jpg`. "When it is not sure of the
-   animal, it says only the group rather than guessing."
+4. Species tab (simulated **unticked**): Mammal 1.
+5. Optional second clip from another group (weather or bird). **Say:** "It names the group, not the animal: with
+   20 recordings per animal the animal names were wrong half the time, so the node refuses to guess (model card).
+   The old threshold detector got animal vs not-animal right 47% of the time; this one 81%."
 
 | if | fallback |
 |---|---|
-| label is a group (e.g. MAMMAL) | that is the rejection working; say so, and carry on |
-| label is wrong | "the classifier is right about X% on the test fold" (model card); play the playlist's 2nd clip |
+| wrong group | "about half the groups are right on new recordings" (model card, bench); play the playlist's next clip |
 | no `done via wifi` within 30 s | press `s` on W3. If `bridge never heard on wifi`, it falls back to LoRa by itself (about 30 s for a small image): keep talking through segment 3 meanwhile |
 | nothing reaches the dashboard | W2 shows the bridge's lines? If not, the backend lost the port: Ctrl+C, start it again. Last resort: play **H11's video** |
 
@@ -131,7 +132,9 @@ neighbours, so every packet had to come through C.
 **Say:** "We have two physical nodes tonight. Nodes 3 to 5 are simulated so you can see the whole trail on the
 dashboard; every simulated card says so."
 
-W4 (backend venv, `requests` installed). Node 1 is the bridge and never captures, so the simulated nodes are 3–5:
+W4 (backend venv, `requests` installed). Simulate **only nodes that are not physically there** (never next to a
+real node's own IDs); node 1 is the bridge and never captures. With only node 2 real, that is 3–5; if nodes 3 and 5
+are real (H12), simulate node 4 only (`--node 4`):
 - macOS: `for n in 3 4 5; do python simulator/demo_feed.py --once --node $n --label-images sd_card/samples; done`
 - Windows: `foreach ($n in 3,4,5) { python simulator/demo_feed.py --once --node $n --label-images sd_card/samples }`
 
@@ -143,25 +146,45 @@ has none. Species tab: unticked = node 2's real labels only; tick "include simul
 | `pip install requests` printed | activate the backend venv, `pip install requests`, rerun |
 | cards appear without images | reload the page (Cmd+Shift+R / Ctrl+Shift+R) |
 
-## Segment 5 (optional): 3 physical nodes, real multi-hop (90 s)
+## Segment 5: the real two-hop, node 5 → node 3 → node 1 (90 s; runs only if H12c passed)
 
-**Correction to the plan's "node 3 → node 2 → node 1":** that chain cannot be forced. In Goutham's layout
-(`third_party/wifi_mesh/wifi_mesh_config.h`) C (3) hears A (1) directly, and the only node that cannot hear A is
-E (5), whose neighbours are C and D. The radio code is not ours to edit, so the real 3-node chain is
-**E (5) → C (3) → A (1)**. It needs boards with **WST-5 and WST-3**, flashed `csc09_node_5.uf2` and
-`csc09_node_3.uf2`, plus node 1. Node 2 then sits out (or stays on as an extra neighbour of C).
+**Use this segment only if `HARDWARE_TODO.md` H12c passed tonight** (node 5's `done via wifi` and node 3's
+`relayed` going up). Otherwise use the fallback at the bottom of this segment.
 
-1. All nodes powered, the topology filter is ON at boot (`t` toggles it; it prints the new state).
-2. Node 5's monitor: `c`. Node 3's monitor: `s` → the `wifi: ... relayed N` count goes up.
-3. Dashboard: an `N5-…` card **without** SIMULATED.
-4. Press `t` on every node (filter OFF): the next `c` on node 5 arrives directly; node 3's `relayed` stays put.
+Why 5 → 3 → 1 and not 3 → 2 → 1: in Goutham's layout (`wifi_mesh_config.h`) node 3 hears node 1 directly, and only
+node 5 (E) cannot (its neighbours are 3 and 4). See DECISIONS D10.
+
+**Before:** nodes 1, 3, 5 powered, flashed `csc09_node_1/3/5.uf2`, ESP-01s WST-1/3/5; node 4 off; no `t` pressed
+since boot (the filter is ON at boot). The backend runs on the bridge's port (H12 setup), and a logger is open on
+node 3 and on node 5 (`python tools/serial_log.py --port <NODE3> --test demo_node3`, same for node 5).
+
+**Say:** "On the trail, node 5 is out of the base station's range. Watch node 3 pass its photo along."
+
+1. Node 3's logger: `s`. Read out `wifi: ... relayed R`.
+2. Node 5's logger: `c` (play a playlist clip first if you like). After about 10 s: `done via wifi`.
+3. Node 3's logger: `s`. `relayed` went up by about 40-50, which is node 5's photo passing through.
+4. Dashboard: an `N5-…` card, **without** SIMULATED.
+5. Optional (30 s): press `t` on nodes 1, 3 and 5 (filter OFF, everyone hears everyone), `c` on node 5 again: node 3's
+   `relayed` barely moves. Press `t` on all three again afterwards.
 
 | if | fallback |
 |---|---|
+| node 5 says `bridge never heard on wifi` | node 3 is off or not WST-3 (boot line `wifi: ESP-01 MAC ... = WST-3`); then use the fallback below |
+| `done via lora` | LoRa has no filter, so it went straight to the bridge: a real delivery, but not the hop. Say so, then use the fallback below |
+| H12c did not pass tonight | **fallback:** segment 3's laptop run (`python tools/demo_multihop.py`) shows the same 5 → 3 → 1 path with the real mesh code, and `demo_feed.py --once --node 5` puts an N5 card (SIMULATED) on the dashboard |
+
+---|---|
 | node 5 says `bridge never heard on wifi` | node 3 is off or not WST-3; check its boot line `wifi: ESP-01 MAC ... = WST-3` |
 | it went via LoRa | LoRa has no filter (on a desk everyone hears everyone); that is still a real delivery. Use segment 3 for the hop |
 
 ---
+
+## If the classifier misbehaves
+
+Build and flash the legacy firmware (curveball's mic.c thresholds, round-robin `img_NN.jpg`; the SD card needs its old
+`img_NN.jpg`): `cmake -S firmware -B build-fw-legacy -G Ninja -DSOUND_LEGACY_MODE=ON && cmake --build build-fw-legacy`,
+then flash `build-fw-legacy/csc09_node_2.uf2`. The boot line says `sound: LEGACY mode`. Captures arrive as AMBIENT or
+Unidentified, no animal labels. Say so: "this is the old threshold detector we replaced".
 
 ## If everything fails
 
@@ -179,5 +202,5 @@ E (5), whose neighbours are C and D. The radio code is not ours to edit, so the 
 | 2 failover | 1:00 | — |
 | 3 multi-hop | 0:45 | 0:45 |
 | 4 dashboard | 0:45 | 0:45 |
-| 5 three nodes | 1:30 | — |
+| 5 real two-hop (if H12c passed) | 1:30 | (replaces 3) |
 | total | about 5:30 | 3:00 |

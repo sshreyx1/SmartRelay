@@ -88,4 +88,13 @@ All 2026-11-03, R-approved per SOUND_PLAN.md rule 6:
 - `host/integration/integ_node.c` (Shreya's file), additive: relay mode now stops on SIGINT/SIGTERM and prints
   its mesh stats (before, `run_wifi_integration.sh` killed it silently), and with `-DUSE_WIFI` every stats line adds
   `filtered N` (`wifi_mesh_filtered_count()`). Both integration scripts still PASS. Used by `tools/demo_multihop.py`.
+- `firmware/sensing/sensing.c/.h` (Maryam's files) and `firmware/app/main.c` (Shreya's): compile-time
+  `SOUND_LEGACY_MODE` (CMake option, **default OFF**, so the default build is unchanged). ON = curveball's mic.c
+  threshold path and `img_NN.jpg` round robin, for the before/after comparison and as a demo fallback
+  (DECISIONS D13). Trigger rule, cooldown, ADC ownership and `trigger_trust` are untouched. Build:
+  `cmake -S firmware -B build-fw-legacy -G Ninja -DSOUND_LEGACY_MODE=ON && cmake --build build-fw-legacy`.
+  `main.c` also no longer prints "(255%)" when the confidence is unknown.
+- `firmware/app/main.c` (Shreya's): new console key **`H`** (test T6) toggles a hold: comms stops taking captures off
+  the 4-slot capture queue while radios, ALFP and the outbox keep running, so the 5th capture hits the existing
+  `[ALERT] capture queue full, dropped`. Releasing sends what waited. Listed in `print_help()`. No other key changed.
 

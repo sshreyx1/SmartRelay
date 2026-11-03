@@ -99,5 +99,8 @@ New static RAM on the node: `sf_t` 1,856 B (sensing.c), `sip_table_t` 1,489 B an
 | RC filter on GP26 (R, C, cutoff = 1/(2πRC), must be < 8 kHz) | _TBD_ |
 | MAX9814 gain (40/50/60 dB) and whether the AR pin is wired | _TBD_ |
 | GP14 sound module (exact part, e.g. KY-038 / LM393) | _TBD_ |
-| Playback speaker (model) and distance to the mic | _TBD_ |
-| `sensor_test.uf2` → `q` mean ADC value (quiet room) | _TBD_ (earlier captures: 2083–2117) |
+| Playback speaker (model) and distance to the mic | **MacBook Pro built-in speakers** (pass it by name, `--device "MacBook Pro Speakers"`: macOS renumbers outputs when an iPhone microphone connects), about **8 cm** from the MAX9814 (H4, 2026-11-03). The first 19 H4 takes used the Dell S3225QS monitor speaker (output 1) at 100% and were re-recorded (too loud for the house); the first re-record went to output 4 (Microsoft Teams Audio, silent) and was redone on output 3 |
+| `sensor_test.uf2` → `q` mean ADC value (quiet room) | **2083–2085** (first power-up, old sensor_test) and **2112–2114** (second power-up, tonight's build): it moves by about 30 counts between power-ups, inside the 2083–2117 seen before. 16000 samples, 0 lost every time (H1, 2026-11-03) |
+| H1 `[SOUND]` timing, tonight's `sensor_test.uf2` (backup model) | 1 s takes: feat_us **81.5 ms** (8.2% of the recording), maxcall_us **1.25–1.42 ms**, model_us **0.27–0.50 ms**; the 5 s dual-trigger capture: feat_us **409.7 ms** (8.2%). No CPU-budget warning |
+| H1 `[SOUND]` labels | quiet room: AMBIENT, conf 40, 72, 73, 79; claps: HUMAN 24 and BIRD 26 (group only, low confidence: claps are not a class). DC-corrected rms 16–18 quiet, 98–115 clap (the legacy rms 67–132 includes the 2112 − 2048 = 65 offset) |
+| H1 note | quiet-room `zcr` is about 7800 crossings/s: around the true mean, the ADC's 1–2 count noise crosses almost every other sample. It is the same on Pico and host, so the classifier sees it consistently; the mic recordings (H4) train on it |

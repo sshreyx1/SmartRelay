@@ -54,6 +54,8 @@ Pipeline order: record -> extract -> train -> export -> flash -> bench. `docs/so
 | `plots.py` | Per-group box plots of the most informative features. |
 | `hosttools.py` | `find_host_tool("sound_featx")` finds the built host tool (also `.exe`, `Debug`/`Release`). |
 | `../tools/make_label_images.py` | Label photos -> `sd_card/samples/<prefix>_NN.jpg` (<= 10 kB) + `docs/sound/IMAGE_CREDITS.md`. |
+| `demo_playlist.py` | Demo clips: per group the 2 test-fold clips classified right with the highest confidence -> `demo_clips/` + `playlist.csv` (offline model, or `--live` bench_eval CSV). |
+| `../tools/serial_log.py` | Hardware tests: timestamped serial log to `docs/sound/evidence/<test>_<date>.log`, scripted keys (`--send c@5`), type-to-send, `--count` summary. |
 | `../tools/demo_multihop.py` | Demo: E -> C -> A with the real `wifi_mesh.c` + ALFP as 3 local processes, prints hop path and relay counters (macOS/Linux; Windows in WSL). |
 
 The host tool comes from `cmake -S host -B build && cmake --build build -j` (Windows/MSVC:

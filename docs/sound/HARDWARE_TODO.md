@@ -94,6 +94,102 @@ Node 2 with its SD card, monitor open. Press `c` three times, about 10 s apart. 
 **Expect:** the boot line `capture id: next is N2-000004 ...`, then `N2-000004`, `N2-000005` (they do not
 restart at 1).
 
+## H12 (A7/A9, multi-node): several field nodes, one bridge, the dashboard
+
+Real captures from more than one node through node 1. Run it after H7. About 30 min (40 with node 5).
+
+### Setup (once)
+
+1. **Flash each board on its own** (only that Pico plugged in, so picotool cannot pick the wrong one), with the image
+   matching its ESP-01 (WST-n):
+   ```
+   ~/.pico-sdk/picotool/2.3.1/picotool/picotool load -f -x build-fw/csc09_node_1.uf2     (bridge, WST-1)
+   ~/.pico-sdk/picotool/2.3.1/picotool/picotool load -f -x build-fw/csc09_node_3.uf2     (WST-3)
+   ~/.pico-sdk/picotool/2.3.1/picotool/picotool load -f -x build-fw/csc09_node_5.uf2     (WST-5, optional)
+   ```
+   Windows: the same with `$env:USERPROFILE\.pico-sdk\picotool\2.3.1\picotool\picotool.exe`, or BOOTSEL + drag the
+   `.uf2` onto **RPI-RP2**. Every field node needs an SD card with `sd_card/samples/` copied on; node 1 needs a card too.
+2. **Which port is which node.** Stop the backend and close every monitor, plug all boards in, then:
+   ```
+   python tools/serial_log.py --identify
+   ```
+   **Expect** one line per Pico, e.g. `/dev/cu.usbmodem1101  node 1 (BRIDGE)` and `/dev/cu.usbmodem1201  node 3`
+   (Windows: `COM7  node 1 (BRIDGE)`). The names stay the same as long as each board keeps its USB socket.
+   No answer from a board: open it with miniterm and press `h`.
+3. **Backend on the bridge's port only** (otherwise it grabs the first Pico it finds). Clean slate first:
+   - macOS: `cd backend && source .venv/bin/activate && rm -f smartrelay.db && SMARTRELAY_BRIDGE_PORT=/dev/cu.usbmodemBRIDGE uvicorn app:app --port 8000`
+   - Windows: `cd backend; .venv\Scripts\Activate.ps1; Remove-Item smartrelay.db -ErrorAction SilentlyContinue; $env:SMARTRELAY_BRIDGE_PORT="COMb"; uvicorn app:app --port 8000`
+
+   **Expect** `bridge: connecting to /dev/cu.usbmodemBRIDGE automatically`, then `connected to bridge on ...`.
+   Open http://localhost:8000. If the bridge is unplugged later, the backend logs `lost/unavailable ... retrying` and
+   reconnects by itself.
+4. **One logger per field node** (each in its own terminal, ml venv; type a key + Enter to send it):
+   `python tools/serial_log.py --port <NODE3> --test H12_node3` (and `<NODE2>`, `<NODE5>` the same way).
+   Every node's boot line must say `wifi: ESP-01 MAC ... = WST-<its own number>`; press `h` if the boot lines were missed.
+
+To list what the backend stored (both OS):
+```
+python -c "import json,urllib.request as u;[print(c['display_id'],c['sound_label'],c['radio'],c['size_bytes'],c['image_name']) for c in json.load(u.urlopen('http://localhost:8000/api/captures?limit=30&include_demo=false'))['captures']]"
+```
+
+### a) Node 3 → bridge → backend → dashboard
+
+In node 3's logger: `s` (expect `bridge last heard on wifi ... ms ago`, under about 3000), then `c`.
+**Expect** within about 15 s: `[SOUND] group=... lost=0 ...`, `capture N3-000001: heard ... -> samples/..._NN.jpg`,
+`capture N3-000001 queued`, `tx samples/...: done via wifi`; the backend logs `capture stored: node 3 ...`; the
+dashboard shows a card **`N3-000001`**, no SIMULATED badge, with that image.
+**Paste:** node 3's lines from `[ALERT]` to `done via`, the backend's `capture stored` line, a screenshot of the card.
+**Pass:** the ID on serial, backend and dashboard is the same `N3-…`; `lost=0`. **Fail:** no `done via` in 60 s
+(press `s`: is the bridge heard?), or a different ID on the dashboard.
+
+### b) Node 2 and node 3: one after the other, then at the same time
+
+The reviewer's concern: two nodes sending at once could mix up fragments or leave half-received files on the bridge.
+ALFP keys every incoming transfer by (source node, session) and the bridge keeps up to 4 at once
+(`ALFP_RX_SESSIONS` 4, `alfp/include/alfp_config.h`); this part checks that on hardware.
+1. **Alternating:** `c` on node 2, wait for its `done via`; `c` on node 3, wait; repeat once (4 captures).
+2. **Simultaneous:** type `c` in node 2's logger and press Enter, then **immediately** the same in node 3's (under
+   1 s apart). Both transfers now overlap. Wait for both `done via`. Repeat once (4 more captures).
+3. Stop the backend (Ctrl+C), open the bridge: `python -m serial.tools.miniterm <BRIDGE> 115200`, press `s`.
+   Restart the backend afterwards.
+
+**Paste:** the backend list (command above), the bridge's `s` lines, and each node's `done via` lines.
+**Pass:**
+- all **8** captures listed: node 2 and node 3 IDs each continuous (e.g. `N2-000004..07`, `N3-000002..05`), no ID
+  twice, each `image_name` matching its `sound_label`'s group;
+- the bridge's `s`: `rx ok` grew by 8, `crcfail 0`, **`expired 0`** (an expired transfer = a half-received file
+  abandoned in `rx/`);
+- no `REJECTED transfer` in the backend log.
+
+**Fail:** a missing capture, a duplicated or skipped ID, `expired` > 0, or a REJECTED line. Note the time and both nodes'
+`s` output.
+
+### c) Node 5 → node 3 → node 1, a real two-hop (only if node 5 is available)
+
+The WiFi topology filter is **ON at boot** on every node: E (5) cannot hear A (1) and must go through C (3) or D (4).
+`t` *toggles* it and prints the new state; if anyone pressed `t`, press it again on that node until it prints
+`wifi topology filter ON`. Node 4 must be **off** (or the path may be 5 → 4 → 1).
+1. Node 3's logger: `s`, note `wifi: ... relayed R`.
+2. Node 5's logger: `s` → `bridge last heard on wifi ... ms ago` (the bridge's heartbeat arrived via node 3). Then `c`.
+3. Wait for node 5's `done via wifi`, then `s` on node 3 again.
+
+**Paste:** node 5's `[SOUND]` .. `done via` lines, node 3's two `wifi:` stats lines, the dashboard card.
+**Pass:** `done via wifi`; node 3's `relayed` went up by at least the transfer's fragment count (about 40-50 for a 10 kB
+image); an `N5-…` card without SIMULATED. **Not a pass:** `done via lora` (LoRa has no filter, so that went straight
+to the bridge): check node 5 hears the bridge on WiFi, and that node 3 is up and is WST-3.
+
+### d) Store and forward: the bridge is off while node 3 captures
+
+1. Unplug node 1's USB (the bridge is now off; the backend logs `retrying`).
+2. Node 3: `c`, wait for `capture N3-… queued (...), outbox 1`; `c` again, `outbox 2`. `s` shows the bridge last heard
+   longer and longer ago.
+3. Plug node 1 back in (same socket). Wait up to 2 minutes.
+
+**Paste:** node 3's `queued` lines and its `done via` lines after the bridge came back, the backend's `connected to
+bridge` and `capture stored` lines.
+**Pass:** both captures arrive by themselves after the bridge returns, in order, and node 3's `s` ends with `outbox 0`.
+**Fail:** they never leave (`outbox` stays 2 after 2 min): note node 3's `s` output.
+
 ## H8 (A8): the image follows the sound
 
 Copy the repo's `sd_card/samples/` folder onto node 2's card, keeping the old `img_NN.jpg`.

@@ -7,6 +7,28 @@ Run everything from the repo root in a terminal set up as in HARDWARE_TODO's "Se
 **Safety net:** the firmware already contains a working **backup model** (trained on ESC-50 converted in software,
 not the mic; test group macro-F1 0.61). If anything below goes wrong, the demo can still run on it.
 
+**Updated 20:50 (interactive session).** Done so far: commit queue, H9 (simulator), H1, H2, H3, H4 (two sessions,
+510 takes), H5/H5b (two-session model, groups only, D15). Remaining, in order:
+
+| # | step | who | needs | time | clock |
+|---|---|---|---|---|---|
+| 1 | **H6.2** flash `audio_dump.uf2`, `python ml/bench_eval.py --device "MacBook Pro Speakers"` | R | node 2, MacBook 8 cm | 8 min | 20:50 |
+| 2 | Commit blocks for everything so far (Claude prints them) | R | — | 5 min | 21:00 |
+| 3 | **H6.3** flash `csc09_node_2.uf2`, one playlist clip + `c`, check the `[SOUND]` line | R | node 2 | 10 min | 21:05 |
+| 4 | **H8** `sd_card/samples/` on node 2's card; node 2 → node 1 → backend → dashboard | R | nodes 1, 2, SD cards | 15 min | 21:15 |
+| 5 | **H7** 3 captures, reboot, 2 captures: ids continue | R | node 2 | 5 min | 21:30 |
+| 6 | **H12** a-d: node 3, nodes 2+3 together, 5 → 3 → 1, store and forward | R | nodes 1, 2, 3 (+5) | 30-40 min | 21:35 |
+| 7 | Demo playlist from the new bench; DEMO.md segment 5 decided by H12c | Claude | — | 5 min | 22:15 |
+| 8 | **H11** screen-record segment 1 (and 5 if H12c passed) | R | all | 10 min | 22:20 |
+| 9 | Demo run-through ×2 (`DEMO.md`) | R | all | 25 min | 22:30 |
+| 10 | Commit tonight's evidence | R | — | 5 min | 22:55 |
+| 11 | Optional before 02:00: **T6** (2.5 min, scripted) and **T3** (15 min) from `TESTS.md`; A11 docs | R + Claude | node 2 (+1) | 45 min | 23:00 |
+| | buffer | | | about 3 h | 23:45-03:00 |
+
+**Cut first if late:** 11 (T3/T6, A11), then H12c/d, then demo segment 2. Never cut H8, H11 and one run-through.
+
+<details><summary>Original plan (written before the session)</summary>
+
 | # | step | time | clock (start 23:30) |
 |---|---|---|---|
 | 0 | Commit the autonomous session's work (`docs/sound/COMMIT_QUEUE.md`, run the blocks in order) | 5 min | 23:30 |
@@ -25,6 +47,8 @@ not the mic; test group macro-F1 0.61). If anything below goes wrong, the demo c
 | 13 | **H11** screen-record segment 1 of `DEMO.md`; then demo run-through ×2 (`DEMO.md`) | 25 min | 01:50 |
 | 14 | Commit tonight's evidence (block at the end) | 5 min | 02:10 |
 | | buffer | 45 min | 02:15-03:00 |
+
+</details>
 
 ## While step 5 records (40 min free)
 

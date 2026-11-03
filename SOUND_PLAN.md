@@ -85,13 +85,13 @@ Priorities: **P0** = must have, **P1** = should have, **P2** = stretch.
 
 | ✓ | ID | Pri | Task | Result |
 |---|----|-----|------|--------|
-| [x] | A0  | P0 | Baseline: branch, builds, Python env, mic facts | host 7/7, 9 fw images, node_2 135.3 kB RAM free, smoke 15/15; hw facts TBD (H1) |
-| [ ] | A1  | P0 | `audio_dump` firmware: stream raw 5 s audio to the Mac | code + build done (audio_dump.uf2, pico_audio.py, 7 parser tests); HW check H2 pending |
-| [ ] | A2  | P0 | Dataset: ESC-50 → label map → record through the Pico mic 🪟 | scripts done, ESC-50 downloaded, dry-run 270 takes ≈ 43 min; recording H4 pending |
+| [x] | A0  | P0 | Baseline: branch, builds, Python env, mic facts | host 7/7, 9 fw images, node_2 135.3 kB RAM free, smoke 15/15; **H1 PASS**: mean ADC 2083–2114, 0 lost, feat 8.2% CPU, maxcall 1.4 ms; board facts (RC, gain, GP14 part, speaker) still TBD |
+| [x] | A1  | P0 | `audio_dump` firmware: stream raw 5 s audio to the Mac | audio_dump.uf2 + pico_audio.py (7 parser tests); **H2 PASS**: 32000 samples, crc ok, quiet std 16.9, clap std 86–94 (clips 0..4095), features + class over serial |
+| [x] | A2  | P0 | Dataset: ESC-50 → label map → record through the Pico mic 🪟 | **H4 done**: 270 Pico-mic takes (240 ESC-50 at 10/category via MacBook speakers 8 cm + 30 ambient quiet/fan/outdoor), all crc ok; 19 re-recorded twice (speaker change, then a silent virtual device) |
 | [x] | A3  | P0 | Streaming spectral features v1 (C) + host CLI + tests | 25 features v1, sf_t 1856 B, 6 host tests + sound_featx (chunk-size invariant) |
-| [ ] | A4  | P0 | Feature extraction + Pico/host parity check | extract/parity/plots done, parity dry-run PASS; live parity H3 pending |
-| [ ] | A5  | P0 | Two-stage model (group → animal) + C export + parity test | BACKUP model (ESC-50 direct, full grid): test group F1 0.613, coverage 0.24, 48 kB, C=Python 200/200; mic retrain H5 pending |
-| [ ] | A6  | P0 | Classifier on the node + bench confusion matrix | on-node classify + [SOUND] line + bench_eval.py; 10 images build, node_2 131.7 kB RAM free; H6 pending |
+| [x] | A4  | P0 | Feature extraction + Pico/host parity check | extract/parity/plots; **H3 PASS**: Pico vs sound_featx max rel diff 1.96e-07 over 5 live takes (tol 1e-3) |
+| [x] | A5  | P0 | Two-stage model (group → animal) + C export + parity test | two-session mic model, loudness ignored (D15): **on-device bench group F1 0.486** (offline 0.499), animal-vs-not 0.833 (legacy 0.47), groups only (MIN_CONF 101), 12.6 kB flash, 102/102 C vectors; session-1 model was 0.219 on-device |
+| [ ] | A6  | P0 | Classifier on the node + bench confusion matrix | on-node classify + [SOUND] + bench_eval; **H6.2 PASS** (gap +0.013, model 175 us mean); H1 timing feat 8.2% CPU, maxcall 1.4 ms; live [SOUND] on node firmware (H6.3) pending |
 | [ ] | A7  | P0 | Persistent capture ID on SD + `N2-000042` naming everywhere | meta/next_id + outbox/clips scan, N2-000042 C/Py + tests, FF_USE_LFN=3; reboot check H7 pending |
 | [ ] | A8  | P0 | Pico picks the image from the sound label | sound_image_pick.c + test, 35 credited images ≤10 kB in sd_card/samples; H8 pending |
 | [x] | A9  | P1 | bridge_receiver / backend / dashboard / demo_feed: show the Pico's labels + capture ID | labels+display_id in bridge/backend (/api/species, 5 pytest), dashboard badge/chip/species, npm build OK; **H9 browser check PASS with the simulator** (fixed WS snapshot image_url + simulator placeholder); real bridge path is H8 |
