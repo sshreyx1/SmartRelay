@@ -107,6 +107,12 @@ hub = Hub()
 # Bridge wiring: every verified transfer -> DB row + WS push
 # ---------------------------------------------------------------------------
 
+def with_image_url(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Every capture row sent to the dashboard (REST, live push and the WS snapshot) carries image_url."""
+    row["image_url"] = "/captures/" + Path(row["image_path"]).name if row.get("image_path") else None
+    return row
+
+
 def on_transfer(xfer: CompletedTransfer) -> None:
     meta = xfer.meta
     ext = ".jpg" if xfer.data[:3] == b"\xff\xd8\xff" else (".png" if xfer.data[:8] == b"\x89PNG\r\n\x1a\n" else ".bin")
@@ -115,8 +121,7 @@ def on_transfer(xfer: CompletedTransfer) -> None:
         node_id=xfer.src, session_id=xfer.session_id, radio=xfer.radio, frag_total=xfer.frag_total,
         size_bytes=xfer.size, crc32=xfer.crc32, image_path=path, meta=meta, is_demo=xfer.is_demo,
     )
-    row = store.get_capture(row_id)
-    row["image_url"] = "/captures/" + Path(path).name
+    row = with_image_url(store.get_capture(row_id))
     log.info("%scapture stored: node %s session %s, %d bytes via %s",
               "[DEMO] " if xfer.is_demo else "", xfer.src, xfer.session_id, xfer.size, xfer.radio)
     hub.broadcast_soon("capture", row)
@@ -193,9 +198,7 @@ async def api_nodes() -> Dict[str, Any]:
 async def api_captures(limit: int = Query(50, le=500), node_id: Optional[int] = None,
                        include_demo: bool = True) -> Dict[str, Any]:
     rows = store.recent_captures(limit=limit, node_id=node_id, include_demo=include_demo)
-    for r in rows:
-        r["image_url"] = "/captures/" + Path(r["image_path"]).name if r.get("image_path") else None
-    return {"captures": rows}
+    return {"captures": [with_image_url(r) for r in rows]}
 
 
 @app.get("/api/captures/{capture_row_id}")
@@ -203,8 +206,7 @@ async def api_capture(capture_row_id: int) -> Dict[str, Any]:
     row = store.get_capture(capture_row_id)
     if not row:
         raise HTTPException(status_code=404, detail="capture not found")
-    row["image_url"] = "/captures/" + Path(row["image_path"]).name if row.get("image_path") else None
-    return row
+    return with_image_url(row)
 
 
 @app.get("/api/species")
@@ -252,7 +254,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             "event": "snapshot",
             "data": {
                 "nodes": (await api_nodes())["nodes"],
-                "captures": store.recent_captures(limit=30),
+                "captures": [with_image_url(r) for r in store.recent_captures(limit=30)],
                 "log": store.recent_log(limit=50),
                 "stats": store.stats(),
             },

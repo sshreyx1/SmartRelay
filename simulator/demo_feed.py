@@ -57,16 +57,27 @@ MISSING_U16 = 0xFFFF
 UNKNOWN_U8 = 0xFF
 
 _session_counter = random.randint(1, 500)
+# capture ids continue from a time-based start so separate runs do not reuse N2-000001
 _capture_counter = {}
+_CAPTURE_ID_BASE = int(time.time()) // 60 % 100000
+
+
+# a real 120x90 grey "SIMULATED" JPEG (375 B), so browsers can draw it
+_PLACEHOLDER_JPEG = base64.b64decode(
+    "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABQODxIPDRQSEBIXFRQYHjIhHhwcHj0sLiQySUBMS0dARkVQWnNiUFVtVkVGZIhlbXd7"
+    "gYKBTmCNl4x9lnN+gXz/wAALCABaAHgBAREA/8QAGQABAAMBAQAAAAAAAAAAAAAAAAECBAUD/8QAKxABAAIBAgQEBQUAAAAAAAAA"
+    "AAEDAhESBBMiQSExUZEFFDIzoWFxgbHh/9oACAEBAAA/AOIAAAAAAAAAAAAAAAAAAAAAAAAAL0ffr0jGZ3R4ZeU/u3WxlyLcs5si"
+    "Zrnps+qOvDv3j/Xvdp8zxNvezGyv2jLX+sfdlsiYrts06MqK8ccu0zGzWPxPsm2nLH4lbZbhljXjZlnrOPhOkzKcbMo4mc67M9tt"
+    "OefprMYzEzP8xKts258FTlvvmJrndpEzjPVl5zqtxvM38Xz92zfPL3eu7t+mmv4c8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf//Z")
 
 
 def _placeholder_jpeg(seed: int) -> bytes:
-    """A tiny, clearly-synthetic JPEG-like blob -- enough bytes to fragment
+    """A small, clearly-synthetic JPEG -- enough bytes to fragment
     and show a size on the dashboard, not a real photo. If you have an
-    actual sample image, pass --image instead."""
+    actual sample image, pass --image instead. The padding goes after the
+    JPEG's end marker, which image decoders ignore, so it still renders."""
     rnd = random.Random(seed)
-    body = bytes(rnd.randrange(256) for _ in range(4000 + rnd.randrange(4000)))
-    return b"\xff\xd8\xff" + body  # JPEG magic so the backend's kind-sniffing is exercised too
+    return _PLACEHOLDER_JPEG + bytes(rnd.randrange(256) for _ in range(4000 + rnd.randrange(4000)))
 
 
 def build_meta(node_id: int, capture_id: int, trigger_pir: bool, trigger_sound: bool,
@@ -120,7 +131,7 @@ def build_transfer_lines(node_id: int, image_bytes: bytes | None = None, label_d
     global _session_counter
     _session_counter += 1
     sid = _session_counter
-    cap_id = _capture_counter.get(node_id, 0) + 1
+    cap_id = _capture_counter.get(node_id, _CAPTURE_ID_BASE) + 1
     _capture_counter[node_id] = cap_id
 
     trigger_pir = True

@@ -31,7 +31,7 @@ not the mic; test group macro-F1 0.61). If anything below goes wrong, the demo c
 Leave the room quiet and the speaker fixed, and keep the laptop on the charger. Meanwhile (other terminal, no Pico
 needed):
 - Run the Windows smoke check with a teammate (**H10**).
-- Plug the bridge's USB in, and start the backend with `simulator/demo_feed.py --burst 5 --label-images sd_card/samples`
+- Plug the bridge's USB in, and start the backend and, from the backend's venv with `requests` installed, `simulator/demo_feed.py --burst 5 --label-images sd_card/samples`
   to see that the dashboard renders (**H9** without hardware).
 
 ## Step 7 in detail: retrain on the mic
@@ -85,7 +85,7 @@ Note which clips work best: those are the demo clips.
 **Fallbacks:**
 - Radios misbehave → show node 2's serial line + `python ml/pico_audio.py --test 5 --features` (classification
   on the Pico, no radio).
-- Nothing works → `python simulator/demo_feed.py --continuous --every 10 --label-images sd_card/samples`. Every
+- Nothing works → (backend venv, `requests` installed) `python simulator/demo_feed.py --continuous --every 10 --label-images sd_card/samples`. Every
   card says SIMULATED; say so out loud.
 
 ## Step 14: commit tonight's results

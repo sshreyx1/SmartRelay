@@ -72,3 +72,16 @@ All 2026-11-03, R-approved per SOUND_PLAN.md rule 6:
 
 - No changes. Label images are up to 10 kB (the old samples were 3-6 kB), so a LoRa capture can take up to
   about 70 s over 2 hops. `tools/make_label_images.py --max-kb 6` makes smaller ones if LoRa demos run long.
+
+## Interactive session (2026-11-03 evening)
+
+- `backend/app.py` (Shreya's file): **bug fix, pre-existing in curveball 2e89e98.** The WebSocket `snapshot`
+  sent capture rows without `image_url`, so after any page reload or reconnect every card showed "no image" until a
+  new capture arrived. All four places that send capture rows (REST list, REST single, live push, snapshot) now go
+  through one `with_image_url()` helper. Found during H9.
+- `simulator/demo_feed.py` (Shreya's file), demo-only, found during H9:
+  - the placeholder for captures with no label image was random bytes behind a JPEG header (curveball 2e89e98),
+    so browsers showed a broken image; it is now a real 375-byte grey "SIMULATED" JPEG with the padding after its
+    end marker (same transfer sizes);
+  - capture ids restarted at 1 every run, so two runs both showed `N2-000001`; they now continue from a
+    time-based start (minutes, mod 100000).

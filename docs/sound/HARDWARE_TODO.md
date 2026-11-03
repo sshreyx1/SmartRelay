@@ -110,7 +110,10 @@ Flash `csc09_node_1.uf2` on the bridge. Then, in `backend/`:
 Open http://localhost:8000. **Expect:** each capture card shows the `N2-000042` badge, a `DOG · 82% · MAMMAL` chip
 and "identified on-node"; the Species page counts it. These pages were **never looked at in a browser during the
 autonomous session** (DECISIONS D8), so check that they render.
-Without hardware: `python simulator/demo_feed.py --burst 5 --label-images sd_card/samples` (tagged SIMULATED).
+Without hardware (unplug every Pico so the backend does not auto-detect one): in a second terminal with the
+**backend's** venv active (the simulator needs `requests`, which is in neither requirements file:
+`pip install requests` once), run `python simulator/demo_feed.py --burst 5 --label-images sd_card/samples`
+(tagged SIMULATED).
 
 ## H10 🪟 (A2/A11 checkpoint): a Windows teammate runs the tooling
 
