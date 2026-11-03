@@ -24,13 +24,18 @@ shows a "SIMULATED" badge on it -- it is never mixed into node status or
 counted as a real mesh capture. If you need a sample image to look right on
 the dashboard, point --image at a real jpg; otherwise a small placeholder
 is generated so the transfer still has a non-trivial size to fragment-count
-realistically.
+realistically. With --label-images sd_card/samples it sends the label image a real node would
+pick for the simulated sound label (dog_00.jpg for DOG, ...), still tagged SIMULATED.
+
+Sound labels are random ids from common/sound_classes.py: the simulator never classifies, it just
+pretends a node reported that label, so the dashboard's label chips and species tally can be shown.
 """
 from __future__ import annotations
 
 import argparse
 import base64
 import json
+import os
 import random
 import struct
 import sys
@@ -42,8 +47,11 @@ try:
 except ImportError:
     requests = None
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "common"))
+import sound_classes  # noqa: E402
+
 WEATHER = {0: "Cloudy", 1: "Hot_Dry", 2: "Humid_Rainy"}
-SOUND = {0: "AMBIENT_NOISE", 1: "LOUD_ANIMAL_CALL", 2: "HIGH_FREQ_RUSTLE"}
+SOUND_IDS = [c.id for c in sound_classes.CLASSES]
 MISSING_I16 = -32768
 MISSING_U16 = 0xFFFF
 UNKNOWN_U8 = 0xFF
@@ -61,13 +69,13 @@ def _placeholder_jpeg(seed: int) -> bytes:
     return b"\xff\xd8\xff" + body  # JPEG magic so the backend's kind-sniffing is exercised too
 
 
-def build_meta(node_id: int, capture_id: int, trigger_pir: bool, trigger_sound: bool) -> bytes:
+def build_meta(node_id: int, capture_id: int, trigger_pir: bool, trigger_sound: bool,
+               sound_class: int = UNKNOWN_U8, image_name: str = "") -> bytes:
     rnd = random.Random(node_id * 1000 + capture_id)
     temp_x10 = round(rnd.uniform(24.0, 33.0) * 10)   # Singapore-ish trail temperature, 24-33 C
     hum_x10 = round(rnd.uniform(60, 95) * 10)
     light = rnd.randrange(0, 4096)
     weather = rnd.choice(list(WEATHER.keys()))
-    sound_class = rnd.choice(list(SOUND.keys())) if trigger_sound else UNKNOWN_U8
     sound_rms = rnd.randrange(100, 4000) if trigger_sound else MISSING_U16
     sound_zcr = rnd.randrange(50, 2000) if trigger_sound else MISSING_U16
     trig = (1 if trigger_pir else 0) | (2 if trigger_sound else 0)
@@ -90,10 +98,25 @@ def build_meta(node_id: int, capture_id: int, trigger_pir: bool, trigger_sound: 
         sound_rms,
         sound_zcr,
         0,                        # image_index
-    )
+    ) + image_name.encode("utf-8")  # optional tail: the image the node picked for its label
 
 
-def build_transfer_lines(node_id: int, image_bytes: bytes | None = None) -> list[str]:
+def pick_label_image(label_dir: str | None, label_id: int) -> tuple[bytes | None, str]:
+    """The image a real node would pick (label -> group -> img_NN), from a local samples folder."""
+    if not label_dir or not os.path.isdir(label_dir):
+        return None, ""
+    files = sorted(os.listdir(label_dir))
+    c = sound_classes.get(label_id)
+    for prefix in ([c.prefix, sound_classes.get(c.group).prefix] if c else []) + ["img"]:
+        hits = [f for f in files if f.startswith(prefix + "_") and f.lower().endswith(".jpg")]
+        if hits:
+            name = random.choice(hits)
+            with open(os.path.join(label_dir, name), "rb") as f:
+                return f.read(), name
+    return None, ""
+
+
+def build_transfer_lines(node_id: int, image_bytes: bytes | None = None, label_dir: str | None = None) -> list[str]:
     global _session_counter
     _session_counter += 1
     sid = _session_counter
@@ -102,8 +125,10 @@ def build_transfer_lines(node_id: int, image_bytes: bytes | None = None) -> list
 
     trigger_pir = True
     trigger_sound = random.random() < 0.7
-    data = image_bytes if image_bytes is not None else _placeholder_jpeg(sid)
-    meta = build_meta(node_id, cap_id, trigger_pir, trigger_sound)
+    sound_class = random.choice(SOUND_IDS) if trigger_sound else UNKNOWN_U8
+    label_bytes, image_name = pick_label_image(label_dir, sound_class)
+    data = image_bytes if image_bytes is not None else label_bytes or _placeholder_jpeg(sid)
+    meta = build_meta(node_id, cap_id, trigger_pir, trigger_sound, sound_class, image_name)
     crc = zlib.crc32(data) & 0xFFFFFFFF
     radio = random.choice(["lora", "wifi"])
     frags = max(1, (len(data) + 191) // 192)  # ALFP's real MAX_PAYLOAD-ish chunking, for a realistic count
@@ -137,6 +162,8 @@ def main() -> int:
     ap.add_argument("--continuous", action="store_true", help="keep sending until Ctrl+C")
     ap.add_argument("--every", type=float, default=20.0, help="seconds between captures in --continuous")
     ap.add_argument("--image", help="path to a real JPEG to use instead of the synthetic placeholder")
+    ap.add_argument("--label-images", help="folder of <prefix>_NN.jpg label images (e.g. sd_card/samples): "
+                                           "send the one a node would pick for the simulated label")
     args = ap.parse_args()
 
     print("=" * 70)
@@ -149,7 +176,7 @@ def main() -> int:
 
     def one():
         node_id = args.node or random.choice([2, 3, 4, 5])
-        send(args.backend, build_transfer_lines(node_id, image_bytes))
+        send(args.backend, build_transfer_lines(node_id, image_bytes, args.label_images))
 
     if args.continuous:
         try:

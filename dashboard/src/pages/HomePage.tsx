@@ -3,12 +3,15 @@ import { CaptureFeed } from '../components/CaptureFeed'
 import { EnvironmentChart } from '../components/EnvironmentChart'
 import { LiveTransfers } from '../components/LiveTransfers'
 import { MeshLog } from '../components/MeshLog'
+import { isGroupOnly, prettyLabel, useSpeciesTally } from '../components/SoundLabel'
+import { timeAgo } from '../lib/api'
 import type { LiveMesh } from '../hooks/useLiveMesh'
 
 const HOME_FEED_LIMIT = 6
 
 export function HomePage({ live }: { live: LiveMesh }) {
   const { nodes, captures, log, activity } = live
+  const species = useSpeciesTally(captures.length, true)
 
   const peakHour = activity.reduce((best, b) => (b.count > best.count ? b : best), { hour: 0, count: 0 })
 
@@ -71,12 +74,33 @@ export function HomePage({ live }: { live: LiveMesh }) {
       <section className="section">
         <div className="section-head">
           <h2>Species seen</h2>
+          <Link className="section-count" to="/species">
+            identified on-node
+          </Link>
         </div>
-        <div className="empty">
-          <strong>TBD — no species classifier wired in yet</strong>
-          Once captures are identified, a tally of what's been confirmed will show here, same as it
-          did in the old UI's "Confirmed this week" panel.
-        </div>
+        {species.rows && species.rows.length > 0 ? (
+          <div className="tally">
+            {species.rows.slice(0, 8).map((r) => (
+              <div className="tally-item" key={r.sound_class}>
+                <div className="tally-count">{r.count}</div>
+                <div className="tally-species">
+                  {prettyLabel(r.sound_label)}
+                  {isGroupOnly(r.sound_label) && r.sound_label !== 'AMBIENT' ? ' (unidentified)' : ''}
+                </div>
+                <div className="tally-meta">
+                  {prettyLabel(r.sound_group)} · {timeAgo(r.last_seen)}
+                  {r.demo_count > 0 ? ` · ${r.demo_count} sim` : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty">
+            <strong>No labelled captures yet</strong>
+            Every node classifies what it heard (group, then animal) on the Pico itself and sends the label with the
+            image; they are counted here.
+          </div>
+        )}
       </section>
 
       <MeshLog log={log} />

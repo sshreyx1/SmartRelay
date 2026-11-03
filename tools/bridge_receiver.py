@@ -27,9 +27,13 @@ import struct
 import sys
 import zlib
 
-# names used by Maryam's weather_tree.h and Rhaylene's mic.c
+# the sound label table and capture naming live in common/ (one source of truth for node, tools, backend)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "common"))
+import capture_id  # noqa: E402
+import sound_classes  # noqa: E402
+
+# names used by Maryam's weather_tree.h
 WEATHER_NAMES = {0: "Cloudy", 1: "Hot_Dry", 2: "Humid_Rainy"}
-SOUND_NAMES = {0: "AMBIENT_NOISE", 1: "LOUD_ANIMAL_CALL", 2: "HIGH_FREQ_RUSTLE"}
 
 MISSING_I16 = -32768
 MISSING_U16 = 0xFFFF
@@ -37,7 +41,9 @@ UNKNOWN_U8 = 0xFF
 
 
 def decode_meta(raw: bytes) -> dict:
-    """Decode the 27-byte capture record. Missing readings become None, never a fake number."""
+    """Decode the 27-byte capture record. Missing readings become None, never a fake number.
+    sound_class is the label id the NODE decided (common/sound_classes.h); this only looks up its
+    name and group, it never classifies anything itself."""
     if len(raw) < 27 or raw[0] != 1:
         return {"raw_hex": raw.hex()}
     extra = raw[27:]
@@ -65,13 +71,18 @@ def decode_meta(raw: bytes) -> dict:
         "weather_confidence": u8(wconf),
         "trigger_trust": u8(trust),
         "sound_class": u8(sclass),
-        "sound_name": SOUND_NAMES.get(sclass) if sclass != UNKNOWN_U8 else None,
+        "sound_name": sound_classes.name(sclass) if sclass != UNKNOWN_U8 else None,
+        "sound_label": sound_classes.name(sclass) if sclass != UNKNOWN_U8 else None,
+        "sound_group": sound_classes.group_name(sclass),
+        "sound_kind": sound_classes.kind_name(sclass),
         "sound_confidence": u8(sconf),
         "sound_rms": u16(rms),
         "sound_zcr": u16(zcr),
         "image_index": img,
-        # optional: bytes after the 27-byte record carry the original file name (photo test)
+        # optional: bytes after the 27-byte record carry the file name (the image the node picked
+        # from its sound label, e.g. dog_01.jpg; the LoRa photo test's original name)
         "original_name": extra.decode("utf-8", "replace") if extra else None,
+        "display_id": capture_id.display_id(node, cap_id),
     }
 
 
@@ -139,7 +150,10 @@ class Receiver:
         extra = ""
         if isinstance(meta, dict) and "node_id" in meta:
             t = meta["temperature_c"]
-            extra = (f" | {meta.get('sound_name') or 'sound ?'}, {meta.get('weather_name') or 'weather ?'}"
+            conf = meta.get("sound_confidence")
+            sound = (f"{meta['sound_label']} {conf}%" if meta.get("sound_label") and conf is not None
+                     else meta.get("sound_label") or "sound ?")
+            extra = (f" | {meta['display_id']}: {sound}, {meta.get('weather_name') or 'weather ?'}"
                      f", {'%.1f C' % t if t is not None else 'temp ?'}")
         print(f"saved {img_path} ({len(data)} bytes via {info['radio']}, crc ok){extra}")
 

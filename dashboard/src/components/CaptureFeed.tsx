@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { num, timeAgo } from '../lib/api'
 import type { Capture } from '../lib/types'
 import { CaptureModal } from './CaptureModal'
+import { IdBadge, SoundChip, SoundHeading } from './SoundLabel'
 
 interface Props {
   captures: Capture[]
@@ -14,12 +15,12 @@ interface Props {
 
 /**
  * Port of the old UI's SightingFeed, same card layout and CSS classes
- * (.sighting / .sighting-image / .confidence / .readings / .chip …). What
- * changed is what's real: there's no species classifier in the pipeline
- * yet, so every card is "Unidentified" with a single "species ID: TBD"
- * chip instead of a confidence bar, and the review/needs-review machinery
- * is gone until that classifier exists. Sensor readings, trigger, radio,
- * weather and sound class are the real values from capture_meta.h.
+ * (.sighting / .sighting-image / .confidence / .readings / .chip …). The
+ * name on each card is the sound label the NODE decided (two-stage on-node
+ * classifier, common/sound_classes.h) -- "Dog", or "Bird (unidentified)" when
+ * the node only trusted the group -- with its confidence chip and the
+ * capture's N2-000042 id badge. Sensor readings, trigger, radio and weather
+ * are the real values from capture_meta.h.
  */
 export function CaptureFeed({ captures, limit, footer, emptyHint, title = 'Recent captures', showCount = true }: Props) {
   const [openId, setOpenId] = useState<number | null>(null)
@@ -96,19 +97,18 @@ function CaptureCard({ capture, onOpen }: { capture: Capture; onOpen: () => void
 
       <div>
         <div className="sighting-head">
-          <div>
-            <div className="sighting-name is-unknown">Unidentified</div>
-            <div className="sighting-sci">species ID: TBD</div>
+          <SoundHeading capture={capture} />
+          <div className="sighting-when">
+            <IdBadge capture={capture} /> {timeAgo(capture.received_at)}
           </div>
-          <div className="sighting-when">{timeAgo(capture.received_at)}</div>
         </div>
 
         <div className="confidence">
+          <SoundChip capture={capture} />
           <span className="chip is-node">Node {capture.node_id}</span>
           {trigger && <span className="chip">{trigger}</span>}
           {capture.radio && <span className="chip">{capture.radio}</span>}
           {capture.weather_name && <span className="chip">{capture.weather_name}</span>}
-          {capture.sound_name && <span className="chip">{capture.sound_name}</span>}
           <span className="chip is-confirmed">crc verified</span>
           {capture.is_demo === 1 && <span className="chip is-review">simulated</span>}
         </div>

@@ -98,7 +98,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<HomePage live={live} />} />
           <Route path="/sightings" element={<CapturesPage live={live} />} />
-          <Route path="/species" element={<SpeciesPage />} />
+          <Route path="/species" element={<SpeciesPage live={live} />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/node/:id" element={<NodePage live={live} />} />
           <Route

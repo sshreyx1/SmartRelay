@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { bytes, num, timeAgo } from '../lib/api'
 import type { Capture } from '../lib/types'
+import { IdBadge, SoundChip, SoundHeading, isGroupOnly, prettyLabel } from './SoundLabel'
 
 interface Props {
   capture: Capture
@@ -8,11 +9,11 @@ interface Props {
 }
 
 /**
- * Port of the old UI's SightingModal/review form. The species picker and
- * confirm/dismiss workflow depended on a classifier that doesn't exist yet
- * (backend/classifier.py in the old repo was a stub), so that whole section
- * is replaced with a single TBD note. Everything else -- image, real sensor
- * readings, trigger, transfer facts -- is the real row from the backend.
+ * Port of the old UI's SightingModal. The sound label, group and confidence
+ * come from the node's own two-stage classifier (decided on the Pico, only
+ * displayed here). The review/flag workflow is still TBD (SOUND_PLAN.md B20).
+ * Everything else -- image, real sensor readings, trigger, transfer facts --
+ * is the real row from the backend.
  */
 export function CaptureModal({ capture, onClose }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -61,21 +62,19 @@ export function CaptureModal({ capture, onClose }: Props) {
 
           <div className="modal-detail">
             <div className="modal-head">
-              <div>
-                <div className="sighting-name is-unknown" style={{ fontSize: 21 }}>
-                  Unidentified
-                </div>
-                <div className="sighting-sci">species ID: TBD</div>
-              </div>
+              <SoundHeading capture={capture} size={21} />
               <div className="sighting-when">{timeAgo(capture.received_at)}</div>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <IdBadge capture={capture} large />
             </div>
 
             <div className="confidence" style={{ marginTop: 12 }}>
+              <SoundChip capture={capture} />
               <span className="chip is-node">Node {capture.node_id}</span>
               {trigger && <span className="chip">{trigger}</span>}
               {capture.radio && <span className="chip">{capture.radio}</span>}
               {capture.weather_name && <span className="chip">{capture.weather_name}</span>}
-              {capture.sound_name && <span className="chip">{capture.sound_name}</span>}
               <span className="chip is-confirmed">crc verified</span>
               {capture.is_demo === 1 && <span className="chip is-review">simulated — not real mesh data</span>}
             </div>
@@ -92,10 +91,38 @@ export function CaptureModal({ capture, onClose }: Props) {
             )}
 
             <div className="modal-alts">
-              <div className="modal-section-label">Species identification</div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
-                TBD — no classifier is wired into the pipeline yet. Once one is, the identified
-                species, confidence and alternatives considered will appear here.
+              <div className="modal-section-label">Identified on-node</div>
+              {capture.sound_label ? (
+                <div className="modal-transfer-grid">
+                  <div>
+                    <span>{prettyLabel(capture.sound_label)}</span>
+                    {isGroupOnly(capture.sound_label) ? 'group only' : 'label'}
+                  </div>
+                  <div>
+                    <span>{prettyLabel(capture.sound_group)}</span>group
+                  </div>
+                  <div>
+                    <span>{capture.sound_conf != null ? `${capture.sound_conf}%` : '—'}</span>confidence
+                  </div>
+                  <div>
+                    <span>{num(capture.sound_rms, 0)}</span>sound RMS
+                  </div>
+                  <div>
+                    <span>{num(capture.sound_zcr, 0)}</span>crossings / s
+                  </div>
+                  <div>
+                    <span>{capture.image_name ?? '—'}</span>image the node picked
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
+                  The node sent no sound label for this capture (recording failed, or firmware from
+                  before the on-node classifier).
+                </div>
+              )}
+              <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 8 }}>
+                Decided on the Pico by its two-stage tree classifier (sound group, then animal, with
+                a confidence threshold). The base station only displays it.
               </div>
             </div>
 
@@ -124,8 +151,8 @@ export function CaptureModal({ capture, onClose }: Props) {
             </div>
 
             <div className="review-note">
-              Review workflow — TBD. Confirm/dismiss will make sense once there's a classifier
-              producing guesses to review.
+              Review workflow — TBD (flag / correct-label panel comes with the audio clips, SOUND_PLAN.md
+              B20).
             </div>
           </div>
         </div>

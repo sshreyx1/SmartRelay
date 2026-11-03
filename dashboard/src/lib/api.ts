@@ -1,4 +1,4 @@
-import type { Capture, HealthInfo, LogLine, MeshNode } from './types'
+import type { Capture, HealthInfo, LogLine, MeshNode, SpeciesTally } from './types'
 
 /** REST helpers for the real backend. Most data arrives over the WebSocket
  *  (see hooks/useLiveMesh.ts); these are for the initial load and for
@@ -30,6 +30,9 @@ export const api = {
   },
 
   capture: (id: number) => getJSON<Capture>(`/api/captures/${id}`),
+
+  species: (includeDemo = false) =>
+    getJSON<{ species: SpeciesTally[] }>(`/api/species?include_demo=${includeDemo}`).then((r) => r.species),
 
   log: (limit = 200) => getJSON<{ lines: LogLine[] }>(`/api/log?limit=${limit}`).then((r) => r.lines),
 }

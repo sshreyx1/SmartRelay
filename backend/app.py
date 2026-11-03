@@ -207,6 +207,14 @@ async def api_capture(capture_row_id: int) -> Dict[str, Any]:
     return row
 
 
+@app.get("/api/species")
+async def api_species(include_demo: bool = False) -> Dict[str, Any]:
+    """Tally of the sound labels the NODES reported (common/sound_classes.h), with last seen, nodes
+    and mean confidence. The backend only counts stored labels; it never classifies anything."""
+    return {"species": store.species_tally(include_demo=include_demo),
+            "note": "labels are decided on the node (two-stage tree classifier); the backend only counts them"}
+
+
 @app.get("/api/log")
 async def api_log(limit: int = Query(200, le=1000)) -> Dict[str, Any]:
     return {"lines": store.recent_log(limit=limit)}

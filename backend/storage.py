@@ -10,10 +10,15 @@ Every row carries is_demo: real captures (0) and simulator captures (1,
 see simulator/demo_feed.py) share the same schema so the dashboard can
 reuse one code path, but the demo rows are always visibly tagged and are
 never mixed into totals presented as real mesh activity.
+
+Sound: sound_class is the label id the NODE decided (common/sound_classes.h); sound_label /
+sound_group are just its name and group from that table, filled in by bridge_receiver.decode_meta.
+Nothing in the backend classifies sounds (SOUND_PLAN.md rule 9): species_tally() only counts.
 """
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 from pathlib import Path
@@ -49,6 +54,7 @@ CREATE TABLE IF NOT EXISTS captures (
 
     is_demo         INTEGER NOT NULL DEFAULT 0
 );
+-- (sound_conf, sound_label, sound_group, image_name, display_id: see MIGRATIONS)
 
 CREATE TABLE IF NOT EXISTS mesh_log (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,6 +67,23 @@ CREATE INDEX IF NOT EXISTS idx_captures_received ON captures(received_at);
 """
 
 
+# Columns added after the first schema. Added with ALTER TABLE when missing, so an existing
+# smartrelay.db keeps working; the sound-label rows need all nodes reflashed (HANDOFF.md).
+MIGRATIONS = [
+    ("sound_conf", "INTEGER"),
+    ("sound_label", "TEXT"),
+    ("sound_group", "TEXT"),
+    ("image_name", "TEXT"),
+    ("display_id", "TEXT"),
+]
+
+# One real capture = one row. Demo runs restart their counters, so demo rows are left out.
+UNIQUE_CAPTURE_INDEX = ("CREATE UNIQUE INDEX IF NOT EXISTS idx_captures_unique "
+                        "ON captures(node_id, capture_id) WHERE is_demo = 0")
+
+log = logging.getLogger("smartrelay.storage")
+
+
 class Store:
     def __init__(self, db_path: str, captures_dir: str):
         self.db_path = db_path
@@ -69,6 +92,15 @@ class Store:
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        have = {r["name"] for r in self.conn.execute("PRAGMA table_info(captures)")}
+        for col, typ in MIGRATIONS:
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE captures ADD COLUMN {col} {typ}")
+        try:
+            self.conn.execute(UNIQUE_CAPTURE_INDEX)
+        except sqlite3.IntegrityError:
+            log.warning("smartrelay.db already holds duplicate (node, capture id) rows from before capture ids "
+                        "were persistent; delete backend/smartrelay.db to get the uniqueness check")
         self.conn.commit()
 
     def close(self) -> None:
@@ -87,25 +119,33 @@ class Store:
     def record_capture(self, node_id: int, session_id: int, radio: str, frag_total: int,
                        size_bytes: int, crc32: str, image_path: str, meta: Dict[str, Any],
                        is_demo: bool = False) -> int:
-        cur = self.conn.execute(
-            """INSERT INTO captures
-               (node_id, capture_id, session_id, radio, frag_total, size_bytes, crc32,
-                image_path, received_at, uptime_ms, trigger_pir, trigger_sound,
-                temperature_c, humidity_pct, light_raw, weather_label, weather_name,
-                trigger_trust, sound_class, sound_name, sound_rms, sound_zcr, image_index,
-                is_demo)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                node_id, meta.get("capture_id"), session_id, radio, frag_total, size_bytes, crc32,
-                image_path, time.time(), meta.get("uptime_ms"),
-                int(bool(meta.get("trigger_pir"))), int(bool(meta.get("trigger_sound"))),
-                meta.get("temperature_c"), meta.get("humidity_pct"), meta.get("light_raw"),
-                meta.get("weather_label"), meta.get("weather_name"), meta.get("trigger_trust"),
-                meta.get("sound_class"), meta.get("sound_name"), meta.get("sound_rms"),
-                meta.get("sound_zcr"), meta.get("image_index"),
-                int(is_demo),
-            ),
-        )
+        """Stores one capture and returns its row id. The same real capture delivered twice (e.g.
+        re-sent after a node reboot) updates its existing row instead of adding a second one."""
+        values = {
+            "node_id": node_id, "capture_id": meta.get("capture_id"), "session_id": session_id, "radio": radio,
+            "frag_total": frag_total, "size_bytes": size_bytes, "crc32": crc32, "image_path": image_path,
+            "received_at": time.time(), "uptime_ms": meta.get("uptime_ms"),
+            "trigger_pir": int(bool(meta.get("trigger_pir"))), "trigger_sound": int(bool(meta.get("trigger_sound"))),
+            "temperature_c": meta.get("temperature_c"), "humidity_pct": meta.get("humidity_pct"),
+            "light_raw": meta.get("light_raw"), "weather_label": meta.get("weather_label"),
+            "weather_name": meta.get("weather_name"), "trigger_trust": meta.get("trigger_trust"),
+            "sound_class": meta.get("sound_class"), "sound_name": meta.get("sound_name"),
+            "sound_rms": meta.get("sound_rms"), "sound_zcr": meta.get("sound_zcr"),
+            "image_index": meta.get("image_index"), "is_demo": int(is_demo),
+            "sound_conf": meta.get("sound_confidence"), "sound_label": meta.get("sound_label"),
+            "sound_group": meta.get("sound_group"), "image_name": meta.get("original_name"),
+            "display_id": meta.get("display_id"),
+        }
+        cols = ", ".join(values)
+        marks = ", ".join("?" * len(values))
+        cur = self.conn.execute(f"INSERT OR IGNORE INTO captures ({cols}) VALUES ({marks})", list(values.values()))
+        if cur.rowcount == 0:  # this real (node, capture id) is already stored: refresh it
+            sets = ", ".join(f"{k} = ?" for k in values)
+            row = self.conn.execute("SELECT id FROM captures WHERE node_id = ? AND capture_id = ? AND is_demo = 0",
+                                    (node_id, meta.get("capture_id"))).fetchone()
+            self.conn.execute(f"UPDATE captures SET {sets} WHERE id = ?", list(values.values()) + [row["id"]])
+            self.conn.commit()
+            return row["id"]
         self.conn.commit()
         return cur.lastrowid
 
@@ -149,6 +189,24 @@ class Store:
             "SELECT * FROM mesh_log ORDER BY id DESC LIMIT ?", (limit,)
         ).fetchall()
         return [dict(r) for r in reversed(rows)]
+
+    def species_tally(self, include_demo: bool = False) -> List[Dict[str, Any]]:
+        """Captures per sound label the nodes reported: count, last seen, nodes, mean confidence.
+        Pure counting of stored values; the labels were decided on the node."""
+        q = """SELECT sound_class, sound_label, sound_group, COUNT(*) AS count, MAX(received_at) AS last_seen,
+                      GROUP_CONCAT(DISTINCT node_id) AS nodes, AVG(sound_conf) AS mean_conf,
+                      SUM(is_demo) AS demo_count
+               FROM captures WHERE sound_class IS NOT NULL AND sound_label IS NOT NULL"""
+        if not include_demo:
+            q += " AND is_demo = 0"
+        q += " GROUP BY sound_class ORDER BY count DESC, last_seen DESC"
+        out = []
+        for r in self.conn.execute(q).fetchall():
+            d = dict(r)
+            d["nodes"] = sorted(int(n) for n in str(d["nodes"]).split(",")) if d["nodes"] else []
+            d["mean_conf"] = round(d["mean_conf"], 1) if d["mean_conf"] is not None else None
+            out.append(d)
+        return out
 
     def stats(self) -> Dict[str, Any]:
         total = self.conn.execute("SELECT COUNT(*) c FROM captures WHERE is_demo = 0").fetchone()["c"]

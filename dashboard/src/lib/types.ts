@@ -70,13 +70,36 @@ export interface Capture {
   weather_label: number | null
   weather_name: string | null
   trigger_trust: number | null
+  /** label id decided ON THE NODE (common/sound_classes.h); the backend only names it */
   sound_class: number | null
   sound_name: string | null
   sound_rms: number | null
   sound_zcr: number | null
   image_index: number | null
+  /** node's confidence in sound_class, 0-100 (null for rows from before the classifier) */
+  sound_conf?: number | null
+  /** e.g. "DOG"; a group name ("BIRD") when the node only knew the group */
+  sound_label?: string | null
+  /** e.g. "MAMMAL" */
+  sound_group?: string | null
+  /** image file the node picked for that label, e.g. "dog_01.jpg" */
+  image_name?: string | null
+  /** "N2-000042": the same name the node logs and uses on its SD card */
+  display_id?: string | null
 
   is_demo: 0 | 1
+}
+
+/** One row of /api/species: how often the nodes reported a sound label. */
+export interface SpeciesTally {
+  sound_class: number
+  sound_label: string
+  sound_group: string | null
+  count: number
+  last_seen: number
+  nodes: number[]
+  mean_conf: number | null
+  demo_count: number
 }
 
 export interface LogLine {
