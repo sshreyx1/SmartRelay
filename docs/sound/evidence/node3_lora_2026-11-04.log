@@ -1,0 +1,77 @@
+    0.02  --- serial_log node3_lora on /dev/cu.usbmodem2101 at 2026-11-04 00:04:31 ---
+    2.78  [ENV] Temp: 28.8 C | Hum: 70.5% | Light: 2849 | Weather: Hot_Dry | PIR 0 Sound 0
+   12.78  [ENV] Temp: 28.8 C | Hum: 70.5% | Light: 2842 | Weather: Hot_Dry | PIR 0 Sound 0
+   22.79  [ENV] Temp: 28.8 C | Hum: 70.4% | Light: 2859 | Weather: Hot_Dry | PIR 0 Sound 0
+   32.79  [ENV] Temp: 28.8 C | Hum: 70.3% | Light: 2846 | Weather: Hot_Dry | PIR 0 Sound 0
+   37.46  >>> sent 's' (typed)
+   37.48  node 3 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   37.48    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   37.48    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   37.48    dht22 good 105 fail 0 | lora DOWN | wifi DOWN
+   37.48    bridge never heard on wifi
+   37.48    bridge never heard on lora
+   37.48    comms stack free: 1623 words, heap free 30592 bytes
+   42.80  [ENV] Temp: 28.8 C | Hum: 70.3% | Light: 2845 | Weather: Hot_Dry | PIR 0 Sound 0
+   52.80  [ENV] Temp: 28.8 C | Hum: 70.2% | Light: 2822 | Weather: Hot_Dry | PIR 0 Sound 0
+   53.52  >>> sent 's' (typed)
+   53.55  node 3 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   53.55    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   53.55    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   53.55    dht22 good 113 fail 0 | lora DOWN | wifi DOWN
+   53.55    bridge never heard on wifi
+   53.55    bridge never heard on lora
+   53.56    comms stack free: 1623 words, heap free 30592 bytes
+   62.80  [ENV] Temp: 28.8 C | Hum: 70.6% | Light: 2807 | Weather: Hot_Dry | PIR 0 Sound 0
+   72.07  >>> sent 's' (typed)
+   72.08  node 3 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   72.08    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   72.08    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   72.08    dht22 good 122 fail 0 | lora DOWN | wifi DOWN
+   72.08    bridge never heard on wifi
+   72.08    bridge never heard on lora
+   72.08    comms stack free: 1623 words, heap free 30592 bytes
+   72.81  [ENV] Temp: 28.8 C | Hum: 70.8% | Light: 2800 | Weather: Hot_Dry | PIR 0 Sound 0
+   76.02  --- stopped (Ctrl+C) ---
+    0.03  --- serial_log node3_lora on /dev/cu.usbmodem2101 at 2026-11-04 00:07:07 ---
+    6.68  >>> sent 's' (typed)
+    6.72  node 3 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+    6.72    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    6.72    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+    6.72    dht22 good 164 fail 0 | lora DOWN | wifi DOWN
+    6.72    bridge never heard on wifi
+    6.72    bridge never heard on lora
+    6.72    comms stack free: 1623 words, heap free 30592 bytes
+    7.66  [ENV] Temp: 28.9 C | Hum: 70.3% | Light: 2805 | Weather: Hot_Dry | PIR 0 Sound 0
+   17.66  [ENV] Temp: 28.9 C | Hum: 70.5% | Light: 2811 | Weather: Hot_Dry | PIR 0 Sound 0
+   27.66  [ENV] Temp: 28.9 C | Hum: 70.3% | Light: 2844 | Weather: Hot_Dry | PIR 0 Sound 0
+   37.67  [ENV] Temp: 28.9 C | Hum: 70.0% | Light: 2832 | Weather: Hot_Dry | PIR 0 Sound 0
+   47.67  [ENV] Temp: 28.9 C | Hum: 70.5% | Light: 3286 | Weather: Hot_Dry | PIR 0 Sound 0
+   57.70  [ENV] Temp: 28.9 C | Hum: 70.4% | Light: 2982 | Weather: Hot_Dry | PIR 0 Sound 0
+   67.70  [ENV] Temp: 28.9 C | Hum: 70.3% | Light: 3209 | Weather: Hot_Dry | PIR 0 Sound 0
+   77.71  [ENV] Temp: 29.0 C | Hum: 70.0% | Light: 3451 | Weather: Hot_Dry | PIR 0 Sound 0
+   87.71  [ENV] Temp: 29.0 C | Hum: 70.3% | Light: 3769 | Weather: Hot_Dry | PIR 0 Sound 0
+   91.98  
+   91.98  [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+   96.98  [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3715108.8 zcr 0.000 mean 120, 80000 samples
+   96.98  [SOUND] group=AMBIENT label=AMBIENT id=0 conf=40 rms=6 zcr=4003 lost=0 feat_us=433861 maxcall_us=1457 model_us=280
+   96.98  [ENV] Temp: 29.0 C | Hum: 70.7% | Light: 3322 | Weather: Hot_Dry | PIR 0 Sound 0
+   97.10  capture N3-000001: heard AMBIENT (40%) -> samples/ambient_00.jpg
+   97.17  capture N3-000001 queued (samples/ambient_00.jpg), outbox 1
+   97.71  [ENV] Temp: 29.0 C | Hum: 71.1% | Light: 3323 | Weather: Hot_Dry | PIR 0 Sound 0
+  107.73  [ENV] Temp: 29.0 C | Hum: 70.9% | Light: 3248 | Weather: Hot_Dry | PIR 0 Sound 0
+  110.23  >>> sent 's' (typed)
+  110.25  node 3 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 1
+  110.25    wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  110.25    lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  110.25    dht22 good 212 fail 0 | lora DOWN | wifi DOWN
+  110.25    bridge never heard on wifi
+  110.25    bridge never heard on lora
+  110.25    comms stack free: 1405 words, heap free 30592 bytes
+  117.73  [ENV] Temp: 29.0 C | Hum: 70.4% | Light: 3290 | Weather: Hot_Dry | PIR 0 Sound 0
+  127.73  [ENV] Temp: 29.1 C | Hum: 70.1% | Light: 2995 | Weather: Hot_Dry | PIR 0 Sound 0
+  137.74  [ENV] Temp: 29.1 C | Hum: 69.8% | Light: 3292 | Weather: Hot_Dry | PIR 0 Sound 0
+  147.74  [ENV] Temp: 29.1 C | Hum: 69.8% | Light: 2999 | Weather: Hot_Dry | PIR 0 Sound 0
+  157.75  [ENV] Temp: 29.1 C | Hum: 69.9% | Light: 2904 | Weather: Hot_Dry | PIR 0 Sound 0
+  167.75  [ENV] Temp: 29.2 C | Hum: 69.5% | Light: 2992 | Weather: Hot_Dry | PIR 0 Sound 0
+  170.64  
+  170.64  [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...

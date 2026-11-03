@@ -37,12 +37,15 @@ Find the two ports: `python -m serial.tools.list_ports -v` (both are VID 2E8A; p
 them apart). Below, `BRIDGE` = node 1's port and `NODE2` = node 2's port.
 
 **W2, backend** (backend venv):
-- macOS: `cd backend && SMARTRELAY_BRIDGE_PORT=/dev/cu.usbmodemBRIDGE uvicorn app:app --port 8000`
+- macOS: `cd backend && source .venv/bin/activate && SMARTRELAY_BRIDGE_PORT=/dev/cu.usbmodemBRIDGE uvicorn app:app --port 8000`
+  (e.g. `/dev/cu.usbmodem101` on R's Mac on 2026-11-04; `python tools/serial_log.py --identify` tells which port is node 1).
+  The venv matters: `which uvicorn` must point into `backend/.venv`. The system Python's uvicorn has no pyserial, and
+  the backend then says the bridge port is set but never connects.
 - Windows: `cd backend; $env:SMARTRELAY_BRIDGE_PORT="COMb"; uvicorn app:app --port 8000`
 - expect `bridge: connecting to ... automatically`.
 
 **W3, node 2 monitor** (ml venv):
-- macOS: `python -m serial.tools.miniterm /dev/cu.usbmodemNODE2 115200`
+- macOS: `python tools/serial_log.py --port /dev/cu.usbmodemNODE2 --test demo` (or `python -m serial.tools.miniterm /dev/cu.usbmodemNODE2 115200`)
 - Windows: `python -m serial.tools.miniterm COMn 115200`
 - press `s`: expect `bridge last heard on wifi ... ms ago` (under about 3000). Press `h` if the screen is empty.
 

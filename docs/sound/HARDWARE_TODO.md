@@ -98,6 +98,11 @@ restart at 1).
 
 Real captures from more than one node through node 1. Run it after H7. About 30 min (40 with node 5).
 
+> **Status 2026-11-04 00:05: a, b, c not run.** Only 3 boards tonight, and the third (flashed as node 3) has no ESP-01 and
+> its LoRa did not start (`lora DOWN | wifi DOWN`, log `docs/sound/evidence/node3_lora_2026-11-04.log`), so it cannot send.
+> Concurrent transfers stay covered only by the host integration tests and ALFP's 4 receive sessions, not by hardware.
+> Part d can run with node 2 in place of node 3.
+
 ### Setup (once)
 
 1. **Flash each board on its own** (only that Pico plugged in, so picotool cannot pick the wrong one), with the image
