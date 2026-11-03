@@ -9,6 +9,7 @@
 # Outputs in build-fw/ (drag the .uf2 onto the Pico in BOOTSEL mode):
 #   csc09_node_1.uf2 ... csc09_node_5.uf2   the real node firmware, one per node (1 = A = bridge)
 #   sensor_test.uf2      sensors only (PIR, sound, mic, DHT22, light), no radios, no SD
+#   audio_dump.uf2       raw 16 kHz mic recordings to the laptop for training (ml/pico_audio.py)
 #   alfp_selftest.uf2    Pico + SD card only: the full protocol over an in-memory radio
 #   lora_photo_tx.uf2 / lora_photo_rx.uf2   two-Pico LoRa photo test
 #
@@ -99,13 +100,21 @@ if(USE_WIFI_MESH)
   target_link_libraries(wifi_mesh_lib PUBLIC pico_stdlib pico_rand hardware_uart hardware_irq)
 endif()
 
+# ---- Rhaylene's on-node sound classifier: pure C, the same files the laptop tests (host/sound.cmake) ----
+add_library(sound STATIC
+  sensing/sound_features.c sensing/sound_fft.c sensing/sound_tables.c sensing/sound_classify.c
+  sensing/sound_image_pick.c)
+target_include_directories(sound PUBLIC sensing ${ROOT}/common)
+target_compile_options(sound PRIVATE -Wall -Wextra -Werror -O2)
+target_link_libraries(sound PUBLIC pico_stdlib)
+
 # ---- Maryam's + Rhaylene's sensors (unchanged sources) + the glue ----
 add_library(sensing STATIC
   ${SENSORS_DIR}/pir.c ${SENSORS_DIR}/sound.c ${SENSORS_DIR}/mic.c ${SENSORS_DIR}/DHT22.c
   sensing/sensing.c sensing/audio_capture.c sensing/audio_features.c)
 target_include_directories(sensing PUBLIC ${SENSORS_DIR} sensing app ${ROOT}/common)
 target_compile_definitions(sensing PUBLIC AUDIO_SECONDS=${AUDIO_SECONDS}u)
-target_link_libraries(sensing PUBLIC pico_stdlib hardware_adc hardware_dma hardware_gpio)
+target_link_libraries(sensing PUBLIC sound pico_stdlib hardware_adc hardware_dma hardware_gpio hardware_timer)
 # DHT22.c's 40 us "release the line" wait must be exact. Under FreeRTOS, sleep_us() blocks the task
 # and wakes it through an interrupt and the timer task, which can hold the line high too long while
 # the DHT22 starts answering. Busy-wait instead, without touching Maryam's source.
@@ -142,6 +151,16 @@ target_link_libraries(sensor_test PRIVATE sensing pico_stdlib hardware_spi)
 pico_enable_stdio_usb(sensor_test 1)
 pico_enable_stdio_uart(sensor_test 0)
 pico_add_extra_outputs(sensor_test)
+
+# ---- audio dump: raw 16 kHz mic recordings to the laptop (no FreeRTOS, no radios, no SD) ----
+# 160 kB static buffer: only fits because nothing else is in this image. Receiver: ml/pico_audio.py
+add_executable(audio_dump audiodump/audiodump_main.c app/board.c)
+target_include_directories(audio_dump PRIVATE app)
+target_compile_options(audio_dump PRIVATE -Wall -Wextra)
+target_link_libraries(audio_dump PRIVATE sound pico_stdlib hardware_adc hardware_dma hardware_spi)
+pico_enable_stdio_usb(audio_dump 1)
+pico_enable_stdio_uart(audio_dump 0)
+pico_add_extra_outputs(audio_dump)
 
 # ---- self-test (no FreeRTOS, no radios) ----
 add_executable(alfp_selftest selftest/selftest_main.c ${ROOT}/common/loopback_radio.c)

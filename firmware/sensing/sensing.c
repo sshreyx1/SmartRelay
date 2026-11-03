@@ -10,13 +10,19 @@
 #include "audio_capture.h"
 #include "board.h"
 #include "hardware/adc.h"
+#include "hardware/timer.h"
 #include "mic.h"
 #include "pico/stdlib.h"
 #include "pir.h"
 #include "sound.h"
+#include "sound_classes.h"
+#include "sound_classify.h"
+#include "sound_features.h"
 #include "weather_tree.h"
 
 static sensing_hooks_t s_h;
+static sf_t s_sf; /* 1.9 kB: static, not on the 1024-word sensors task stack */
+static sensing_sound_t s_sound;
 static sensing_env_t s_env = {.weather = -1};
 static uint32_t s_last_dht_try, s_last_dht_good;
 static bool s_have_dht;
@@ -122,28 +128,83 @@ static int16_t to_x10_i16(float v)
     return (int16_t)lroundf(v * 10.0f);
 }
 
+static uint16_t to_u16_meta(float v)
+{
+    /* 0xFFFF is CM_MISSING_U16, so a real reading saturates one below it */
+    return (uint16_t)(v >= 65534.0f ? 65534.0f : v <= 0.0f ? 0.0f : v + 0.5f);
+}
+
+bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
+{
+    sensing_sound_t* r = &s_sound;
+    *r = (sensing_sound_t){.ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN};
+    audio_timing_t tm;
+    if (!audio_capture_sf(seconds, s_h.wait_ms, audio, &r->lost, &s_sf, &tm))
+    {
+        audio->samples = 0;
+        printf("[AUDIO] no free DMA channel, sound features missing\n");
+        return false;
+    }
+    const uint32_t t0 = time_us_32();
+    float f[SF_N_FEATURES];
+    sf_finish(&s_sf, f);
+    sound_classify(f, &r->label_id, &r->conf);
+    r->model_us = time_us_32() - t0;
+    r->rms = to_u16_meta(sf_rms_dc_corrected(&s_sf));
+    r->zcr_per_s = to_u16_meta(sf_zcr_per_s(&s_sf));
+    r->feat_us = tm.feat_us;
+    r->maxcall_us = tm.maxcall_us;
+    r->ok = true;
+    if (r->lost)
+    {
+        printf("[AUDIO] warning: %lu samples lost (task too slow)\n", (unsigned long)r->lost);
+    }
+    return true;
+}
+
+const sensing_sound_t* sensing_last_sound(void)
+{
+    return &s_sound;
+}
+
+void sensing_log_sound(void)
+{
+    const sensing_sound_t* r = &s_sound;
+    if (!r->ok)
+    {
+        printf("[SOUND] capture failed: label unknown\n");
+        return;
+    }
+    printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%lu feat_us=%lu maxcall_us=%lu model_us=%lu\n",
+           sound_class_name(sound_class_group(r->label_id)), sound_class_name(r->label_id), r->label_id, r->conf, r->rms,
+           r->zcr_per_s, (unsigned long)r->lost, (unsigned long)r->feat_us, (unsigned long)r->maxcall_us,
+           (unsigned long)r->model_us);
+    const uint32_t budget_us = AUDIO_SECONDS * 1000000u / 4u; /* 25% of the recording */
+    if (r->feat_us + r->model_us > budget_us)
+    {
+        printf("[SOUND] warning: feature + model time %lu us is over the 25%% CPU budget (%lu us)\n",
+               (unsigned long)(r->feat_us + r->model_us), (unsigned long)budget_us);
+    }
+    if (r->maxcall_us > 100000u)
+    {
+        printf("[SOUND] warning: one feature call took %lu us, eating into the ~512 ms ring slack\n",
+               (unsigned long)r->maxcall_us);
+    }
+}
+
 void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* m, audio_result_t* audio)
 {
     capture_meta_clear(m);
     m->trigger_flags = trigger_flags;
     m->uptime_ms = now_ms;
 
-    uint32_t lost = 0;
-    if (audio_capture(AUDIO_SECONDS, s_h.wait_ms, audio, &lost))
+    /* on failure the sound fields keep capture_meta_clear()'s unknown / missing values */
+    if (sensing_record_sound(AUDIO_SECONDS, audio))
     {
-        m->sound_class = (uint8_t)audio->class_id;
-        m->sound_rms = audio->rms;
-        m->sound_zcr = audio->zcr_per_s;
-        /* sound_conf stays "unknown": the decision tree in mic.c gives a class, not a confidence */
-        if (lost)
-        {
-            printf("[AUDIO] warning: %lu samples lost (task too slow)\n", (unsigned long)lost);
-        }
-    }
-    else
-    {
-        audio->samples = 0;
-        printf("[AUDIO] no free DMA channel, sound features missing\n");
+        m->sound_class = s_sound.label_id;
+        m->sound_conf = s_sound.conf;
+        m->sound_rms = s_sound.rms;
+        m->sound_zcr = s_sound.zcr_per_s;
     }
 
     /* their main.c reads the light again after the recording for the event snapshot */

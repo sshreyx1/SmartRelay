@@ -23,16 +23,16 @@ static void wait_ms(uint32_t ms)
 static void record(uint32_t seconds)
 {
     audio_result_t a;
-    uint32_t lost = 0;
     printf("recording %lus...\n", (unsigned long)seconds);
-    if (!audio_capture(seconds, wait_ms, &a, &lost))
+    if (!sensing_record_sound(seconds, &a))
     {
         printf("no DMA channel\n");
         return;
     }
     printf("[AUDIO] %s (class %d) energy %.1f zcr %.3f (%u crossings/s) rms %u, mean ADC %u, %lu samples, %lu lost\n",
            a.label, a.class_id, a.energy, a.zcr, a.zcr_per_s, a.rms, a.mean_adc, (unsigned long)a.samples,
-           (unsigned long)lost);
+           (unsigned long)sensing_last_sound()->lost);
+    sensing_log_sound();
     if (a.mean_adc < 1700 || a.mean_adc > 2400)
     {
         printf("        note: the mic's resting level is %u, not ~2048 (1.65 V). mic.c subtracts 2048, so the\n"
@@ -82,6 +82,7 @@ int main(void)
             sensing_capture(now, CM_TRIG_PIR | CM_TRIG_SOUND, &m, &a);
             printf("[AUDIO] %s (class %d) energy %.1f zcr %.3f rms %u mean %u\n", a.label, a.class_id, a.energy, a.zcr,
                    a.rms, a.mean_adc);
+            sensing_log_sound();
         }
         int ch = getchar_timeout_us(0);
         if (ch == 'm')

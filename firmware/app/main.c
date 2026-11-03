@@ -17,7 +17,10 @@
  *   console (priority 1)  USB serial commands, see print_help().
  *
  * microSD layout
- *   samples/img_00.jpg ...  stand-in camera images (copy them onto the card from a laptop)
+ *   samples/<prefix>_NN.jpg  stand-in camera images, chosen by what the node heard: dog_00.jpg,
+ *                            bird_00.jpg (group fallback), img_00.jpg (generic fallback)
+ *                            (sensing/sound_image_pick.h; tools/make_label_images.py makes them)
+ *   meta/next_id             next capture id, so ids never restart after a reboot (common/capture_id.h)
  *   outbox/q00000017.job     queued captures (store-and-forward), survive reboots
  *   rx/ n3_00042.part        bridge: partial transfers
  *   inbox/n3_00042.bin/.meta bridge: finished, verified files (+ metadata)
@@ -30,12 +33,15 @@
 #include "alfp_outbox.h"
 #include "board.h"
 #include "capture_api.h"
+#include "capture_id.h"
 #include "hardware/gpio.h"
 #include "pico/rand.h"
 #include "pico/stdlib.h"
 #include "queue.h"
 #include "radios.h"
 #include "sensing.h"
+#include "sound_classes.h"
+#include "sound_image_pick.h"
 #include "storage_fatfs.h"
 #include "task.h"
 #include "uplink.h"
@@ -50,8 +56,8 @@ static alfp_ctx_t g_alfp;
 static alfp_outbox_t g_outbox;
 static QueueHandle_t g_capture_q;
 static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
-static uint32_t g_capture_id;
-static uint8_t g_n_samples, g_next_sample;
+static uint32_t g_capture_id; /* last id used; restored from the SD card at boot */
+static sip_table_t g_images;  /* samples/<prefix>_NN.jpg found at boot */
 static volatile bool g_want_stats, g_toggle_drop, g_force_capture, g_want_env, g_toggle_topo;
 static volatile bool g_comms_ready;
 
@@ -111,39 +117,165 @@ bool app_request_capture(const capture_meta_t* sensors)
 static void count_samples_cb(const char* name, void* user)
 {
     (void)user;
-    if (strncmp(name, "img_", 4) == 0)
+    sip_add_file(&g_images, name);
+}
+
+/* ---- persistent capture id (comms only: it owns the SD card) ------------------------------ */
+
+#define ID_FILE "meta/next_id"
+#define ID_TMP "meta/next_id.tmp"
+
+static uint32_t read_u32_file(const alfp_storage_t* st, const char* path)
+{
+    int h = st->open_read(st->ctx, path);
+    if (h < 0)
     {
-        g_n_samples++;
+        return 0;
     }
+    char txt[16] = {0};
+    int n = st->read_at(st->ctx, h, 0, (uint8_t*)txt, sizeof(txt) - 1);
+    st->close(st->ctx, h);
+    unsigned long v = 0;
+    return n > 0 && sscanf(txt, "%lu", &v) == 1 ? (uint32_t)v : 0;
+}
+
+/* write to a temp file, then rename over the real one: a power cut leaves one of the two intact */
+static void store_next_id(const alfp_storage_t* st, uint32_t next)
+{
+    char txt[16];
+    int n = snprintf(txt, sizeof(txt), "%lu\n", (unsigned long)next);
+    int h = st->open_write(st->ctx, ID_TMP);
+    bool ok = h >= 0 && st->write_at(st->ctx, h, 0, (const uint8_t*)txt, (uint16_t)n) == n;
+    if (h >= 0)
+    {
+        st->close(st->ctx, h);
+    }
+    if (!ok || st->rename(st->ctx, ID_TMP, ID_FILE) != 0)
+    {
+        printf("capture id: could not save %s (ids may repeat after a reboot)\n", ID_FILE);
+    }
+}
+
+static uint32_t s_job_seq[ALFP_OUTBOX_MAX + 8];
+static uint32_t s_n_jobs, s_highest_seen;
+
+static void scan_outbox_cb(const char* name, void* user)
+{
+    (void)user;
+    unsigned long seq;
+    if (name[0] == 'q' && sscanf(name + 1, "%8lu", &seq) == 1 && s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0]))
+    {
+        s_job_seq[s_n_jobs++] = (uint32_t)seq;
+    }
+}
+
+static void scan_clips_cb(const char* name, void* user)
+{
+    (void)user;
+    uint8_t node;
+    uint32_t id;
+    if (capture_id_parse(name, &node, &id) && node == NODE_ID && id > s_highest_seen)
+    {
+        s_highest_seen = id;
+    }
+}
+
+/* Highest capture id still on the card: queued jobs (their meta) and stored clips (their names). */
+static uint32_t highest_id_on_card(const alfp_storage_t* st)
+{
+    s_n_jobs = 0;
+    s_highest_seen = 0;
+    st->list(st->ctx, "outbox", scan_outbox_cb, NULL);
+    for (uint32_t i = 0; i < s_n_jobs; i++)
+    {
+        char p[32];
+        snprintf(p, sizeof(p), "outbox/q%08lu.job", (unsigned long)s_job_seq[i]);
+        uint8_t buf[2 + 1 + ALFP_PATH_MAX + 1 + ALFP_MAX_META];
+        int h = st->open_read(st->ctx, p);
+        if (h < 0)
+        {
+            continue;
+        }
+        int n = st->read_at(st->ctx, h, 0, buf, sizeof(buf));
+        st->close(st->ctx, h);
+        /* job file (alfp_outbox.c): 'Q' '1' | path_len | path | meta_len | meta */
+        if (n < 4 || buf[0] != 'Q' || buf[1] != '1' || 4 + buf[2] > n)
+        {
+            continue;
+        }
+        const uint8_t* meta = buf + 4 + buf[2];
+        uint8_t ml = buf[3 + buf[2]];
+        capture_meta_t m;
+        if (meta + ml <= buf + n && capture_meta_unpack(meta, ml, &m) == 0 && m.capture_id > s_highest_seen)
+        {
+            s_highest_seen = m.capture_id;
+        }
+    }
+    st->list(st->ctx, "clips", scan_clips_cb, NULL);
+    return s_highest_seen;
+}
+
+static void restore_capture_id(const alfp_storage_t* st)
+{
+    st->mkdir(st->ctx, "meta");
+    uint32_t next = read_u32_file(st, ID_FILE);
+    uint32_t tmp = read_u32_file(st, ID_TMP);
+    next = tmp > next ? tmp : next;
+    uint32_t seen = highest_id_on_card(st);
+    g_capture_id = next > seen + 1u ? next - 1u : seen;
+    char id[CAPTURE_ID_STR_MAX];
+    capture_id_format(id, sizeof(id), NODE_ID, g_capture_id + 1u);
+    printf("capture id: next is %s (saved next %lu, highest on card %lu)\n", id, (unsigned long)next,
+           (unsigned long)seen);
 }
 
 static void handle_capture(const capture_meta_t* in)
 {
+    const alfp_storage_t* st = storage_fatfs();
     capture_meta_t m = *in;
     m.node_id = NODE_ID;
     m.capture_id = ++g_capture_id;
+    store_next_id(st, g_capture_id + 1u);
     if (m.uptime_ms == 0)
     {
         m.uptime_ms = p_now(NULL);
     }
-    if (!g_n_samples)
+    char id[CAPTURE_ID_STR_MAX];
+    capture_id_format(id, sizeof(id), NODE_ID, m.capture_id);
+
+    /* the image follows the sound: label -> its group -> generic img_NN */
+    char name[ALFP_MAX_META - CAPTURE_META_LEN + 1];
+    int nn = sip_pick(&g_images, m.sound_class, name, sizeof(name));
+    if (nn < 0)
     {
-        printf("capture: no samples/img_XX.jpg on the SD card\n");
+        printf("capture %s: no samples/*_NN.jpg on the SD card\n", id);
         return;
     }
-    m.image_index = g_next_sample;
-    char path[32];
-    snprintf(path, sizeof(path), "samples/img_%02u.jpg", (unsigned)g_next_sample);
-    g_next_sample = (uint8_t)((g_next_sample + 1u) % g_n_samples);
-    uint8_t mb[CAPTURE_META_LEN];
-    capture_meta_pack(&m, mb);
-    if (alfp_outbox_add(&g_outbox, path, mb, sizeof(mb)))
+    m.image_index = (uint8_t)nn;
+    char path[ALFP_PATH_MAX];
+    snprintf(path, sizeof(path), "samples/%s", name);
+    if (m.sound_class == CM_UNKNOWN_U8)
     {
-        printf("capture %lu queued (%s), outbox %u\n", (unsigned long)m.capture_id, path, alfp_outbox_count(&g_outbox));
+        printf("capture %s: heard unknown (recording failed) -> %s\n", id, path);
     }
     else
     {
-        printf("capture: SD write failed\n");
+        printf("capture %s: heard %s (%u%%) -> %s\n", id, sound_class_name(m.sound_class), m.sound_conf, path);
+    }
+
+    /* meta = the 27-byte record + the image's file name (the optional-name tail, <= 64 bytes in all) */
+    uint8_t mb[ALFP_MAX_META];
+    uint8_t ml = capture_meta_pack(&m, mb);
+    size_t nl = strlen(name);
+    memcpy(mb + ml, name, nl);
+    ml = (uint8_t)(ml + nl);
+    if (alfp_outbox_add(&g_outbox, path, mb, ml))
+    {
+        printf("capture %s queued (%s), outbox %u\n", id, path, alfp_outbox_count(&g_outbox));
+    }
+    else
+    {
+        printf("capture %s: SD write failed\n", id);
     }
 }
 
@@ -195,8 +327,20 @@ static void comms_task(void* arg)
     }
     const alfp_storage_t* st = storage_fatfs();
     st->mkdir(st->ctx, "samples");
+    sip_reset(&g_images);
     st->list(st->ctx, "samples", count_samples_cb, NULL);
-    printf("sd: mounted, %u sample images\n", g_n_samples);
+    unsigned n_img = 0;
+    for (uint32_t i = 0; i < g_images.n; i++)
+    {
+        n_img += g_images.p[i].count;
+    }
+    printf("sd: mounted, %u sample images in %u groups:", n_img, g_images.n);
+    for (uint32_t i = 0; i < g_images.n; i++)
+    {
+        printf(" %s %u", g_images.p[i].prefix, g_images.p[i].count);
+    }
+    printf("\n");
+    restore_capture_id(st);
 
     if (!radios_init(NODE_ID))
     {
@@ -345,8 +489,9 @@ static void sensors_task(void* arg)
             capture_meta_t m;
             audio_result_t a;
             sensing_capture(now, flags, &m, &a);
-            printf("[AUDIO] %s (class %d) energy %.1f zcr %.3f rms %u mean %u, %lu samples\n", a.label, a.class_id,
-                   a.energy, a.zcr, a.rms, a.mean_adc, (unsigned long)a.samples);
+            printf("[AUDIO] legacy mic.c: %s energy %.1f zcr %.3f mean %u, %lu samples\n", a.label, a.energy, a.zcr,
+                   a.mean_adc, (unsigned long)a.samples);
+            sensing_log_sound();
             print_env();
             if (NODE_ID != BRIDGE_ID && !app_request_capture(&m))
             {

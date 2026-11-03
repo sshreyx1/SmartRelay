@@ -1,0 +1,63 @@
+/*
+ * sound_classify.c - see sound_classify.h. The model data comes from sound_model.h (generated).
+ */
+#include "sound_classify.h"
+
+#include "sound_model.h"
+
+/* a variable, not the macro, so a threshold of 101 ("never") does not trip -Wtype-limits */
+static const uint32_t k_min_conf = SOUND_STAGE2_MIN_CONF;
+
+void sm_predict(const sm_model_t* m, const float* f, uint8_t* label, uint8_t* conf)
+{
+    uint16_t votes[SM_MAX_CLASSES] = {0};
+    for (uint32_t t = 0; t < m->n_trees; t++)
+    {
+        const sm_tree_t* tr = &m->trees[t];
+        int32_t node = tr->root;
+        while (node >= 0)
+        {
+            node = f[tr->feat[node]] <= tr->thr[node] ? tr->left[node] : tr->right[node];
+        }
+        const uint8_t* dist = tr->leaf + (uint32_t)(-node - 1) * m->n_classes;
+        for (uint32_t c = 0; c < m->n_classes; c++)
+        {
+            votes[c] = (uint16_t)(votes[c] + dist[c]);
+        }
+    }
+    uint32_t best = 0;
+    for (uint32_t c = 1; c < m->n_classes; c++)
+    {
+        if (votes[c] > votes[best]) /* ties keep the lower class, like numpy argmax */
+        {
+            best = c;
+        }
+    }
+    *label = m->classes[best];
+    *conf = (uint8_t)((votes[best] + m->n_trees / 2u) / m->n_trees);
+}
+
+void sound_classify(const float f[SF_N_FEATURES], uint8_t* label_id, uint8_t* conf)
+{
+    uint8_t group, c1;
+    sm_predict(&sm_stage1, f, &group, &c1);
+    *label_id = group;
+    *conf = c1;
+    const sm_model_t* s2 = sm_stage2_for_group(group);
+    if (s2)
+    {
+        uint8_t animal, c2;
+        sm_predict(s2, f, &animal, &c2);
+        const uint8_t c = (uint8_t)(((uint32_t)c1 * c2 + 50u) / 100u);
+        if (c >= k_min_conf)
+        {
+            *label_id = animal;
+            *conf = c;
+        }
+    }
+}
+
+uint8_t sound_classify_min_conf(void)
+{
+    return (uint8_t)k_min_conf;
+}

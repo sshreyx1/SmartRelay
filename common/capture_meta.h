@@ -23,9 +23,10 @@
  *   17 weather_label  u8   Maryam's enum            unknown: 0xFF
  *   18 weather_conf   u8   0-100                    unknown: 0xFF
  *   19 trigger_trust  u8   0-100                    unknown: 0xFF
- *   20 sound_class    u8   Rhaylene's enum          unknown: 0xFF
- *   21 sound_conf     u8   0-100                    unknown: 0xFF
- *   22 sound_rms      u16  feature, raw units       missing: 0xFFFF
+ *   20 sound_class    u8   label id, common/sound_classes.h (on-node classifier; group via the table)
+ *                                                   unknown: 0xFF
+ *   21 sound_conf     u8   0-100, the classifier's confidence in sound_class   unknown: 0xFF
+ *   22 sound_rms      u16  ADC counts around the capture's own mean (DC-corrected)   missing: 0xFFFF
  *   24 sound_zcr      u16  zero crossings / s       missing: 0xFFFF
  *   26 image_index    u8   sample image used
  *   27..  (optional)  original file name, UTF-8, no terminator (used by the LoRa photo test)

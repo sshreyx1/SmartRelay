@@ -1,0 +1,19 @@
+# ml/train.py configuration (SOUND_PLAN.md A5). Command-line flags override these.
+phase: A
+# features CSV from extract_features.py (mic recordings) or esc50_direct.py (backup)
+features: data/features_v1.csv
+# full = the plan's grid; fast = DecisionTree depth 6/8 + RandomForest n=10 depth 8 (minutes, not hours)
+grid: full
+random_state: 0
+# split_key -> role (ESC-50 folds; Phase B uses recordists)
+train_keys: [1, 2, 3]
+val_keys: [4]
+test_keys: [5]
+# model selection: smallest model within this macro-F1 of the best on val
+select_within: 0.02
+# rejection: wrong stage-2 labels must be at most this share of the stage-2 labels emitted (val)
+max_wrong_share: 0.15
+# all models together must fit in this many bytes of flash
+flash_budget: 61440
+# shown at the top of the model card (e.g. a BACKUP warning)
+data_note: ""

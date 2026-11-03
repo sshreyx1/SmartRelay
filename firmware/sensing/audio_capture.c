@@ -11,6 +11,7 @@
 #include "board.h"
 #include "hardware/adc.h"
 #include "hardware/dma.h"
+#include "hardware/timer.h"
 
 #define RING_SAMPLES 8192u
 #define RING_BYTES (RING_SAMPLES * 2u) /* 16384 = 2^14 */
@@ -21,6 +22,17 @@ static uint16_t s_ring[RING_SAMPLES] __attribute__((aligned(RING_BYTES)));
 
 bool audio_capture(uint32_t seconds, void (*wait_ms)(uint32_t ms), audio_result_t* out, uint32_t* lost)
 {
+    return audio_capture_sf(seconds, wait_ms, out, lost, NULL, NULL);
+}
+
+bool audio_capture_sf(uint32_t seconds, void (*wait_ms)(uint32_t ms), audio_result_t* out, uint32_t* lost, sf_t* sf,
+                      audio_timing_t* timing)
+{
+    audio_timing_t tm = {0, 0, 0};
+    if (sf)
+    {
+        sf_reset(sf);
+    }
     int ch = dma_claim_unused_channel(false);
     if (ch < 0)
     {
@@ -65,6 +77,15 @@ bool audio_capture(uint32_t seconds, void (*wait_ms)(uint32_t ms), audio_result_
                 n = RING_SAMPLES - idx;
             }
             audio_feat_add(&f, &s_ring[idx], n);
+            if (sf)
+            {
+                const uint32_t t0 = time_us_32();
+                sf_add(sf, &s_ring[idx], n);
+                const uint32_t dt = time_us_32() - t0;
+                tm.feat_us += dt;
+                tm.maxcall_us = dt > tm.maxcall_us ? dt : tm.maxcall_us;
+                tm.calls++;
+            }
             done += n;
         }
         /* if this task was held up WHILE reading, the DMA may have lapped samples we then read:
@@ -92,6 +113,10 @@ bool audio_capture(uint32_t seconds, void (*wait_ms)(uint32_t ms), audio_result_
     if (lost)
     {
         *lost = dropped;
+    }
+    if (timing)
+    {
+        *timing = tm;
     }
     return true;
 }

@@ -6,11 +6,18 @@ project(alfp_host C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 option(ALFP_SANITIZE "Build with AddressSanitizer + UndefinedBehaviorSanitizer" ON)
+# The ALFP simulator below is POSIX-only; on Windows with MSVC build just the sound tools and tests.
+option(SOUND_ONLY "Build only the sound classifier tools and tests (host/sound.cmake)" OFF)
 
 set(ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 set(WARN -Wall -Wextra -Werror -Wshadow -Wconversion -Wno-sign-conversion)
-if(ALFP_SANITIZE)
+if(ALFP_SANITIZE AND NOT MSVC)
   set(SAN -fsanitize=address,undefined -fno-omit-frame-pointer)
+endif()
+
+include(sound.cmake)
+if(SOUND_ONLY OR MSVC)
+  return()
 endif()
 
 # The protocol library: exactly the same sources the Pico firmware compiles.
