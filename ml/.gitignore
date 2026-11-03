@@ -1,14 +1,18 @@
 .venv/
+# audio: downloads, raw Pico recordings and the software-converted backup takes stay local
 data/raw/
 data/esc50/
 data/xc/
+data/direct/
 *.wav
 *.mp3
 *.zip
 *.npy
 models/*.pkl
-# regenerated in about a minute by esc50_direct.py
-data/direct/
-data/features_esc50_direct.csv
 # raw downloaded photos (tools/fetch_label_images.py); credits.csv is kept
 images_src/*/
+# tracked on purpose (small, and needed to reproduce a model): data/manifest.csv,
+# data/recordings.csv and data/features_*.csv (incl. features_esc50_direct.csv, the backup model's data)
+!data/manifest.csv
+!data/recordings.csv
+!data/features_*.csv

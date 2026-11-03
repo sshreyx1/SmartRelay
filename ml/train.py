@@ -289,9 +289,14 @@ def write_model_card(m: dict, df, feats: list, cfg: dict) -> None:
         "- ESC-50 is licensed CC BY-NC 3.0 (Piczak 2015); fine for coursework, not for a commercial product.",
     ]
     if "BACKUP" in (m["data_note"] or "").upper():
-        lines.insert(-5, "- **This is the backup model.** The clips were converted to ADC-like numbers in software "
-                         "(`ml/esc50_direct.py`), not recorded through the Pico mic, and AMBIENT is synthetic noise. "
-                         "Expect lower accuracy on the real node until it is retrained on mic recordings.")
+        lines[-4:-4] = [
+            "- **This is the backup model.** The clips were converted to ADC-like numbers in software "
+            "(`ml/esc50_direct.py`), not recorded through the Pico mic. "
+            "Expect lower accuracy on the real node until it is retrained on mic recordings.",
+            "- **Known limitation (DECISIONS D3): AMBIENT is synthetic noise** (white, filtered fan, 50 Hz hum, pink-ish "
+            "drift), because ESC-50 has no ambient class. It is trivially separable, so the AMBIENT row and the group "
+            "metrics above are flattered; real quiet rooms will be confused with WEATHER/INSECT more often.",
+        ]
     path = REPO_ROOT / "docs" / "sound" / "model_card.md"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 

@@ -134,8 +134,8 @@ Runs on the Pico after every capture: 25 streaming spectral features (`firmware/
 Confusion matrices: `docs/sound/figures/confusion_group_test.png`, `confusion_label_test.png`.
 
 ## Limitations
-- **This is the backup model.** The clips were converted to ADC-like numbers in software (`ml/esc50_direct.py`), not recorded through the Pico mic, and AMBIENT is synthetic noise. Expect lower accuracy on the real node until it is retrained on mic recordings.
-
+- **This is the backup model.** The clips were converted to ADC-like numbers in software (`ml/esc50_direct.py`), not recorded through the Pico mic. Expect lower accuracy on the real node until it is retrained on mic recordings.
+- **Known limitation (DECISIONS D3): AMBIENT is synthetic noise** (white, filtered fan, 50 Hz hum, pink-ish drift), because ESC-50 has no ambient class. It is trivially separable, so the AMBIENT row and the group metrics above are flattered; real quiet rooms will be confused with WEATHER/INSECT more often.
 - ESC-50 is not Singapore wildlife: these are farm and pet animals and generic birds/insects (Phase B fixes this).
 - Played through a speaker in a room is not the field: distance, wind and overlapping calls are not covered.
 - The MAX9814's AGC rescales everything, so loudness features (`loud_*`, `log_rms`) carry little information.
