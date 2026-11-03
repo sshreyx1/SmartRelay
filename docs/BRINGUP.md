@@ -76,17 +76,23 @@ DAT2 lines, which a card ignores in SPI mode.
 ## 2. Prepare the SD cards
 
 - **Node 1 (bridge):** an empty FAT32 card. Received files go into `inbox/`.
-- **Nodes 2 to 5:** a `samples/` folder with a few small images named `img_00.jpg`, `img_01.jpg`
-  and so on. These stand in for camera frames; each capture sends the next one. Make them on the
-  laptop:
+- **Nodes 2 to 5:** a `samples/` folder of small images. They stand in for camera frames, and the
+  node picks one **from what it heard** (`firmware/sensing/sound_image_pick.c`): it looks for
+  `samples/<label>_NN.jpg` (e.g. `dog_00.jpg`), then the label's group (`bird_00.jpg`,
+  `mammal_00.jpg`, ...), then the generic `img_NN.jpg`, round-robin within each. The ready-made
+  label images (free-licence, credits in `docs/sound/IMAGE_CREDITS.md`) are in `sd_card/samples/`
+  in the repo; copy that folder to the top of each card and keep the old `img_NN.jpg` files too.
+  To make generic images from your own photos:
 
   ```bash
   pip install pillow
   python3 tools/make_sample_images.py my_photos/*.jpg --out sd_card/samples
   ```
 
-  then copy the `samples` folder to the top of each card. 160x120 JPEGs are 3 to 6 kB: about 1 s
-  over WiFi, about 30 s over LoRa. Anything up to 120 kB works.
+  (label images: `python tools/make_label_images.py`, see `docs/sound/HANDOFF.md`). 160x120 JPEGs
+  are 3 to 6 kB, the label images up to 10 kB: about 1 s over WiFi, 30 to 70 s over LoRa.
+  Anything up to 120 kB works. The node also keeps `meta/next_id` on the card so capture ids
+  (`N2-000042`) never restart after a reboot; do not delete it between demo runs.
 
 ---
 
@@ -238,10 +244,11 @@ Then:
 - [ ] press `s` on node 2: `bridge last heard on wifi ... ms ago` and `on lora ... ms ago`, both
   under about 3000. Both radios can reach the bridge.
 - [ ] press `c` on node 2 (or the GP20 button, or trigger PIR + sound): after the 5 s recording,
-  `capture 1 queued`, then `tx samples/img_00.jpg: done via wifi`.
-- [ ] the laptop prints `saved received/n2_<session>.jpg (... bytes via wifi, crc ok) | LOUD_ANIMAL_CALL, Hot_Dry, 29.4 C`
+  `[SOUND] group=... label=... conf=... lost=0`, `capture N2-000001: heard DOG (82%) -> samples/dog_00.jpg`,
+  `capture N2-000001 queued`, then `tx samples/dog_00.jpg: done via wifi`.
+- [ ] the laptop prints `saved received/n2_<session>_dog_00.jpg (... bytes via wifi, crc ok) | N2-000001: DOG 82%, Hot_Dry, 29.4 C`
   and the `.json` next to it holds every sensor value (capture number, triggers, temperature,
-  humidity, light, weather, sound class, RMS, crossings per second).
+  humidity, light, weather, the node's sound label + group + confidence, RMS, crossings per second).
 - [ ] **LoRa fallback:** unplug node 2, take its ESP-01 out, plug node 2 back in (it prints
   `wifi: the ESP-01 did not answer`), press `c`. Now it says `done via lora` and takes about 30 s
   for a small image. Put the ESP-01 back afterwards (with the power off).
@@ -282,7 +289,7 @@ Lower `LORA_TX_POWER_DBM` in Mridula's `lora_radio.h` if you need real LoRa hops
 | `wifi: the ESP-01 did not answer` | ESP-01 not fully in the socket; it then falls back to LoRa |
 | `wifi: WARNING this firmware is node 2 but the ESP-01 is WST-4` | flash `csc09_node_4.uf2` on this board, or swap the ESP-01 |
 | `bridge never heard on wifi` | node 1 off, or (topology filter ON) this node is not a neighbour of A and no relay node is running |
-| `capture: no samples/img_XX.jpg` | the `samples` folder is missing on that card |
+| `capture N2-...: no samples/*_NN.jpg on the SD card` | the `samples` folder is missing on that card |
 | DHT22 `fail` keeps climbing | loose data wire on GP4, or no pull-up on a bare sensor |
 | `[AUDIO] warning: samples lost` | should not happen; tell Shreya |
 | Nothing at all on the serial monitor | wrong COM port. USB serial drops anything printed before the monitor opened, so a late monitor misses the start-up lines: press `h` or `s` |
