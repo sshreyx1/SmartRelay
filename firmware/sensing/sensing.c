@@ -21,7 +21,11 @@
 #include "weather_tree.h"
 
 static sensing_hooks_t s_h;
+#if !SOUND_LEGACY_MODE
 static sf_t s_sf; /* 1.9 kB: static, not on the 1024-word sensors task stack */
+#else
+static const char* s_legacy_label = "";
+#endif
 static sensing_sound_t s_sound;
 static sensing_env_t s_env = {.weather = -1};
 static uint32_t s_last_dht_try, s_last_dht_good;
@@ -128,6 +132,29 @@ static int16_t to_x10_i16(float v)
     return (int16_t)lroundf(v * 10.0f);
 }
 
+#if SOUND_LEGACY_MODE
+bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
+{
+    sensing_sound_t* r = &s_sound;
+    *r = (sensing_sound_t){.ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN};
+    if (!audio_capture(seconds, s_h.wait_ms, audio, &r->lost))
+    {
+        audio->samples = 0;
+        printf("[AUDIO] no free DMA channel, sound features missing\n");
+        return false;
+    }
+    s_legacy_label = audio->label;
+    r->label_id = audio->class_id == 0 ? SC_AMBIENT : SC_UNKNOWN; /* 0 = mic.c's AMBIENT_NOISE */
+    r->rms = audio->rms;
+    r->zcr_per_s = audio->zcr_per_s;
+    r->ok = true;
+    if (r->lost)
+    {
+        printf("[AUDIO] warning: %lu samples lost (task too slow)\n", (unsigned long)r->lost);
+    }
+    return true;
+}
+#else
 static uint16_t to_u16_meta(float v)
 {
     /* 0xFFFF is CM_MISSING_U16, so a real reading saturates one below it */
@@ -161,6 +188,7 @@ bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
     }
     return true;
 }
+#endif
 
 const sensing_sound_t* sensing_last_sound(void)
 {
@@ -175,6 +203,11 @@ void sensing_log_sound(void)
         printf("[SOUND] capture failed: label unknown\n");
         return;
     }
+#if SOUND_LEGACY_MODE
+    printf("[SOUND] LEGACY mic.c thresholds: %s -> label=%s id=%u rms=%u zcr=%u lost=%lu\n", s_legacy_label,
+           sound_class_name(r->label_id), r->label_id, r->rms, r->zcr_per_s, (unsigned long)r->lost);
+    return;
+#endif
     printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%lu feat_us=%lu maxcall_us=%lu model_us=%lu\n",
            sound_class_name(sound_class_group(r->label_id)), sound_class_name(r->label_id), r->label_id, r->conf, r->rms,
            r->zcr_per_s, (unsigned long)r->lost, (unsigned long)r->feat_us, (unsigned long)r->maxcall_us,

@@ -19,6 +19,13 @@
 #include "audio_features.h"
 #include "capture_meta.h"
 
+/* SOUND_LEGACY_MODE=1 (CMake option, default OFF): the sound fields come from mic.c's energy/ZCR thresholds
+ * as on curveball, not the on-node classifier, and main.c rotates through img_NN.jpg whatever was heard.
+ * For the before/after comparison and as a fallback. */
+#ifndef SOUND_LEGACY_MODE
+#define SOUND_LEGACY_MODE 0
+#endif
+
 typedef struct
 {
     void (*wait_ms)(uint32_t ms); /* sleep without hogging the CPU */
@@ -63,7 +70,9 @@ bool sensing_dual_trigger(uint32_t now_ms);
  * sound_zcr crossings/s; all unknown/missing if the recording failed. */
 void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* m, audio_result_t* audio);
 
-/* What the last recording heard (sensing_capture() or sensing_record_sound()). */
+/* What the last recording heard (sensing_capture() or sensing_record_sound()). In SOUND_LEGACY_MODE:
+ * label_id is AMBIENT for mic.c's AMBIENT_NOISE and unknown for its other two classes (the label table has
+ * no LOUD_ANIMAL_CALL / HIGH_FREQ_RUSTLE), conf is unknown, rms/zcr are mic.c's, the timings are 0. */
 typedef struct
 {
     bool ok;             /* false: no DMA channel, nothing below is valid */

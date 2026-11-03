@@ -59,6 +59,7 @@ static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
 static uint32_t g_capture_id; /* last id used; restored from the SD card at boot */
 static sip_table_t g_images;  /* samples/<prefix>_NN.jpg found at boot */
 static volatile bool g_want_stats, g_toggle_drop, g_force_capture, g_want_env, g_toggle_topo;
+static volatile bool g_toggle_hold; /* console 'H' (test T6): comms stops taking captures off g_capture_q */
 static volatile bool g_comms_ready;
 
 /* ---- platform --------------------------------------------------------------------------- */
@@ -243,9 +244,9 @@ static void handle_capture(const capture_meta_t* in)
     char id[CAPTURE_ID_STR_MAX];
     capture_id_format(id, sizeof(id), NODE_ID, m.capture_id);
 
-    /* the image follows the sound: label -> its group -> generic img_NN */
+    /* the image follows the sound: label -> its group -> generic img_NN (legacy: always img_NN, round robin) */
     char name[ALFP_MAX_META - CAPTURE_META_LEN + 1];
-    int nn = sip_pick(&g_images, m.sound_class, name, sizeof(name));
+    int nn = sip_pick(&g_images, SOUND_LEGACY_MODE ? SC_UNKNOWN : m.sound_class, name, sizeof(name));
     if (nn < 0)
     {
         printf("capture %s: no samples/*_NN.jpg on the SD card\n", id);
@@ -257,6 +258,10 @@ static void handle_capture(const capture_meta_t* in)
     if (m.sound_class == CM_UNKNOWN_U8)
     {
         printf("capture %s: heard unknown (recording failed) -> %s\n", id, path);
+    }
+    else if (m.sound_conf == CM_UNKNOWN_U8) /* legacy thresholds give no confidence */
+    {
+        printf("capture %s: heard %s -> %s\n", id, sound_class_name(m.sound_class), path);
     }
     else
     {
@@ -365,7 +370,7 @@ static void comms_task(void* arg)
            alfp_outbox_count(&g_outbox));
 
     g_comms_ready = true;
-    bool dropping = false, topo = true;
+    bool dropping = false, topo = true, hold = false;
     for (;;)
     {
         g_radios[0]->poll();
@@ -374,11 +379,11 @@ static void comms_task(void* arg)
         if (NODE_ID != BRIDGE_ID)
         {
             capture_meta_t req;
-            while (xQueueReceive(g_capture_q, &req, 0) == pdTRUE)
+            while (!hold && xQueueReceive(g_capture_q, &req, 0) == pdTRUE)
             {
                 handle_capture(&req);
             }
-            alfp_outbox_pump(&g_outbox);
+            alfp_outbox_pump(&g_outbox); /* radios and the outbox keep running while held */
         }
         if (g_want_stats)
         {
@@ -392,6 +397,14 @@ static void comms_task(void* arg)
             g_radios[0]->set_drop_rate(dropping ? 0.3f : 0.0f);
             g_radios[1]->set_drop_rate(dropping ? 0.3f : 0.0f);
             printf("injected loss %s\n", dropping ? "30%" : "off");
+        }
+        if (g_toggle_hold)
+        {
+            g_toggle_hold = false;
+            hold = !hold;
+            printf("capture queue %s (%u waiting)\n",
+                   hold ? "HELD for test T6: captures stay in the 4-slot queue" : "released, sending what waited",
+                   (unsigned)uxQueueMessagesWaiting(g_capture_q));
         }
         if (g_toggle_topo)
         {
@@ -505,7 +518,7 @@ static void sensors_task(void* arg)
 static void print_help(void)
 {
     printf("keys: c capture now | e sensor readings | s stats | d toggle 30%% loss | t toggle WiFi topology "
-           "filter | h help\n");
+           "filter | H hold capture queue (T6) | h help\n");
 }
 
 static void console_task(void* arg)
@@ -525,6 +538,10 @@ static void console_task(void* arg)
         else if (ch == 't')
         {
             g_toggle_topo = true;
+        }
+        else if (ch == 'H')
+        {
+            g_toggle_hold = true;
         }
         else if (ch == 'h' || ch == '?')
         {
@@ -548,6 +565,10 @@ int main(void)
     stdio_init_all();
     sleep_ms(1500); /* give the USB serial a moment so the first lines are not lost */
     printf("\nCSC09 trail mesh, node %u, ALFP v%u\n", NODE_ID, ALFP_VERSION);
+    if (SOUND_LEGACY_MODE)
+    {
+        printf("sound: LEGACY mode (mic.c thresholds, img_NN.jpg round robin), not the on-node classifier\n");
+    }
     g_capture_q = xQueueCreate(4, sizeof(capture_meta_t));
     xTaskCreate(comms_task, "comms", 2048, NULL, 3, NULL);
     xTaskCreate(sensors_task, "sensors", 1024, NULL, 2, NULL);

@@ -31,6 +31,7 @@ pico_sdk_init()
 set(NODE_IDS "1;2;3;4;5" CACHE STRING "Which node images to build (1 = bridge A, 2-5 = B-E)")
 option(USE_LORA_MESH "Link Mridula's LoRa mesh from third_party/lora_mesh" ON)
 option(USE_WIFI_MESH "Link Goutham's WiFi mesh from third_party/wifi_mesh" ON)
+option(SOUND_LEGACY_MODE "Old sound path: mic.c energy/ZCR thresholds + round-robin img_NN.jpg (before/after, fallback)" OFF)
 set(LORA_MESH_DIR ${CMAKE_CURRENT_LIST_DIR}/../third_party/lora_mesh CACHE PATH "Mridula's lora_mesh folder")
 set(WIFI_MESH_DIR ${CMAKE_CURRENT_LIST_DIR}/../third_party/wifi_mesh CACHE PATH "Goutham's wifi_mesh folder")
 set(SENSORS_DIR ${CMAKE_CURRENT_LIST_DIR}/../third_party/sensors CACHE PATH "Maryam's + Rhaylene's sensor code")
@@ -113,7 +114,7 @@ add_library(sensing STATIC
   ${SENSORS_DIR}/pir.c ${SENSORS_DIR}/sound.c ${SENSORS_DIR}/mic.c ${SENSORS_DIR}/DHT22.c
   sensing/sensing.c sensing/audio_capture.c sensing/audio_features.c)
 target_include_directories(sensing PUBLIC ${SENSORS_DIR} sensing app ${ROOT}/common)
-target_compile_definitions(sensing PUBLIC AUDIO_SECONDS=${AUDIO_SECONDS}u)
+target_compile_definitions(sensing PUBLIC AUDIO_SECONDS=${AUDIO_SECONDS}u SOUND_LEGACY_MODE=$<BOOL:${SOUND_LEGACY_MODE}>)
 target_link_libraries(sensing PUBLIC sound pico_stdlib hardware_adc hardware_dma hardware_gpio hardware_timer)
 # DHT22.c's 40 us "release the line" wait must be exact. Under FreeRTOS, sleep_us() blocks the task
 # and wakes it through an interrupt and the timer task, which can hold the line high too long while

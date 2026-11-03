@@ -1,6 +1,7 @@
 # firmware build
 build/
 build-fw/
+build-fw-legacy/
 deps/
 sim_out/
 
