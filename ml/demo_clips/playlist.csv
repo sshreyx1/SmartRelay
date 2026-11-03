@@ -1,0 +1,13 @@
+order,group,clip_id,true_name,predicted,conf,match,takes,source,file,play
+1,BIRD,5-234879-A-1,ROOSTER,BIRD,68,group,1,live: bench_eval_A_2026-11-03.csv,demo_clips/01_rooster_5-234879-A-1.wav,python ml/playback.py ml/demo_clips/01_rooster_5-234879-A-1.wav --device MacBook Pro Speakers
+2,BIRD,5-243448-A-14,SONGBIRD,BIRD,65,group,1,live: bench_eval_A_2026-11-03.csv,demo_clips/02_songbird_5-243448-A-14.wav,python ml/playback.py ml/demo_clips/02_songbird_5-243448-A-14.wav --device MacBook Pro Speakers
+3,MAMMAL,5-203128-A-0,DOG,MAMMAL,82,group,1,live: bench_eval_A_2026-11-03.csv,demo_clips/03_dog_5-203128-A-0.wav,python ml/playback.py ml/demo_clips/03_dog_5-203128-A-0.wav --device MacBook Pro Speakers
+4,MAMMAL,5-169983-A-5,CAT,MAMMAL,65,group,1,live: bench_eval_A_2026-11-03.csv,demo_clips/04_cat_5-169983-A-5.wav,python ml/playback.py ml/demo_clips/04_cat_5-169983-A-5.wav --device MacBook Pro Speakers
+5,INSECT_FROG,5-216213-A-13,CRICKET,INSECT_FROG,76,group,1,live: bench_eval_A_2026-11-03.csv,demo_clips/05_cricket_5-216213-A-13.wav,python ml/playback.py ml/demo_clips/05_cricket_5-216213-A-13.wav --device MacBook Pro Speakers
+6,INSECT_FROG,5-215179-A-13,CRICKET,INSECT_FROG,31,group,1,live: bench_eval_A_2026-11-03.csv,demo_clips/06_cricket_5-215179-A-13.wav,python ml/playback.py ml/demo_clips/06_cricket_5-215179-A-13.wav --device MacBook Pro Speakers
+7,HUMAN,5-209719-A-24,HUMAN,HUMAN,47,exact,1,live: bench_eval_A_2026-11-03.csv,demo_clips/07_human_5-209719-A-24.wav,python ml/playback.py ml/demo_clips/07_human_5-209719-A-24.wav --device MacBook Pro Speakers
+8,HUMAN,5-263491-A-25,HUMAN,HUMAN,46,exact,1,live: bench_eval_A_2026-11-03.csv,demo_clips/08_human_5-263491-A-25.wav,python ml/playback.py ml/demo_clips/08_human_5-263491-A-25.wav --device MacBook Pro Speakers
+9,VEHICLE,5-240671-A-44,VEHICLE,VEHICLE,44,exact,1,live: bench_eval_A_2026-11-03.csv,demo_clips/09_vehicle_5-240671-A-44.wav,python ml/playback.py ml/demo_clips/09_vehicle_5-240671-A-44.wav --device MacBook Pro Speakers
+10,VEHICLE,5-170338-A-41,VEHICLE,VEHICLE,42,exact,1,live: bench_eval_A_2026-11-03.csv,demo_clips/10_vehicle_5-170338-A-41.wav,python ml/playback.py ml/demo_clips/10_vehicle_5-170338-A-41.wav --device MacBook Pro Speakers
+11,WEATHER,5-156999-C-19,WEATHER,WEATHER,54,exact,1,live: bench_eval_A_2026-11-03.csv,demo_clips/11_weather_5-156999-C-19.wav,python ml/playback.py ml/demo_clips/11_weather_5-156999-C-19.wav --device MacBook Pro Speakers
+12,WEATHER,5-202898-A-10,WEATHER,WEATHER,52,exact,1,live: bench_eval_A_2026-11-03.csv,demo_clips/12_weather_5-202898-A-10.wav,python ml/playback.py ml/demo_clips/12_weather_5-202898-A-10.wav --device MacBook Pro Speakers
