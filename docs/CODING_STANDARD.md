@@ -52,8 +52,8 @@ gcc -std=c11 -Wall -Wextra -Wconversion -Wshadow -Wundef -Wstrict-prototypes -We
 ```
 
 **`tools/check_style.sh`** wraps all of the above over the in-scope files, skipping (not failing)
-any tool that is not installed, and exits non-zero only on an actual violation it could check. Not
-yet wired into a test runner (see the note in that script and in the PR).
+any tool that is not installed, and exits non-zero only on an actual violation it could check. It
+is stage 1 of `tools/run_all_tests.sh`.
 
 ## What was and was not actually run in this environment
 
@@ -145,5 +145,4 @@ Counts only, per the brief -- these are not this task's files to fix.
   SDK/FreeRTOS/uT-Kernel headers); the compliance claims for them rest on a careful read, not a
   compiler. A real toolchain run (see `firmware_smp/buildglue/README.md` / `docs/BRINGUP.md`)
   would catch anything a read missed.
-- `tools/check_style.sh` is not yet wired into a single test-runner entry point; whichever part of
-  this work adds `tools/run_all_tests.sh` should call it.
+- `tools/check_style.sh` is wired into `tools/run_all_tests.sh` as its first stage.
