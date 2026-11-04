@@ -127,7 +127,10 @@ drive. Full wiring/bring-up steps: `docs/BRINGUP.md`.
 ## Serial commands on a node
 
 `c` capture now, `e` sensor readings, `s` statistics, `d` toggle 30%
-injected loss, `t` toggle the WiFi topology filter, `h` help.
+injected loss, `t` toggle the WiFi topology filter, `H` hold the capture
+queue (test T6), `p` send the next file from the size-ladder test payloads
+(`test_payloads/`, made by `tools/make_test_payloads.py`; see "Radio choice
+by size" in `docs/DESIGN.md`), `h` help.
 
 ## Curveball: uT-Kernel 3 SMP port (branch `curveball`)
 
