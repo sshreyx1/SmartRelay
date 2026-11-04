@@ -163,9 +163,9 @@ in `docs/curveball_findings.md`.
   bridge driver, or the SD card storage layer. Only the kernel, the
   application tasks, the ALFP protocol, and the sensor code are wired in
   so far.
-- Nothing on this branch has been compiled. The AI session that did this
-  work did not have the ARM cross compiler, `make`, `cmake`, or the Pico
-  SDK available, so none of it has been built, flashed, or tested.
+- Nothing on this branch has been compiled. This work was not done on a
+  machine with the ARM cross compiler, `make`, `cmake`, or the Pico SDK
+  set up, so none of it has been built, flashed, or tested.
 - A real build is also expected to need Pico SDK driver code (for GPIO,
   SPI, ADC, DMA, UART) added to the kernel's build, and that needs a real
   toolchain run to get right. See `firmware_smp/buildglue/README.md` for
