@@ -157,6 +157,10 @@ no longer BLOCKED.**
 
 ## C3 - Pico SDK driver linking and clocks
 
+> **Update 2026-11-04:** C3's "links cleanly" claim below missed four `multiple definition`
+> errors, and C4 is no longer "not attempted": the full node firmware now builds and ran on two
+> real boards. See `docs/SMP_HANDOFF.md` for the current state; it supersedes C3/C4 below.
+
 **Result: driver-linking half PASS (real, on a real toolchain); radios/storage half still
 BLOCKED; clock-correctness half still BLOCKED (needs real measurement, not another build).**
 
@@ -276,6 +280,10 @@ link error. **Not measured in this session; needs a real board test**, not anoth
 ```
 
 ## C4 - incremental integration
+
+> **Update 2026-11-04:** C3's "links cleanly" claim below missed four `multiple definition`
+> errors, and C4 is no longer "not attempted": the full node firmware now builds and ran on two
+> real boards. See `docs/SMP_HANDOFF.md` for the current state; it supersedes C3/C4 below.
 
 **Result: BLOCKED - not attempted; depends on C3.** Sensors task -> ALFP loopback -> SD/FatFs ->
 LoRa -> WiFi bridge UART0 -> full node, each step flashed and logged on its own.
