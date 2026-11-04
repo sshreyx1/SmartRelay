@@ -32,6 +32,20 @@
 #define BRIDGE_ID 1
 #define BRIDGE_FRESH_MS 10000u
 
+/* Task A.2 (CURVEBALL round 3), same rationale as firmware/app/main.c: send capture metadata as
+ * its own tiny ALFP transfer so the size rule (APP_RADIO_SIZE_THRESHOLD, alfp_config.h) routes it
+ * over LoRa while the image goes over WiFi. 0 restores the single combined transfer. */
+#ifndef APP_SPLIT_TELEMETRY
+#define APP_SPLIT_TELEMETRY 1
+#endif
+#define TEL_DIR "tel"
+/* See firmware/app/main.c for the full rationale: marks the telemetry job's filename-tail so the
+ * backend/tools can tell "no image in this transfer" apart from a transfer with a real image and
+ * simply no name tail (which this file's image jobs never did before this round, but keeping the
+ * same explicit marker avoids relying on that distinction at all). Kept in sync by hand with
+ * tools/bridge_receiver.py's TELEMETRY_MARKER and backend/app.py's own copy. */
+#define APP_TELEMETRY_MARKER "TELEMETRY"
+
 /* ---- console -> comms/sensors signalling (3.3: event flags, not volatile bools) ---- */
 #define EVT_WANT_STATS (1u << 0)
 #define EVT_TOGGLE_DROP (1u << 1)
@@ -96,6 +110,12 @@ static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
                alfp_tx_result_str(r->result), r->radio, r->frag_count, r->rounds, r->data_resent,
                secs_x10 / 10u, secs_x10 % 10u);
     log_write_line(line);
+    if (r->result == ALFP_TX_DONE && strncmp(r->path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u) == 0)
+    {
+        /* Telemetry's "file" is a temp copy of its own meta made just for this transfer (unlike
+         * the image, a reused sample on the SD card): remove it once sent. */
+        storage_fatfs()->remove(storage_fatfs()->ctx, r->path);
+    }
     alfp_outbox_on_tx_done(&g_outbox, r);
 }
 
@@ -158,10 +178,48 @@ static void handle_capture(const capture_meta_t* in)
     char path[32];
     tm_sprintf((UB*)path, (UB*)"samples/img_%02u.jpg", (unsigned)g_next_sample);
     g_next_sample = (uint8_t)((g_next_sample + 1u) % g_n_samples);
-    uint8_t mb[CAPTURE_META_LEN];
+    uint8_t mb[ALFP_MAX_META]; /* 27 meta bytes now, plus the image's file name appended below */
     capture_meta_pack(&m, mb);
     char line[LOG_LINE_MAX];
-    if (alfp_outbox_add(&g_outbox, path, mb, sizeof(mb)))
+
+    if (APP_SPLIT_TELEMETRY)
+    {
+        const alfp_storage_t* st = storage_fatfs();
+        char tel_path[32];
+        tm_sprintf((UB*)tel_path, (UB*)TEL_DIR "/t_%lu.bin", (unsigned long)m.capture_id);
+        int th = st->open_write(st->ctx, tel_path);
+        bool tel_ok = th >= 0 && st->write_at(st->ctx, th, 0, mb, CAPTURE_META_LEN) == CAPTURE_META_LEN;
+        if (th >= 0)
+        {
+            st->close(st->ctx, th);
+        }
+        uint8_t tel_meta[ALFP_MAX_META];
+        memcpy(tel_meta, mb, CAPTURE_META_LEN);
+        size_t marker_len = strlen(APP_TELEMETRY_MARKER);
+        memcpy(tel_meta + CAPTURE_META_LEN, APP_TELEMETRY_MARKER, marker_len);
+        uint8_t tel_meta_len = (uint8_t)(CAPTURE_META_LEN + marker_len);
+        if (tel_ok && alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len))
+        {
+            tm_sprintf((UB*)line, (UB*)"capture %lu telemetry queued (%s)", (unsigned long)m.capture_id, tel_path);
+        }
+        else
+        {
+            tm_sprintf((UB*)line, (UB*)"capture %lu: telemetry SD write failed, image still sent",
+                       (unsigned long)m.capture_id);
+            st->remove(st->ctx, tel_path);
+        }
+        log_write_line(line);
+    }
+
+    /* Image job's meta carries the image's own file name as a tail after the 27 meta bytes (same
+     * convention as firmware/app/main.c): that is what tells the backend this transfer, unlike
+     * the telemetry one above, has a real image attached. */
+    const char* base = strrchr(path, '/');
+    base = base ? base + 1 : path;
+    size_t nl = strlen(base);
+    memcpy(mb + CAPTURE_META_LEN, base, nl);
+    uint8_t ml = (uint8_t)(CAPTURE_META_LEN + nl);
+    if (alfp_outbox_add(&g_outbox, path, mb, ml))
     {
         tm_sprintf((UB*)line, (UB*)"capture %lu queued (%s), outbox %u", (unsigned long)m.capture_id, path,
                    alfp_outbox_count(&g_outbox));
@@ -253,6 +311,10 @@ static void comms_task(void* arg)
     }
     const alfp_storage_t* st = storage_fatfs();
     st->mkdir(st->ctx, "samples");
+    if (APP_SPLIT_TELEMETRY)
+    {
+        st->mkdir(st->ctx, TEL_DIR);
+    }
     st->list(st->ctx, "samples", count_samples_cb, NULL);
     tm_sprintf((UB*)line, (UB*)"sd: mounted, %u sample images", g_n_samples);
     log_write_line(line);
@@ -276,8 +338,10 @@ static void comms_task(void* arg)
     };
     alfp_init(&g_alfp, &cfg);
     alfp_outbox_init(&g_outbox, &g_alfp, g_radios, 2, BRIDGE_ID, BRIDGE_FRESH_MS, "outbox");
-    tm_sprintf((UB*)line, (UB*)"node %u ready (%s), outbox has %u queued", NODE_ID,
-               NODE_ID == BRIDGE_ID ? "bridge" : "field node", alfp_outbox_count(&g_outbox));
+    alfp_outbox_set_size_threshold(&g_outbox, APP_RADIO_SIZE_THRESHOLD);
+    tm_sprintf((UB*)line, (UB*)"node %u ready (%s), outbox has %u queued, radio size threshold %u B", NODE_ID,
+               NODE_ID == BRIDGE_ID ? "bridge" : "field node", alfp_outbox_count(&g_outbox),
+               (unsigned)APP_RADIO_SIZE_THRESHOLD);
     log_write_line(line);
 
     rtos_flags_set(g_flags, EVT_COMMS_READY);

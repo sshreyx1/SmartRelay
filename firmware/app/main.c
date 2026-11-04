@@ -52,13 +52,34 @@
 #define BRIDGE_ID 1
 #define BRIDGE_FRESH_MS 10000u
 
+/* Task A.2: send capture metadata as its own tiny ALFP transfer, separate from the image, so the
+ * size rule (APP_RADIO_SIZE_THRESHOLD, alfp_config.h) routes it over LoRa while the image goes
+ * over WiFi. 0 restores the single combined transfer this firmware always sent before (needed
+ * while SOUND_LEGACY_MODE's demo flow is validated against the new path). */
+#ifndef APP_SPLIT_TELEMETRY
+#define APP_SPLIT_TELEMETRY 1
+#endif
+/* Explicit marker in the telemetry job's filename-tail (the bytes after the 27-byte meta record,
+ * see common/capture_meta.h), so the backend/tools/bridge_receiver.py side can tell "no image in
+ * this transfer" apart from the pre-existing, still-valid case of a transfer with a real image
+ * and simply no name tail at all (some callers never appended one before this round). Never a
+ * real image name: no image this firmware ever picks ends without an extension. Kept in sync by
+ * hand with tools/bridge_receiver.py's TELEMETRY_MARKER and backend/app.py's own copy. */
+#define APP_TELEMETRY_MARKER "TELEMETRY"
+
+#define TEST_PAYLOADS_DIR "test_payloads" /* Task A.3: tools/make_test_payloads.py's size ladder */
+#define TEST_PAYLOADS_MAX 16
+
 static alfp_ctx_t g_alfp;
 static alfp_outbox_t g_outbox;
 static QueueHandle_t g_capture_q;
 static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
 static uint32_t g_capture_id; /* last id used; restored from the SD card at boot */
+static char g_payload_names[TEST_PAYLOADS_MAX][32];
+static uint8_t g_n_payloads, g_next_payload;
 static sip_table_t g_images;  /* samples/<prefix>_NN.jpg found at boot */
 static volatile bool g_want_stats, g_toggle_drop, g_force_capture, g_want_env, g_toggle_topo;
+static volatile bool g_want_test_payload; /* console 'p' (test A.3): send the next size-ladder file */
 static volatile bool g_toggle_hold; /* console 'H' (test T6): comms stops taking captures off g_capture_q */
 static volatile bool g_comms_ready;
 
@@ -86,11 +107,20 @@ static const alfp_platform_t k_plat = {NULL, p_now, p_rand, p_log};
 
 /* ---- callbacks ---------------------------------------------------------------------------- */
 
+#define TEL_DIR "tel" /* tiny per-capture telemetry files made only by handle_capture(), see below */
+
 static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
 {
     (void)ctx;
     printf("tx %s: %s via %s, %u frags, %u rounds, %u resent, %.1f s\n", r->path, alfp_tx_result_str(r->result),
            r->radio, r->frag_count, r->rounds, r->data_resent, (r->finished_ms - r->started_ms) / 1000.0);
+    if (r->result == ALFP_TX_DONE && strncmp(r->path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u) == 0)
+    {
+        /* The telemetry job's "file" was a temp copy of its own meta made just for this transfer
+         * (unlike the image, which is a reused sample on the SD card): remove it once sent, same
+         * as the outbox already removes the job descriptor itself in alfp_outbox_on_tx_done(). */
+        storage_fatfs()->remove(storage_fatfs()->ctx, r->path);
+    }
     alfp_outbox_on_tx_done(&g_outbox, r);
 }
 
@@ -119,6 +149,40 @@ static void count_samples_cb(const char* name, void* user)
 {
     (void)user;
     sip_add_file(&g_images, name);
+}
+
+static void count_payloads_cb(const char* name, void* user)
+{
+    (void)user;
+    size_t nl = strlen(name);
+    if (g_n_payloads < TEST_PAYLOADS_MAX && nl < sizeof(g_payload_names[0]))
+    {
+        memcpy(g_payload_names[g_n_payloads], name, nl + 1u); /* + the NUL strlen() does not count */
+        g_n_payloads++;
+    }
+}
+
+/* Task A.3: send one file from the size ladder (tools/make_test_payloads.py) with no capture
+ * metadata, so a test can watch the tx log's size=/thr=/radio=/reason= line pick LoRa for the
+ * small rungs and WiFi for the large ones. Cycles through every file found at boot. */
+static void send_next_test_payload(void)
+{
+    if (!g_n_payloads)
+    {
+        printf("test payloads: none found on %s/\n", TEST_PAYLOADS_DIR);
+        return;
+    }
+    char path[ALFP_PATH_MAX];
+    snprintf(path, sizeof(path), TEST_PAYLOADS_DIR "/%s", g_payload_names[g_next_payload]);
+    if (alfp_outbox_add(&g_outbox, path, NULL, 0))
+    {
+        printf("test payload queued: %s\n", path);
+    }
+    else
+    {
+        printf("test payload: SD write failed (%s)\n", path);
+    }
+    g_next_payload = (uint8_t)((g_next_payload + 1u) % g_n_payloads);
 }
 
 /* ---- persistent capture id (comms only: it owns the SD card) ------------------------------ */
@@ -270,10 +334,44 @@ static void handle_capture(const capture_meta_t* in)
 
     /* meta = the 27-byte record + the image's file name (the optional-name tail, <= 64 bytes in all) */
     uint8_t mb[ALFP_MAX_META];
-    uint8_t ml = capture_meta_pack(&m, mb);
+    uint8_t meta_len = capture_meta_pack(&m, mb);
+
+    if (APP_SPLIT_TELEMETRY)
+    {
+        /* Telemetry: a tiny transfer tagged with APP_TELEMETRY_MARKER instead of an image name,
+         * small enough that the size rule always sends it over LoRa. The "file" is just a temp
+         * copy of the same meta bytes -- removed from the SD card by on_tx_done() once it is
+         * confirmed sent. */
+        char tel_path[ALFP_PATH_MAX];
+        char stem[CAPTURE_ID_STR_MAX];
+        capture_id_file_stem(stem, sizeof(stem), NODE_ID, m.capture_id);
+        snprintf(tel_path, sizeof(tel_path), TEL_DIR "/%s.bin", stem);
+        int th = st->open_write(st->ctx, tel_path);
+        bool tel_ok = th >= 0 && st->write_at(st->ctx, th, 0, mb, meta_len) == meta_len;
+        if (th >= 0)
+        {
+            st->close(st->ctx, th);
+        }
+        uint8_t tel_meta[ALFP_MAX_META];
+        memcpy(tel_meta, mb, meta_len);
+        size_t marker_len = strlen(APP_TELEMETRY_MARKER);
+        memcpy(tel_meta + meta_len, APP_TELEMETRY_MARKER, marker_len);
+        uint8_t tel_meta_len = (uint8_t)(meta_len + marker_len);
+        if (tel_ok && alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len))
+        {
+            printf("capture %s telemetry queued (%s)\n", id, tel_path);
+        }
+        else
+        {
+            printf("capture %s: telemetry SD write failed, image still sent\n", id);
+            st->remove(st->ctx, tel_path);
+        }
+    }
+
+    /* Image: meta + the image's file name (the optional-name tail), exactly as before this round. */
     size_t nl = strlen(name);
-    memcpy(mb + ml, name, nl);
-    ml = (uint8_t)(ml + nl);
+    memcpy(mb + meta_len, name, nl);
+    uint8_t ml = (uint8_t)(meta_len + nl);
     if (alfp_outbox_add(&g_outbox, path, mb, ml))
     {
         printf("capture %s queued (%s), outbox %u\n", id, path, alfp_outbox_count(&g_outbox));
@@ -332,6 +430,10 @@ static void comms_task(void* arg)
     }
     const alfp_storage_t* st = storage_fatfs();
     st->mkdir(st->ctx, "samples");
+    if (APP_SPLIT_TELEMETRY)
+    {
+        st->mkdir(st->ctx, TEL_DIR);
+    }
     sip_reset(&g_images);
     st->list(st->ctx, "samples", count_samples_cb, NULL);
     unsigned n_img = 0;
@@ -345,6 +447,8 @@ static void comms_task(void* arg)
         printf(" %s %u", g_images.p[i].prefix, g_images.p[i].count);
     }
     printf("\n");
+    st->list(st->ctx, TEST_PAYLOADS_DIR, count_payloads_cb, NULL);
+    printf("sd: %u test payload file(s) in %s/\n", g_n_payloads, TEST_PAYLOADS_DIR);
     restore_capture_id(st);
 
     if (!radios_init(NODE_ID))
@@ -366,8 +470,10 @@ static void comms_task(void* arg)
     };
     alfp_init(&g_alfp, &cfg);
     alfp_outbox_init(&g_outbox, &g_alfp, g_radios, 2, BRIDGE_ID, BRIDGE_FRESH_MS, "outbox");
-    printf("node %u ready (%s), outbox has %u queued\n", NODE_ID, NODE_ID == BRIDGE_ID ? "bridge" : "field node",
-           alfp_outbox_count(&g_outbox));
+    alfp_outbox_set_size_threshold(&g_outbox, APP_RADIO_SIZE_THRESHOLD);
+    printf("node %u ready (%s), outbox has %u queued, radio size threshold %u B\n", NODE_ID,
+           NODE_ID == BRIDGE_ID ? "bridge" : "field node", alfp_outbox_count(&g_outbox),
+           (unsigned)APP_RADIO_SIZE_THRESHOLD);
 
     g_comms_ready = true;
     bool dropping = false, topo = true, hold = false;
@@ -405,6 +511,11 @@ static void comms_task(void* arg)
             printf("capture queue %s (%u waiting)\n",
                    hold ? "HELD for test T6: captures stay in the 4-slot queue" : "released, sending what waited",
                    (unsigned)uxQueueMessagesWaiting(g_capture_q));
+        }
+        if (g_want_test_payload)
+        {
+            g_want_test_payload = false;
+            send_next_test_payload();
         }
         if (g_toggle_topo)
         {
@@ -518,7 +629,7 @@ static void sensors_task(void* arg)
 static void print_help(void)
 {
     printf("keys: c capture now | e sensor readings | s stats | d toggle 30%% loss | t toggle WiFi topology "
-           "filter | H hold capture queue (T6) | h help\n");
+           "filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | h help\n");
 }
 
 static void console_task(void* arg)
@@ -554,6 +665,10 @@ static void console_task(void* arg)
         else if (ch == 'd')
         {
             g_toggle_drop = true;
+        }
+        else if (ch == 'p')
+        {
+            g_want_test_payload = true;
         }
         vTaskDelay(pdMS_TO_TICKS(50));
     }
