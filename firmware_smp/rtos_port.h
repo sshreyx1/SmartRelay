@@ -77,6 +77,9 @@ bool rtos_flags_wait_any(rtos_id_t flags, uint32_t mask, uint32_t* out_bits, int
 rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* backing_buf);
 /* Never blocks (TMO_POL). Returns false ("queue full") without sending. */
 bool rtos_msgq_send_nowait(rtos_id_t q, const void* msg, uint32_t msg_size);
+/* Waits up to timeout_ms (RTOS_NO_WAIT, RTOS_WAIT_FOREVER, or a ms value) for room. Only valid
+ * from a task. Returns false if the message could not be queued in time. */
+bool rtos_msgq_send_wait(rtos_id_t q, const void* msg, uint32_t msg_size, int32_t timeout_ms);
 /* timeout_ms: RTOS_NO_WAIT, RTOS_WAIT_FOREVER, or a ms value. */
 bool rtos_msgq_recv(rtos_id_t q, void* msg, uint32_t msg_size, int32_t timeout_ms);
 
@@ -100,6 +103,10 @@ uint32_t rtos_elapsed_ms(uint32_t start_ms);
 
 /* 0 or 1. Every task logs this once at start (brief 3.6). */
 unsigned rtos_core_id(void);
+
+/* The calling task's id (> 0), or 0 when called from an interrupt handler or with interrupts
+ * disabled (where nothing may block). */
+rtos_id_t rtos_self_id(void);
 
 /* Round 2 review fix A2: tm_getchar(0) is dead on the CONSOLE=usb_cdc
  * profile (see firmware_smp/buildglue/usb_tinyusb_glue_overlay.c for why
@@ -126,6 +133,9 @@ uint32_t rtos_task_stack_free(rtos_id_t task);
  * task/core for a counter only ever touched this way. */
 void rtos_atomic_init(void);
 void rtos_atomic_add_u32(volatile uint32_t* counter, uint32_t delta);
+/* Sets *value to desired only if it currently equals expected; returns whether it did. Same lock
+ * as rtos_atomic_add_u32. */
+bool rtos_atomic_cas_i32(volatile int32_t* value, int32_t expected, int32_t desired);
 
 #ifdef __cplusplus
 }

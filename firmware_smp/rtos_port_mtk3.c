@@ -47,7 +47,15 @@ static uint32_t s_task_stack_bytes[RTOS_MAX_TASKS];
  * armv6m EABI requires 8-byte stack alignment at any external call/interrupt
  * boundary, which TA_USERBUF hands straight to the dispatcher as the task's
  * initial SP (round 2 review fix A7). */
-static uint8_t s_stack[RTOS_MAX_TASKS][RTOS_MAX_STACK_BYTES] __attribute__((aligned(8)));
+/* One pool carved up in creation order, instead of RTOS_MAX_TASKS fixed 8 KB slots (64 KB of the
+ * RP2040's 264 KB whether used or not): the node firmware's three tasks need 20 KB in all, and the
+ * rest of RAM is needed by FatFs, the LoRa/WiFi meshes and the audio capture buffers. */
+#ifndef RTOS_STACK_POOL_BYTES
+#define RTOS_STACK_POOL_BYTES (24u * 1024u)
+#endif
+static uint8_t s_stack_pool[RTOS_STACK_POOL_BYTES] __attribute__((aligned(8)));
+static uint32_t s_stack_pool_used;
+static uint8_t* s_stack[RTOS_MAX_TASKS];
 static unsigned s_task_count;
 
 #if TK_SUPPORT_SMP
@@ -80,6 +88,29 @@ void rtos_atomic_add_u32(volatile uint32_t* counter, uint32_t delta)
 #endif
 }
 
+bool rtos_atomic_cas_i32(volatile int32_t* value, int32_t expected, int32_t desired)
+{
+    bool swapped;
+#if TK_SUPPORT_SMP
+    UINT intsts;
+    ISpinLock(&s_counter_lock, &intsts);
+#else
+    UINT intsts;
+    DI(intsts);
+#endif
+    swapped = (*value == expected);
+    if (swapped)
+    {
+        *value = desired;
+    }
+#if TK_SUPPORT_SMP
+    ISpinUnlock(&s_counter_lock, intsts);
+#else
+    EI(intsts);
+#endif
+    return swapped;
+}
+
 static void task_trampoline(INT stacd, void* exinf)
 {
     (void)stacd;
@@ -96,11 +127,15 @@ rtos_id_t rtos_task_create(const char* name, rtos_task_fn fn, void* arg, unsigne
                             unsigned stack_bytes, rtos_core_t core)
 {
     (void)name; /* T_CTSK has an optional dsname field; skipped, not load-bearing here */
-    if (s_task_count >= RTOS_MAX_TASKS || stack_bytes > RTOS_MAX_STACK_BYTES)
+    stack_bytes = (stack_bytes + 7u) & ~7u; /* keeps every carved stack 8-byte aligned */
+    if (s_task_count >= RTOS_MAX_TASKS || stack_bytes > RTOS_MAX_STACK_BYTES ||
+        stack_bytes > RTOS_STACK_POOL_BYTES - s_stack_pool_used)
     {
         return -1;
     }
     unsigned slot = s_task_count++;
+    s_stack[slot] = &s_stack_pool[s_stack_pool_used];
+    s_stack_pool_used += stack_bytes;
     s_task_ctx[slot].fn = fn;
     s_task_ctx[slot].arg = arg;
     s_task_stack_bytes[slot] = stack_bytes;
@@ -223,7 +258,7 @@ rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* backing_buf)
 
 bool rtos_msgq_selftest(rtos_id_t q, uint32_t msg_size, uint32_t count, char* log_line, uint32_t log_line_max)
 {
-    uint8_t dummy[64];
+    uint8_t dummy[256]; /* >= the largest queued message (log.h LOG_LINE_MAX) */
     if (msg_size > sizeof(dummy))
     {
         return false; /* self-test buffer too small; not a queue defect */
@@ -258,6 +293,12 @@ bool rtos_msgq_selftest(rtos_id_t q, uint32_t msg_size, uint32_t count, char* lo
 bool rtos_msgq_send_nowait(rtos_id_t q, const void* msg, uint32_t msg_size)
 {
     ER er = tk_snd_mbf((ID)q, msg, (INT)msg_size, TMO_POL);
+    return er >= E_OK;
+}
+
+bool rtos_msgq_send_wait(rtos_id_t q, const void* msg, uint32_t msg_size, int32_t timeout_ms)
+{
+    ER er = tk_snd_mbf((ID)q, msg, (INT)msg_size, (TMO)timeout_ms);
     return er >= E_OK;
 }
 
@@ -308,6 +349,20 @@ unsigned rtos_core_id(void)
 #else
     return 0;
 #endif
+}
+
+rtos_id_t rtos_self_id(void)
+{
+    uint32_t ipsr;
+    uint32_t primask;
+    __asm volatile("mrs %0, ipsr" : "=r"(ipsr));
+    __asm volatile("mrs %0, primask" : "=r"(primask));
+    if ((ipsr & 0x3fu) != 0u || (primask & 1u) != 0u)
+    {
+        return 0;
+    }
+    ID tid = tk_get_tid();
+    return tid > 0 ? (rtos_id_t)tid : 0;
 }
 
 /* firmware_smp/buildglue/usb_tinyusb_glue_overlay.c (round 2 review fix A2). */
