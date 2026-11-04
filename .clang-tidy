@@ -1,0 +1,33 @@
+# clang-tidy checks mapped to BARR-C:2018 themes for the embedded C in this repo (alfp/, common/,
+# firmware/app/, firmware/sensing/, firmware_smp/ excluding the vendored kernel). Not run in this
+# environment (clang-tidy is not installed here, on Windows or in WSL) -- see
+# docs/CODING_STANDARD.md for the exact install + run commands.
+#
+# C++-only checks are left out on purpose: this is a C project (-std=c11), and most
+# cppcoreguidelines-*/modernize-* checks assume C++ idioms that do not apply.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  cert-*,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  clang-analyzer-*,
+  readability-magic-numbers,
+  readability-braces-around-statements,
+  readability-isolate-declaration,
+  readability-else-after-return,
+  misc-redundant-expression,
+  misc-static-assert
+
+# readability-magic-numbers: BARR-C "no magic numbers" -- this project's own convention is a
+# single #ifndef/#define per constant (alfp/include/alfp_config.h), which the check accepts as
+# long as the literal appears only in the #define, not scattered through the code.
+CheckOptions:
+  - key: readability-magic-numbers.IgnoredIntegerValues
+    value: '0;1;2;-1'
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '50'
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '(alfp|common|firmware)/.*'

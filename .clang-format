@@ -1,0 +1,28 @@
+# Matches the style already used throughout alfp/, common/, firmware/app/ and firmware/sensing/:
+# Allman braces (own line, always present, even for a single-statement if/for/while), 4-space
+# indent, no tabs, pointer stars attached to the type. ColumnLimit 120 matches this codebase's
+# longest existing lines (firmware/app/main.c runs up to 121 chars); BARR-C:2018 suggests a
+# narrower limit (traditionally 80) but this project's lines already exceed that everywhere, so
+# 120 is recorded here as a deliberate, pre-existing deviation (see docs/CODING_STANDARD.md).
+BasedOnStyle: WebKit
+Language: Cpp
+Standard: c++03
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+IndentCaseLabels: true
+PointerAlignment: Left
+ReferenceAlignment: Left
+SpaceBeforeParens: ControlStatements
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignTrailingComments: true
+SortIncludes: false
+IncludeBlocks: Preserve

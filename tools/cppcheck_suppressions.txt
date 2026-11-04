@@ -1,0 +1,10 @@
+# cppcheck suppressions for the in-scope embedded C (alfp/, common/, firmware/app/,
+# firmware/sensing/). Not run in this environment -- cppcheck is not installed here, on Windows
+# or in WSL. See docs/CODING_STANDARD.md for the exact install + run command that uses this file.
+#
+# missingIncludeSystem: cppcheck without the real Pico SDK/FreeRTOS headers on its include path
+# cannot see system/vendor headers; this is a tooling-setup limitation, not a code defect.
+missingIncludeSystem
+# unmatchedSuppression: keeps cppcheck quiet about suppressions below that do not fire on a given
+# subset of files (e.g. when run per-directory rather than over the whole tree).
+unmatchedSuppression
