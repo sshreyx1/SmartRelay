@@ -74,7 +74,9 @@ static void on_uart_rx(void) {
         __asm volatile("" ::: "memory"); /* data write before index publish */
         rx_head = next;
         uint16_t fill = (uint16_t)((rx_head - rx_tail) & (RXBUF_SIZE - 1));
-        if (fill > stats.rx_high_watermark) stats.rx_high_watermark = fill;
+        if (fill > stats.rx_high_watermark) {
+            stats.rx_high_watermark = fill;
+        }
     }
 }
 
