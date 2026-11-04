@@ -382,6 +382,15 @@ static void print_stats(void)
     log_write_line(line);
 }
 
+static void drain_log(void)
+{
+    char drained[LOG_LINE_MAX];
+    while (log_drain_one(drained, RTOS_NO_WAIT))
+    {
+        tm_printf((UB*)"%s\n", drained); /* host-side tooling (smp_smoke_check.py) reads these lines */
+    }
+}
+
 /* ---- core0_task: orchestrates every check, drains the log, reads the console -------------------- */
 static void core0_task(void* arg)
 {
@@ -393,21 +402,30 @@ static void core0_task(void* arg)
     for (int i = 0; i < 200; i++) /* give the USB CDC link a moment, same as main_smp.c */
     {
         rtos_delay_ms(100);
-        char drained[LOG_LINE_MAX];
-        while (log_drain_one(drained, RTOS_NO_WAIT))
-        {
-            tm_printf((UB*)"%s\n", drained); /* host-side tooling (smp_smoke_check.py) reads these lines */
-        }
+        drain_log();
     }
 
+    /* Drained between every check (not just before/after all of them): otherwise a check's own
+     * PASS/FAIL line can sit in the ring behind another check's output for tens of seconds with
+     * nobody reading it, and check4's own deliberate ring-overflow probe would make that worse
+     * (round 3 real-hardware run: a host connecting any time after boot but before "SMOKE done"
+     * saw only the last couple of checks' lines until this was added). */
     check1_core_ids();
+    drain_log();
     check2_concurrency();
+    drain_log();
     check3_tick_accuracy();
+    drain_log();
     check4_msgq_stress();
+    drain_log();
     check5_event_flags();
+    drain_log();
     check6_atomic_counters();
+    drain_log();
     check7_log_ring_stall();
+    drain_log();
     check8_stack_high_water();
+    drain_log();
 
     /* check 9 (console input) is the loop below: 's' prints stats, same key as main_smp.c. Runs
      * forever so the serial log stays open for tools/smp_smoke_check.py and so a human can press
@@ -416,11 +434,7 @@ static void core0_task(void* arg)
 
     for (;;)
     {
-        char drained[LOG_LINE_MAX];
-        while (log_drain_one(drained, RTOS_NO_WAIT))
-        {
-            tm_printf((UB*)"%s\n", drained);
-        }
+        drain_log();
         int ch = rtos_console_getchar();
         if (ch == 's')
         {

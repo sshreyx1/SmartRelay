@@ -5,6 +5,15 @@
  */
 #include "rtos_port.h"
 
+/* tk/syslib.h typedefs size_t itself (as SZ, a long int), which conflicts with the real size_t
+ * (<string.h>'s stddef.h, unsigned int) the moment both are in one translation unit -- confirmed
+ * on a real toolchain run, round 3: GCC rejects the second, different-underlying-type typedef,
+ * regardless of include order. The kernel's own lwip glue
+ * (lib/liblwip/sysdepend/pico_rp2040/sys_arch.c) hits the same thing and already defines
+ * PROHIBIT_DEF_SIZE_T (tk/syslib.h's own guard around that typedef) before including any kernel
+ * header, for exactly this reason; this file needs the same guard since it is the one place
+ * rtos_port.h's implementation pulls in both a kernel header and a standard C one. */
+#define PROHIBIT_DEF_SIZE_T
 #include <string.h>
 
 #include <tk/tkernel.h>
