@@ -157,27 +157,122 @@ no longer BLOCKED.**
 
 ## C3 - Pico SDK driver linking and clocks
 
-**Result: BLOCKED - not yet attempted (next up).** `docs/curveball_findings.md` and
-`firmware_smp/buildglue/README.md` document the finding in detail: this port compiles only a
-hand-picked subset of Pico SDK `.c` files (USB-CDC console, optionally CYW43439 Wi-Fi), never the
-general hardware driver library (`gpio_init`, `adc_read`, `spi_init`, `uart_init`,
-`dma_channel_claim_unused`, ... have no compiled implementation in this Make build yet), and the
-kernel does its own from-scratch PLL/clock setup that never populates the SDK's own
-`clock_get_hz()` state - so even a clean link could still leave SPI/UART baud dividers silently
-wrong. Now that a real toolchain and board are available in this session, this is the next stage
-to actually attempt rather than hand off.
+**Result: driver-linking half PASS (real, on a real toolchain); radios/storage half still
+BLOCKED; clock-correctness half still BLOCKED (needs real measurement, not another build).**
 
-**Commands to run:**
+**Command (the actual, real main_smp.c integration, attempted for the first time this round):**
 ```sh
-# 1. Attempt a full build with radios.c/storage_fatfs.c included (sources.mk) and record the
-#    exact linker error (undefined references) - that list says exactly which SDK .c files are
-#    still missing from the build.
-# 2. Once it links: measure UART baud (115200) by sending a known byte pattern to a USB-serial
-#    adapter wired to the bridge's UART0, or by confirming the WST link to the ESP-01 actually
-#    works end to end.
-# 3. Measure or infer the SPI clock from a known SD-card or LoRa transaction.
-# 4. Compare time_us_32() (once the SDK driver linking in step 1 makes it available) against
-#    tk_get_tim() over 60 s continuous and report the drift, if any.
+SMP=1 NODE_ID=2 firmware_smp/buildglue/build_smp.sh
+```
+
+Starting point: `docs/curveball_findings.md`/`firmware_smp/buildglue/README.md` already
+documented that this port "does not link the pico-sdk runtime" - it compiled only a hand-picked
+subset of Pico SDK `.c` files, never the general hardware driver library. This round, with a real
+toolchain actually installed, resolved that specific finding completely: `firmware_smp/buildglue/
+sources.mk` now compiles **and links** the real Pico SDK driver sources
+(`hardware_gpio/gpio.c`, `hardware_spi/spi.c`, `hardware_adc/adc.c`, `hardware_dma/dma.c`,
+`hardware_uart/uart.c`, `hardware_i2c/i2c.c`, `hardware_clocks/clocks.c`, `hardware_pll/pll.c`,
+`hardware_xosc/xosc.c`, `hardware_timer/timer.c`, `hardware_irq/irq.c`, `hardware_sync/sync.c`,
+`pico_time/time.c` + `timeout_helper.c`) alongside everything `firmware_smp/buildglue/sources.mk`
+already compiled (kernel, `firmware_smp/app`, `alfp/`, `firmware/sensing`,
+`third_party/sensors`). **Every ALFP/sensing/sensor-driver/Pico-SDK-driver source now compiles and
+links cleanly** - confirmed by iterating against real compiler/linker errors, not guessed, over
+roughly 15 build attempts (full log of the final, clean-except-for-the-expected-gap attempt:
+`docs/curveball_evidence/c3_build_log.txt`).
+
+**Real bugs found and fixed to get there** (none caught before, because nothing had ever linked):
+
+1. The same `size_t` conflict as C2's (`tk/syslib.h` vs `<string.h>`), this time in `main_smp.c`
+   itself once it also needed `usb_console_compat.h` (see next item) - fixed with the same
+   `PROHIBIT_DEF_SIZE_T` guard.
+2. `main_smp.c` called `tm_usb_state()` with no declaration in scope ("implicit declaration").
+   `usb_console_compat.h` (vendored in `app_program/` already, used by the port's own original
+   demo) declares it; `main_smp.c` never included it. Fixed by adding the include.
+3. `main_smp.c` (overlaid into `app_program/`, compiled by the kernel's own generic
+   `app_program/subdir.mk` rule) could not find `alfp.h`, then `AUDIO_SECONDS`, then
+   `hardware/gpio.h`: that generic rule only ever passes `$(INCPATH)`, never `$(APP_INCLUDES)`/
+   `$(APP_DEFINES)` - both only reach `sources.mk`'s own custom `APP_COMPILE_RULE`. `INCPATH` is
+   defined with plain `=` in `makefile:23` and never reassigned, so appending `APP_INCLUDES` and
+   `APP_DEFINES` to it in `sources.mk` makes them visible to the generic rule too (lazy
+   expansion) - the fix used throughout this stage for anything that needs to reach both rule
+   kinds.
+4. **The deepest bug**: `sources.mk`'s own `$(eval $(call APP_COMPILE_RULE,$(src)))` mechanism had
+   *never actually compiled anything, in any previous round*. `sources.mk` is `-include`d at
+   `makefile:25`, before `include pico_rp2040.mk` (`makefile:53`) defines `GCC`/`CFLAGS`/`TARGET`.
+   `$(call ...)` expands every un-escaped `$(...)` reference *immediately*, at `$(eval)` time, not
+   deferred to when the recipe runs - so `$(GCC)`, `$(CFLAGS)`, `$(TARGET)` etc. were baked in as
+   empty strings, and every one of `sources.mk`'s own generated rules silently ran an empty
+   command (`make: ... Error 127 (ignored)`). Every file in `ALFP_SRCS`/`SENSING_SRCS`/
+   `SENSOR_DRIVER_SRCS` had silently never been compiled by this mechanism before, ever. Fixed by
+   `$$`-escaping those references in the `APP_COMPILE_RULE` template, exactly like the automatic
+   variables (`$$<`, `$$@`) already were.
+5. `audio_features.c`/`sound_features.c` need libm (`sqrtf`/`logf`/`fabsf`/`log10f`/`sqrt`/
+   `lroundf`); pulling in Pico SDK driver code also transitively pulled in newlib's reentrant
+   syscall layer (`_close`/`_read`/`_write`/`_sbrk`/... all undefined). No Make variable
+   `sources.mk` can append to survives to the link recipe (`LFLAGS` is reassigned with `:=` in
+   `pico_rp2040.mk`, same reasoning as `CFLAGS`; appending `-lm` to `$(OBJS)` makes Make treat it
+   as a build target and fail with "No rule to make target '-lm'"). Fixed the same way
+   `CNF_TIMER_PERIOD` already was: a working-tree-only `sed` patch (in `build_smp.sh`) appending
+   `-lm --specs=nosys.specs` directly to the link recipe's one line ending in `$(OBJS)`.
+6. `hardware_irq/irq.c`'s shared-IRQ-handler-chain code (`irq_handler_chain_slots` et al) is
+   referenced unconditionally but only *defined* when `!PICO_DISABLE_SHARED_IRQ_HANDLERS &&
+   !PICO_NO_RAM_VECTOR_TABLE`, and something already made that combination false in this build
+   (not fully root-caused to a specific header). Since this kernel has its own vector table
+   (`vector_tbl.c`), not Pico SDK's relocatable one, `-DPICO_DISABLE_SHARED_IRQ_HANDLERS=1` selects
+   `irq.c`'s simpler direct-vector-write path instead - gets past the link error, but **whether
+   that direct path is actually compatible with this kernel's own vector table is UNVERIFIED**,
+   flagged below.
+7. Two symbols Pico SDK's own `crt0.S`/linker script would normally provide and this kernel's
+   startup/linker script does not: `__unhandled_user_irq` (irq.c's unconditional default-vector
+   init code references it even with (6) applied) and `end` (newlib's real `_sbrk`, pulled in once
+   anything needs libm's errno path, expects a heap-boundary symbol). Added minimal stubs in a new
+   file, `firmware_smp/buildglue/pico_sdk_glue_stubs.c` - documented there as link-satisfying, not
+   functionally verified, since this kernel was never going to call either for real
+   (`__unhandled_user_irq` only exists to link; real heap use goes through `kmalloc`, not `_sbrk`).
+8. (Found and discarded, not fixed in place) `hardware_watchdog/watchdog.c` was added
+   speculatively and pulled in a deep, irrelevant dependency chain (`hardware_ticks`,
+   `pico_bootrom`'s lock machinery) - removed once grepping confirmed nothing in this codebase
+   calls any `watchdog_*` function. `pico_sync/mutex.c` was similarly speculative and pulled in
+   undefined `__mutex_array_start`/`__mutex_array_end` (a linker-script section this kernel's own
+   script doesn't define) - removed once grepping confirmed nothing calls `mutex_*` either. Both
+   are a reminder that "add the include path until it compiles" is not the same evidence as "this
+   file is actually needed" - every source actually kept in `PICO_DRIVER_SRCS` is backed by a real
+   undefined-reference error naming it, not a guess.
+
+**Final, clean remaining error set** (`docs/curveball_evidence/c3_build_log.txt`), confirming
+exactly and only the previously-documented gap, nothing more:
+```
+undefined reference to `storage_fatfs'
+undefined reference to `storage_fatfs_mount'
+undefined reference to `radios_init'
+undefined reference to `radio_wifi'
+undefined reference to `radio_lora'
+undefined reference to `radios_lora_ok'
+undefined reference to `radios_wifi_ok'
+undefined reference to `radios_set_wifi_topology_filter'
+```
+All eight are `firmware/app/radios.c` and `firmware/app/storage_fatfs.c` - exactly what
+`firmware_smp/buildglue/README.md` already predicted would be the remaining gap, now confirmed
+precisely rather than guessed. Wiring these in needs `third_party/lora_mesh`,
+`third_party/wifi_mesh` (each with their own SPI/GPIO wiring to re-verify under this kernel), and
+a FatFs/SD port for `storage_fatfs.c` (the external `no-OS-FatFS-SD-SDIO-SPI-RPi-Pico` dependency
+the FreeRTOS build uses isn't vendored for this one) - each a substantially bigger task than the
+driver-linking gap was, and **not attempted in this session**.
+
+**Clock correctness - separately, still genuinely open.** A clean link is not evidence the clocks
+are right. This kernel does its own from-scratch PLL/clock setup
+(`kernel/sysdepend/pico_rp2040/cpu_clock.c`) that was never confirmed to agree with what the
+now-linked `hardware_clocks/clocks.c` believes `clock_get_hz()` returns - a wrong peripheral clock
+would make `uart_init(..., 115200)` or an SPI baud-rate divisor silently wrong without any build or
+link error. **Not measured in this session; needs a real board test**, not another toolchain run:
+
+```sh
+# Once radios.c/storage_fatfs.c are wired in and the build links:
+# 1. Measure UART baud (115200) by sending a known byte pattern to a USB-serial adapter wired to
+#    the bridge's UART0, or by confirming the WST link to the ESP-01 actually works end to end.
+# 2. Measure or infer the SPI clock from a known SD-card or LoRa transaction (logic analyzer/scope
+#    on the SPI1 clock line is the direct way).
+# 3. Compare time_us_32() (now linked) against tk_get_tim() over 60 s continuous and report drift.
 ```
 
 ## C4 - incremental integration
@@ -194,9 +289,17 @@ need the full node firmware with real radios/SD/sensors, which is C4's job.
 
 ## Bottom line
 
-**C0, C1, and C2 have now actually been run on a real Pico, with a real ARM toolchain, in this
-session - not just written.** C1 proves the vendored kernel itself runs dual-core for real; C2
-proves (after three real, fixed bugs this exercise surfaced) that every SMP primitive this port's
-app code depends on - task creation on a chosen core, cross-core concurrency, message buffers,
-event flags, atomic counters, and the 1 ms tick - genuinely works on real hardware. C3 (SD/radio/
-sensor driver linking) is the next stage and is not yet attempted.
+**C0, C1, and C2 have been run on a real Pico, with a real ARM toolchain, in this session - not
+just written.** C1 proves the vendored kernel itself runs dual-core for real; C2 proves (after
+three real, fixed bugs) that every SMP primitive this port's app code depends on - task creation
+on a chosen core, cross-core concurrency, message buffers, event flags, atomic counters, and the
+1 ms tick - genuinely works on real hardware. **C3's driver-linking half is also resolved for
+real** (eight more real bugs found and fixed, full details above): the entire Pico SDK driver
+layer (GPIO/SPI/ADC/DMA/UART/I2C/clocks/PLL/XOSC/timer/IRQ/sync/time) now compiles and links
+cleanly alongside ALFP/sensing/sensor-driver code, confirmed by a clean link down to exactly the
+already-documented remaining gap (`radios.c`/`storage_fatfs.c`, needing the real mesh radios and
+a FatFs port - not attempted). **main_smp.c itself has not yet been flashed or run** (it does not
+fully link until those two files are added), clock correctness is unmeasured, and C4/C5 remain
+untouched. The single most important next step: wire in `radios.c`/`storage_fatfs.c` (with
+`lora_mesh.c`/`wifi_mesh.c`/a FatFs port) to get an actual flashable `main_smp.c` build, then
+repeat C1's flash-and-read-serial step on it.

@@ -9,6 +9,13 @@
  * sensors alone on core 1. SMP=0 collapses both to core 0 unchanged (the
  * kernel's own single-core fallback, see findings Step 2 item 9).
  */
+/* tk/syslib.h typedefs size_t itself (as SZ, a long int), conflicting with the real size_t
+ * (<string.h>/<stdio.h>'s stddef.h, unsigned int) the moment both are in one translation unit --
+ * confirmed on a real toolchain run, round 3, once usb_console_compat.h's own <tk/tkernel.h>
+ * include joined this file's existing <stdio.h>/<string.h>. Same fix and same guard as
+ * rtos_port_mtk3.c and the kernel's own lib/liblwip/sysdepend/pico_rp2040/sys_arch.c. */
+#define PROHIBIT_DEF_SIZE_T
+
 #include <stdio.h>
 #include <string.h>
 
@@ -25,6 +32,11 @@
 #include "uplink.h"
 
 #include <tm/tmonitor.h>
+/* tm_usb_state() -- vendored in third_party/mtk3smp_rp2040/app_program/ alongside this file once
+ * overlaid there (not something build_smp.sh copies in: it was already part of the port's own
+ * app_program/, used by its original app_main.c too). Confirmed missing on a real toolchain run,
+ * round 3: "implicit declaration of function 'tm_usb_state'". */
+#include "usb_console_compat.h"
 
 #ifndef NODE_ID
 #define NODE_ID 2

@@ -10,10 +10,12 @@
 # PICO_SDK_PATH set (needed for the usb_cdc console profile's TinyUSB
 # sources even though WIFI=none here).
 #
-# NOT YET WIRED IN (see README.md in this directory): third_party/lora_mesh,
-# third_party/wifi_mesh, SD/FatFs storage. This build will compile but will
-# not link until those are added to sources.mk the same way alfp/sensing/
-# sensors are.
+# UPDATE, Task C3 (CURVEBALL round 3, same day): the entire Pico SDK driver layer this comment
+# used to say was missing (GPIO/SPI/ADC/DMA/UART/I2C/clocks/PLL/XOSC/timer/IRQ/sync/time) is now
+# wired into sources.mk and confirmed, on a real toolchain, to compile AND link cleanly. What is
+# STILL NOT wired in, confirmed by the exact remaining linker errors (not guessed): the real
+# third_party/lora_mesh, third_party/wifi_mesh, and a FatFs/SD port for storage_fatfs.c -- see
+# docs/curveball_results.md's C3 section for the precise undefined-reference list.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -56,6 +58,29 @@ if ! grep -q '^#define CNF_TIMER_PERIOD\s\+10\b' "$CONFIG_H"; then
     exit 1
 fi
 sed -i 's/^#define CNF_TIMER_PERIOD\s\+10\b/#define CNF_TIMER_PERIOD\t1/' "$CONFIG_H"
+
+# Task C3 (CURVEBALL round 3): audio_features.c/sound_features.c need libm (sqrtf/logf/...), and
+# pulling in Pico SDK driver code transitively pulls in newlib's reentrant syscall layer
+# (_close/_read/_write/_sbrk/_lseek/_fstat/_isatty/_exit/_kill/_getpid all undefined) -- but no
+# Make variable sources.mk can append to survives to the link recipe without being reassigned or
+# misread as a build target (see sources.mk's own comment on this) -- patched here instead, same
+# working-tree-only pattern as the CNF_TIMER_PERIOD patch above. --specs=nosys.specs supplies
+# minimal (stub, error-returning) implementations of those syscalls, standard practice for a
+# freestanding embedded target that never had an OS underneath newlib to begin with -- this kernel
+# plainly never did either, it just never linked anything that needed them before. Confirmed
+# needed by a real linker run. $(OBJS) at the end of a line is the link recipe's own last token
+# (makefile:75) and appears nowhere else in the file (checked); already-patched lines are not
+# re-patched.
+MAKEFILE="$BUILD_MAKE_DIR/makefile"
+if ! grep -q '\$(OBJS) -lm --specs=nosys.specs$' "$MAKEFILE"; then
+    if ! grep -q '\$(OBJS)$' "$MAKEFILE"; then
+        echo "error: $MAKEFILE has no line ending in \$(OBJS) - the submodule may have moved;" >&2
+        echo "       check docs/curveball_results.md's C3 section and update this script by hand" >&2
+        echo "       rather than skipping it." >&2
+        exit 1
+    fi
+    sed -i 's/\$(OBJS)$/$(OBJS) -lm --specs=nosys.specs/' "$MAKEFILE"
+fi
 
 # Round 2 review fix A2: tm_getchar(0) always returns 0 on CONSOLE=usb_cdc
 # (tm_com.c's tm_rcv_dat has no USB-CDC RX path at all, only UART) - this
