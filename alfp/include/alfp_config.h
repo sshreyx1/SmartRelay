@@ -44,4 +44,13 @@
 #define ALFP_HASH_CHUNK 512u
 #endif
 
+/* Radio choice by payload size (see docs/DESIGN.md "Radio choice by size" for the measurements):
+ * below this many bytes, prefer LoRa and fall back to WiFi; at or above it, prefer WiFi and fall
+ * back to LoRa. Either fallback only applies if the preferred radio's bridge entry is not fresh.
+ * 0 disables size-based choice entirely (alfp_outbox falls back to the plain preference-order
+ * alfp_select_radio()). */
+#ifndef APP_RADIO_SIZE_THRESHOLD
+#define APP_RADIO_SIZE_THRESHOLD 1024u
+#endif
+
 #endif

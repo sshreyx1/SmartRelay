@@ -94,6 +94,53 @@ const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* by_preference, 
     return NULL;
 }
 
+static bool radio_is_fresh(const mesh_radio_t* r, uint8_t bridge_id, uint32_t now_ms, uint32_t fresh_ms)
+{
+    uint32_t t = 0;
+    return r != NULL && r->last_heard != NULL && r->last_heard(bridge_id, &t) &&
+           (uint32_t)(now_ms - t) <= fresh_ms;
+}
+
+static const mesh_radio_t* radio_named(const mesh_radio_t* const* by_preference, uint8_t n, const char* name)
+{
+    for (uint8_t i = 0; i < n; i++)
+    {
+        const mesh_radio_t* r = by_preference[i];
+        if (r != NULL && r->name != NULL && strcmp(r->name, name) == 0)
+        {
+            return r;
+        }
+    }
+    return NULL;
+}
+
+const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_preference, uint8_t n,
+                                               uint8_t bridge_id, uint32_t now_ms, uint32_t fresh_ms,
+                                               uint32_t size_bytes, uint32_t size_threshold)
+{
+    const mesh_radio_t* lora = radio_named(by_preference, n, "lora");
+    const mesh_radio_t* wifi = radio_named(by_preference, n, "wifi");
+    const mesh_radio_t* preferred = (size_bytes < size_threshold) ? lora : wifi;
+    const mesh_radio_t* fallback = (size_bytes < size_threshold) ? wifi : lora;
+    if (radio_is_fresh(preferred, bridge_id, now_ms, fresh_ms))
+    {
+        return preferred;
+    }
+    if (radio_is_fresh(fallback, bridge_id, now_ms, fresh_ms))
+    {
+        return fallback;
+    }
+    return NULL;
+}
+
+bool alfp_radio_was_size_preferred(const mesh_radio_t* const* by_preference, uint8_t n, uint32_t size_bytes,
+                                   uint32_t size_threshold, const mesh_radio_t* chosen)
+{
+    const mesh_radio_t* preferred = (size_bytes < size_threshold) ? radio_named(by_preference, n, "lora")
+                                                                   : radio_named(by_preference, n, "wifi");
+    return chosen != NULL && preferred != NULL && chosen == preferred;
+}
+
 const char* alfp_tx_result_str(alfp_tx_result_t r)
 {
     switch (r)

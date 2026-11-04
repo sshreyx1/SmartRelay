@@ -21,6 +21,34 @@ static uint32_t now(alfp_outbox_t* ob)
     return p->now_ms(p->ctx);
 }
 
+/* Size of a job's file without reading its contents: open, ask the storage port, close.
+ * Returns -1 if the file cannot be opened or sized (caller falls back to alfp_select_radio()). */
+static int32_t job_size(alfp_outbox_t* ob, const char* path)
+{
+    int h = st(ob)->open_read(st(ob)->ctx, path);
+    if (h < 0)
+    {
+        return -1;
+    }
+    int32_t sz = st(ob)->size(st(ob)->ctx, h);
+    st(ob)->close(st(ob)->ctx, h);
+    return sz;
+}
+
+static void log_size_choice(alfp_outbox_t* ob, const char* path, int32_t size_bytes, const mesh_radio_t* radio,
+                            const char* reason)
+{
+    const alfp_platform_t* p = ob->alfp->cfg.platform;
+    if (p == NULL || p->log == NULL)
+    {
+        return;
+    }
+    char line[160];
+    snprintf(line, sizeof(line), "tx %s size=%ld thr=%lu radio=%s reason=%s", path, (long)size_bytes,
+             (unsigned long)ob->size_threshold, (radio->name != NULL) ? radio->name : "?", reason);
+    p->log(p->ctx, line);
+}
+
 static bool parse_seq(const char* name, uint32_t* seq)
 {
     unsigned long v = 0;
@@ -204,20 +232,60 @@ void alfp_outbox_pump(alfp_outbox_t* ob)
     {
         return;
     }
-    const mesh_radio_t* radio = alfp_select_radio(ob->radios, ob->n_radios, ob->bridge_id, t, ob->fresh_ms);
-    if (!radio)
-    {
-        ob->no_radio_waits++;
-        ob->retry_at_ms = t + NO_RADIO_RECHECK_MS; /* keep it on SD; check again shortly */
-        return;
-    }
+    const mesh_radio_t* radio;
     char path[ALFP_PATH_MAX];
     uint8_t meta[ALFP_MAX_META];
     uint8_t ml = 0;
-    if (!load_job(ob, s.min, path, meta, &ml))
+    if (ob->size_threshold == 0)
     {
-        drop_job(ob, s.min); /* unreadable job file */
-        return;
+        /* Legacy behaviour, byte-identical to before size-based choice existed: pick a radio by
+         * preference order first, and only touch the SD card if one is available. */
+        radio = alfp_select_radio(ob->radios, ob->n_radios, ob->bridge_id, t, ob->fresh_ms);
+        if (!radio)
+        {
+            ob->no_radio_waits++;
+            ob->retry_at_ms = t + NO_RADIO_RECHECK_MS; /* keep it on SD; check again shortly */
+            return;
+        }
+        if (!load_job(ob, s.min, path, meta, &ml))
+        {
+            drop_job(ob, s.min); /* unreadable job file */
+            return;
+        }
+    }
+    else
+    {
+        /* Size decides the preferred radio, so the job's path (and therefore its size) must be
+         * known before selecting. */
+        if (!load_job(ob, s.min, path, meta, &ml))
+        {
+            drop_job(ob, s.min); /* unreadable job file */
+            return;
+        }
+        int32_t size_bytes = job_size(ob, path);
+        const char* reason;
+        if (size_bytes >= 0)
+        {
+            radio = alfp_select_radio_for_size(ob->radios, ob->n_radios, ob->bridge_id, t, ob->fresh_ms,
+                                               (uint32_t)size_bytes, ob->size_threshold);
+            reason = (radio != NULL && alfp_radio_was_size_preferred(ob->radios, ob->n_radios, (uint32_t)size_bytes,
+                                                                     ob->size_threshold, radio))
+                         ? "size"
+                         : "fallback";
+        }
+        else
+        {
+            /* Size could not be read: fall back to the old, size-unaware selection. */
+            radio = alfp_select_radio(ob->radios, ob->n_radios, ob->bridge_id, t, ob->fresh_ms);
+            reason = "fallback";
+        }
+        if (!radio)
+        {
+            ob->no_radio_waits++;
+            ob->retry_at_ms = t + NO_RADIO_RECHECK_MS;
+            return;
+        }
+        log_size_choice(ob, path, size_bytes, radio, reason);
     }
     alfp_err_t e = alfp_send_file(ob->alfp, radio, ob->bridge_id, path, meta, ml);
     if (e == ALFP_OK)
@@ -228,6 +296,11 @@ void alfp_outbox_pump(alfp_outbox_t* ob)
     {
         drop_job(ob, s.min); /* can never succeed */
     }
+}
+
+void alfp_outbox_set_size_threshold(alfp_outbox_t* ob, uint32_t threshold)
+{
+    ob->size_threshold = threshold;
 }
 
 void alfp_outbox_on_tx_done(alfp_outbox_t* ob, const alfp_tx_report_t* r)

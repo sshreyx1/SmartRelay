@@ -26,6 +26,11 @@ static bool sender2_done(net_t* n)
     return n->node[2].n_tx >= 1;
 }
 
+static bool sender2_sent_twice(net_t* n)
+{
+    return n->node[2].n_tx >= 2;
+}
+
 static void setup(int topo, int radios, uint8_t nodes, bool outbox, uint32_t seed)
 {
     sim_cfg_t cfg;
@@ -247,6 +252,119 @@ static void test_radio_selection(void)
     net_close(&N);
 }
 
+/* alfp_select_radio_for_size(): pure function, exercised directly against two fake radios so
+ * every case (sizes, freshness combinations, now_ms wraparound) is fast and exact, with no
+ * network simulation needed. alfp_select_radio() itself is untouched (see test_radio_selection
+ * above, still passing unmodified). */
+static uint32_t g_fsz_lora_heard;
+static uint32_t g_fsz_wifi_heard;
+static bool g_fsz_have_lora;
+static bool g_fsz_have_wifi;
+
+static bool fsz_last_heard_lora(uint8_t node_id, uint32_t* ms)
+{
+    (void)node_id;
+    if (!g_fsz_have_lora)
+    {
+        return false;
+    }
+    *ms = g_fsz_lora_heard;
+    return true;
+}
+
+static bool fsz_last_heard_wifi(uint8_t node_id, uint32_t* ms)
+{
+    (void)node_id;
+    if (!g_fsz_have_wifi)
+    {
+        return false;
+    }
+    *ms = g_fsz_wifi_heard;
+    return true;
+}
+
+static mesh_radio_t fsz_lora = {.name = "lora", .last_heard = fsz_last_heard_lora};
+static mesh_radio_t fsz_wifi = {.name = "wifi", .last_heard = fsz_last_heard_wifi};
+
+static void test_radio_selection_for_size(void)
+{
+    const mesh_radio_t* pref[2] = {&fsz_lora, &fsz_wifi};
+    const uint32_t FRESH = 10000u;
+    const uint32_t THR = 1024u;
+    const uint32_t t = 50000u;
+
+    /* Both fresh: below threshold picks LoRa, at/above picks WiFi. Boundary and max-size cases. */
+    g_fsz_have_lora = true;
+    g_fsz_lora_heard = t - 1000u;
+    g_fsz_have_wifi = true;
+    g_fsz_wifi_heard = t - 1000u;
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, 0u, THR) == &fsz_lora);
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, 1u, THR) == &fsz_lora);
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, THR - 1u, THR) == &fsz_lora);
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, THR, THR) == &fsz_wifi);
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, THR + 1u, THR) == &fsz_wifi);
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, 236u * ALFP_MAX_FRAGS, THR) == &fsz_wifi);
+    CHECK(alfp_radio_was_size_preferred(pref, 2, 0u, THR, &fsz_lora));
+    CHECK(!alfp_radio_was_size_preferred(pref, 2, 0u, THR, &fsz_wifi));
+    CHECK(alfp_radio_was_size_preferred(pref, 2, THR, THR, &fsz_wifi));
+
+    /* Preferred radio stale: falls back to the other one. */
+    g_fsz_wifi_heard = t - FRESH - 1u; /* WiFi just over fresh_ms old */
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, THR, THR) == &fsz_lora);
+    CHECK(!alfp_radio_was_size_preferred(pref, 2, THR, THR, &fsz_lora)); /* that pick was a fallback, not size */
+    g_fsz_wifi_heard = t - 1000u; /* wifi fresh again */
+    g_fsz_lora_heard = t - FRESH - 1u;
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, 0u, THR) == &fsz_wifi);
+
+    /* Both stale, or never heard at all: NULL regardless of size. */
+    g_fsz_wifi_heard = t - FRESH - 1u;
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, 0u, THR) == NULL);
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, THR, THR) == NULL);
+    g_fsz_have_lora = false;
+    g_fsz_have_wifi = false;
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, t, FRESH, 0u, THR) == NULL);
+
+    /* now_ms wraparound: heard 16 ms before the 32-bit wrap, "now" 16 ms after it (32 ms elapsed).
+     * Must use the same unsigned-subtraction math alfp_select_radio() already relies on. */
+    g_fsz_have_lora = true;
+    g_fsz_lora_heard = 0xFFFFFFF0u;
+    const uint32_t wrapped_now = 0x00000010u;
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, wrapped_now, FRESH, 0u, THR) == &fsz_lora);
+    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, wrapped_now, 20u, 0u, THR) == NULL); /* 32 ms > 20 ms fresh */
+}
+
+/* Outbox-level proof that the size rule actually drives radio choice end to end, through the
+ * real network simulator: a small job goes over LoRa, a large one over WiFi, with the threshold
+ * turned on via alfp_outbox_set_size_threshold() (default after alfp_outbox_init() is 0 = off,
+ * proven byte-identical-to-before by every other test in this file still passing unmodified). */
+static void test_outbox_size_based_routing(void)
+{
+    setup(0, 3, 2, true, 200);
+    net_run_ms(&N, 3500); /* both links fresh */
+    alfp_outbox_set_size_threshold(&N.node[2].outbox, 1024);
+    net_make_file(&N, 2, "img/small.bin", 200, 201);
+    net_make_file(&N, 2, "img/large.bin", 20000, 202);
+
+    sim_set_current(2);
+    CHECK(alfp_outbox_add(&N.node[2].outbox, "img/small.bin", NULL, 0));
+    net_run_ms(&N, 50); /* outbox has started the small transfer */
+    CHECK(alfp_tx_active(&N.node[2].alfp));
+    CHECK(N.node[2].alfp.tx.radio != NULL && strcmp(N.node[2].alfp.tx.radio->name, "lora") == 0);
+    CHECK(net_run_until(&N, sender2_done, 120000));
+    CHECK(strcmp(N.node[2].tx_reports[0].radio, "lora") == 0);
+    CHECK(N.node[2].tx_reports[0].result == ALFP_TX_DONE);
+
+    sim_set_current(2);
+    CHECK(alfp_outbox_add(&N.node[2].outbox, "img/large.bin", NULL, 0));
+    net_run_ms(&N, 50);
+    CHECK(alfp_tx_active(&N.node[2].alfp));
+    CHECK(N.node[2].alfp.tx.radio != NULL && strcmp(N.node[2].alfp.tx.radio->name, "wifi") == 0);
+    CHECK(net_run_until(&N, sender2_sent_twice, 120000));
+    CHECK(strcmp(N.node[2].tx_reports[1].radio, "wifi") == 0);
+    CHECK(N.node[2].tx_reports[1].result == ALFP_TX_DONE);
+    net_close(&N);
+}
+
 /* WiFi breaks in the middle of a transfer. The transfer must NOT switch to LoRa: it finishes
  * or fails on WiFi. The outbox's next attempt is a new transfer, which may pick LoRa. */
 static void test_never_switch_mid_transfer(void)
@@ -445,6 +563,8 @@ int main(void)
     RUN(test_corruption_caught_by_crc16);
     RUN(test_sd_fault_caught_by_crc32);
     RUN(test_radio_selection);
+    RUN(test_radio_selection_for_size);
+    RUN(test_outbox_size_based_routing);
     RUN(test_never_switch_mid_transfer);
     RUN(test_store_and_forward);
     RUN(test_two_senders_at_once);

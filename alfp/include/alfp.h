@@ -276,6 +276,21 @@ void alfp_service(alfp_ctx_t* ctx, const mesh_radio_t* const* radios, uint8_t n_
 const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* by_preference, uint8_t n, uint8_t bridge_id,
                                       uint32_t now_ms, uint32_t fresh_ms);
 
+/* Size-based radio choice (additive; alfp_select_radio() above is unchanged and still used when
+ * size_threshold is 0). Below size_threshold bytes, prefers the "lora" entry in by_preference and
+ * falls back to "wifi" if LoRa's bridge entry is not fresh (within fresh_ms); at or above the
+ * threshold, prefers "wifi" and falls back to "lora". Returns NULL if neither is fresh, same as
+ * alfp_select_radio(). by_preference does not need "lora"/"wifi" in any particular order; radios
+ * are matched by name. See docs/DESIGN.md "Radio choice by size". */
+const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_preference, uint8_t n,
+                                               uint8_t bridge_id, uint32_t now_ms, uint32_t fresh_ms,
+                                               uint32_t size_bytes, uint32_t size_threshold);
+
+/* True if chosen is the radio alfp_select_radio_for_size() would have preferred by size alone
+ * (i.e. it was not a freshness fallback). Used only to log "reason=size" vs "reason=fallback". */
+bool alfp_radio_was_size_preferred(const mesh_radio_t* const* by_preference, uint8_t n, uint32_t size_bytes,
+                                   uint32_t size_threshold, const mesh_radio_t* chosen);
+
 const char* alfp_tx_result_str(alfp_tx_result_t r);
 
 #endif
