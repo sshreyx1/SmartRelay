@@ -39,6 +39,10 @@ MISSING_I16 = -32768
 MISSING_U16 = 0xFFFF
 UNKNOWN_U8 = 0xFF
 
+# Task A.2: marks a telemetry-only ALFP transfer's filename-tail (meta's "original_name"), kept in
+# sync by hand with firmware/app/main.c's APP_TELEMETRY_MARKER and backend/app.py's own copy.
+TELEMETRY_MARKER = "TELEMETRY"
+
 
 def decode_meta(raw: bytes) -> dict:
     """Decode the 27-byte capture record. Missing readings become None, never a fake number.
@@ -130,11 +134,19 @@ class Receiver:
         meta = decode_meta(bytes.fromhex(hdr.get("meta", "")))
         orig = os.path.basename(meta.get("original_name") or "") if isinstance(meta, dict) else ""
         orig = "".join(ch for ch in orig if ch.isalnum() or ch in "._-")
+        # Task A.2: a telemetry-only transfer (the metadata sent on its own, routed over LoRa by
+        # the size rule) is tagged with TELEMETRY_MARKER instead of an image file name -- its
+        # payload is the raw meta record, not an image, so it gets a .json sidecar but no image
+        # file and is not counted in self.saved. No tail at all (pre-existing, some callers never
+        # appended one) still means "has an image", exactly as before this round.
+        has_image = orig != TELEMETRY_MARKER
         name = f"n{hdr['src']}_{hdr['sid']}" + (f"_{os.path.splitext(orig)[0]}" if orig else "")
-        ext = os.path.splitext(orig)[1] if orig else ".jpg"
-        img_path = os.path.join(self.out_dir, name + (ext or ".jpg"))
-        with open(img_path, "wb") as f:
-            f.write(data)
+        img_path = None
+        if has_image:
+            ext = os.path.splitext(orig)[1] or ".jpg"
+            img_path = os.path.join(self.out_dir, name + ext)
+            with open(img_path, "wb") as f:
+                f.write(data)
         info = {
             "src": int(hdr["src"]),
             "session": int(hdr["sid"]),
@@ -142,11 +154,13 @@ class Receiver:
             "fragments": int(hdr.get("frags", "0")),
             "size": len(data),
             "crc32": f"{got:08x}",
+            "has_image": has_image,
             "capture": meta,
         }
         with open(os.path.join(self.out_dir, name + ".json"), "w") as f:  # same name, .json
             json.dump(info, f, indent=2)
-        self.saved.append(img_path)
+        if has_image:
+            self.saved.append(img_path)
         extra = ""
         if isinstance(meta, dict) and "node_id" in meta:
             t = meta["temperature_c"]
@@ -155,7 +169,8 @@ class Receiver:
                      else meta.get("sound_label") or "sound ?")
             extra = (f" | {meta['display_id']}: {sound}, {meta.get('weather_name') or 'weather ?'}"
                      f", {'%.1f C' % t if t is not None else 'temp ?'}")
-        print(f"saved {img_path} ({len(data)} bytes via {info['radio']}, crc ok){extra}")
+        what = img_path if has_image else f"{name}.json (telemetry only, no image)"
+        print(f"saved {what} ({len(data)} bytes via {info['radio']}, crc ok){extra}")
 
 
 def main():

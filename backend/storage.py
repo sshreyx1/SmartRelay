@@ -116,11 +116,20 @@ class Store:
         path.write_bytes(data)
         return str(path)
 
+    # Columns that only mean anything once an image has actually arrived (Task A.2: the telemetry
+    # and image halves of one capture are two separate ALFP transfers, and either can arrive
+    # first). An update carrying None for one of these must not erase a value a previous transfer
+    # for the same capture already stored -- COALESCE(new, old) instead of a blind overwrite.
+    _IMAGE_ONLY_COLUMNS = ("image_path", "image_name")
+
     def record_capture(self, node_id: int, session_id: int, radio: str, frag_total: int,
-                       size_bytes: int, crc32: str, image_path: str, meta: Dict[str, Any],
+                       size_bytes: int, crc32: str, image_path: Optional[str], meta: Dict[str, Any],
                        is_demo: bool = False) -> int:
         """Stores one capture and returns its row id. The same real capture delivered twice (e.g.
-        re-sent after a node reboot) updates its existing row instead of adding a second one."""
+        re-sent after a node reboot, or telemetry and image arriving as separate transfers) updates
+        its existing row instead of adding a second one. image_path is None for a telemetry-only
+        transfer (no image attached yet); an update with image_path=None never erases an image a
+        previous transfer for the same capture_id already stored (see _IMAGE_ONLY_COLUMNS)."""
         values = {
             "node_id": node_id, "capture_id": meta.get("capture_id"), "session_id": session_id, "radio": radio,
             "frag_total": frag_total, "size_bytes": size_bytes, "crc32": crc32, "image_path": image_path,
@@ -139,8 +148,9 @@ class Store:
         cols = ", ".join(values)
         marks = ", ".join("?" * len(values))
         cur = self.conn.execute(f"INSERT OR IGNORE INTO captures ({cols}) VALUES ({marks})", list(values.values()))
-        if cur.rowcount == 0:  # this real (node, capture id) is already stored: refresh it
-            sets = ", ".join(f"{k} = ?" for k in values)
+        if cur.rowcount == 0:  # this real (node, capture id) is already stored: merge into it
+            sets = ", ".join(f"{k} = COALESCE(?, {k})" if k in self._IMAGE_ONLY_COLUMNS else f"{k} = ?"
+                             for k in values)
             row = self.conn.execute("SELECT id FROM captures WHERE node_id = ? AND capture_id = ? AND is_demo = 0",
                                     (node_id, meta.get("capture_id"))).fetchone()
             self.conn.execute(f"UPDATE captures SET {sets} WHERE id = ?", list(values.values()) + [row["id"]])

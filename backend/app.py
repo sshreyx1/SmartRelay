@@ -113,17 +113,34 @@ def with_image_url(row: Dict[str, Any]) -> Dict[str, Any]:
     return row
 
 
+TELEMETRY_MARKER = "TELEMETRY"  # kept in sync by hand with firmware/app/main.c's APP_TELEMETRY_MARKER
+
+
 def on_transfer(xfer: CompletedTransfer) -> None:
     meta = xfer.meta
-    ext = ".jpg" if xfer.data[:3] == b"\xff\xd8\xff" else (".png" if xfer.data[:8] == b"\x89PNG\r\n\x1a\n" else ".bin")
-    path = store.save_capture_image(xfer.src, xfer.session_id, xfer.data, ext=ext, is_demo=xfer.is_demo)
+    # Task A.2: the node sends capture metadata and the image as two separate ALFP transfers, so
+    # the size rule can route the tiny one over LoRa and the image over WiFi. The telemetry
+    # transfer's original_name tail (tools/bridge_receiver.decode_meta) is the literal marker
+    # above instead of an image file name; its payload is not an image and must not be saved or
+    # linked as one. A transfer with no name tail at all (pre-existing, some callers never
+    # appended one) still means "has an image", exactly as before this round.
+    has_image = meta.get("original_name") != TELEMETRY_MARKER
+    path = None
+    if has_image:
+        ext = ".jpg" if xfer.data[:3] == b"\xff\xd8\xff" else (".png" if xfer.data[:8] == b"\x89PNG\r\n\x1a\n" else ".bin")
+        path = store.save_capture_image(xfer.src, xfer.session_id, xfer.data, ext=ext, is_demo=xfer.is_demo)
+    else:
+        # The marker itself is not a file name: record_capture()'s image_name column must stay
+        # null, same as image_path, not literally "TELEMETRY".
+        meta = {**meta, "original_name": None}
     row_id = store.record_capture(
         node_id=xfer.src, session_id=xfer.session_id, radio=xfer.radio, frag_total=xfer.frag_total,
         size_bytes=xfer.size, crc32=xfer.crc32, image_path=path, meta=meta, is_demo=xfer.is_demo,
     )
     row = with_image_url(store.get_capture(row_id))
-    log.info("%scapture stored: node %s session %s, %d bytes via %s",
-              "[DEMO] " if xfer.is_demo else "", xfer.src, xfer.session_id, xfer.size, xfer.radio)
+    log.info("%scapture stored: node %s session %s, %d bytes via %s%s",
+              "[DEMO] " if xfer.is_demo else "", xfer.src, xfer.session_id, xfer.size, xfer.radio,
+              "" if has_image else " (telemetry only)")
     hub.broadcast_soon("capture", row)
 
 
