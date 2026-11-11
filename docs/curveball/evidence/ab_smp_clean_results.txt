@@ -1,0 +1,102 @@
+== ab_pair smp_clean  2026-11-11 14:50:12  n1=/dev/cu.usbmodem3 n2=/dev/cu.usbmodemMTK3PICO1
+   window 150 s, 'c' at [10.0, 30.0, 50.0, 70.0, 90.0, 110.0]
+== summary (node 2 tx, in window)
+   telemetry: n=6 done=6 gave_up=0 other=0 time s min=2.5 mean=2.50 max=2.5 | frags 1-1 | resent total 0
+   image    : n=6 done=6 gave_up=0 other=0 time s min=4.9 mean=5.02 max=5.2 | frags 40-43 | resent total 0
+   captures queued on node 2: 6 (want 6)
+   node 1 rx: 12 files, 12 distinct names, 0 with dup>0
+   node 1 @ALFP lines: 24
+   node 2 [ALERT] lines (PIR cover check, should be 0 apart from forced captures): 0
+== n2 tx
+  16.203 tx tel/N2_000668.bin size=27 thr=1024 radio=wifi reason=fallback
+  19.040 tx tel/N2_000668.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 2.5 s
+  19.040 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+  23.991 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 4.9 s
+  36.192 tx tel/N2_000669.bin size=27 thr=1024 radio=wifi reason=fallback
+  39.054 tx tel/N2_000669.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 2.5 s
+  39.054 tx samples/weather_00.jpg size=9894 thr=1024 radio=wifi reason=size
+  44.133 tx samples/weather_00.jpg: done via wifi, 42 frags, 1 rounds, 0 resent, 5.0 s
+  56.182 tx tel/N2_000670.bin size=27 thr=1024 radio=wifi reason=fallback
+  58.997 tx tel/N2_000670.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 2.5 s
+  58.997 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+  63.933 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 4.9 s
+  76.204 tx tel/N2_000671.bin size=27 thr=1024 radio=wifi reason=fallback
+  79.040 tx tel/N2_000671.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 2.5 s
+  79.040 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  84.276 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 5.2 s
+  96.198 tx tel/N2_000672.bin size=27 thr=1024 radio=wifi reason=fallback
+  99.029 tx tel/N2_000672.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 2.5 s
+  99.029 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+ 103.980 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 4.9 s
+ 116.194 tx tel/N2_000673.bin size=27 thr=1024 radio=wifi reason=fallback
+ 119.065 tx tel/N2_000673.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 2.5 s
+ 119.065 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+ 124.268 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 5.2 s
+== n2 captures
+  10.021 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  15.023 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=43 rms=4 zcr=2609 lost=0 feat_us=907131 maxcall_us=3149 model_us=1031
+  16.203 capture N2-000668: heard VEHICLE (43%) -> samples/vehicle_00.jpg
+  16.203 capture N2-000668 telemetry queued (tel/N2_000668.bin)
+  16.203 capture N2-000668 queued (samples/vehicle_00.jpg), outbox 2
+  30.017 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  35.040 [SOUND] group=WEATHER label=WEATHER id=6 conf=31 rms=3 zcr=2296 lost=0 feat_us=909305 maxcall_us=3187 model_us=1022
+  36.192 capture N2-000669: heard WEATHER (31%) -> samples/weather_00.jpg
+  36.192 capture N2-000669 telemetry queued (tel/N2_000669.bin)
+  36.192 capture N2-000669 queued (samples/weather_00.jpg), outbox 2
+  50.021 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  55.024 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=36 rms=3 zcr=1841 lost=0 feat_us=909668 maxcall_us=3118 model_us=1510
+  56.182 capture N2-000670: heard INSECT_FROG (36%) -> samples/insect_frog_01.jpg
+  56.182 capture N2-000670 telemetry queued (tel/N2_000670.bin)
+  56.182 capture N2-000670 queued (samples/insect_frog_01.jpg), outbox 2
+  70.017 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  75.022 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=42 rms=3 zcr=1760 lost=0 feat_us=911299 maxcall_us=3088 model_us=1332
+  76.204 capture N2-000671: heard INSECT_FROG (42%) -> samples/insect_frog_00.jpg
+  76.204 capture N2-000671 telemetry queued (tel/N2_000671.bin)
+  76.204 capture N2-000671 queued (samples/insect_frog_00.jpg), outbox 2
+  90.014 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  95.020 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=38 rms=3 zcr=2035 lost=0 feat_us=909640 maxcall_us=3143 model_us=1252
+  96.198 capture N2-000672: heard INSECT_FROG (38%) -> samples/insect_frog_01.jpg
+  96.198 capture N2-000672 telemetry queued (tel/N2_000672.bin)
+  96.198 capture N2-000672 queued (samples/insect_frog_01.jpg), outbox 2
+ 110.017 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+ 115.039 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=34 rms=3 zcr=2041 lost=0 feat_us=910094 maxcall_us=3216 model_us=1571
+ 116.194 capture N2-000673: heard INSECT_FROG (34%) -> samples/insect_frog_00.jpg
+ 116.194 capture N2-000673 telemetry queued (tel/N2_000673.bin)
+ 116.194 capture N2-000673 queued (samples/insect_frog_00.jpg), outbox 2
+== n1 rx
+  18.633 rx from node 2: inbox/n2_27458.bin, 27 bytes via wifi, 0 dup
+  23.779 rx from node 2: inbox/n2_27459.bin, 9222 bytes via wifi, 0 dup
+  38.646 rx from node 2: inbox/n2_27460.bin, 27 bytes via wifi, 0 dup
+  43.899 rx from node 2: inbox/n2_27461.bin, 9894 bytes via wifi, 0 dup
+  58.652 rx from node 2: inbox/n2_27462.bin, 27 bytes via wifi, 0 dup
+  63.715 rx from node 2: inbox/n2_27463.bin, 9241 bytes via wifi, 0 dup
+  78.684 rx from node 2: inbox/n2_27464.bin, 27 bytes via wifi, 0 dup
+  84.045 rx from node 2: inbox/n2_27465.bin, 10032 bytes via wifi, 0 dup
+  98.677 rx from node 2: inbox/n2_27466.bin, 27 bytes via wifi, 0 dup
+ 103.764 rx from node 2: inbox/n2_27467.bin, 9241 bytes via wifi, 0 dup
+ 118.710 rx from node 2: inbox/n2_27468.bin, 27 bytes via wifi, 0 dup
+ 124.050 rx from node 2: inbox/n2_27469.bin, 10032 bytes via wifi, 0 dup
+== n1 stats
+ 150.031 node 1 | alfp in 535 badcrc 0 | tx ok 0 fail 0 | rx ok 17 crcfail 0 expired 0 | outbox 0
+ 150.031   wifi: tx 137 rx 600 delivered 535 relayed 0 dup 65 rxerr 75
+ 150.031   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+ 150.031   dht22 good 106 fail 0 | lora DOWN | wifi up
+ 150.031   bridge never heard on wifi
+ 150.031   bridge never heard on lora
+ 150.031   task comms: core 0 prio 10 stack free 5592 of 8192 B
+ 150.031   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+ 150.031   task sensors: core 1 prio 10 stack free 7408 of 8192 B
+ 150.031   longest comms loop 2639 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+ 150.031   slowest comms step (ms): wifi poll 2 | lora poll 0 | alfp service 2639 | captures 0 | outbox 0
+== n2 stats
+ 150.037 node 2 | alfp in 144 badcrc 0 | tx ok 18 fail 6 | rx ok 0 crcfail 0 expired 0 | outbox 0
+ 150.037   wifi: tx 642 rx 438 delivered 144 relayed 294 dup 0 rxerr 12
+ 150.037   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 1
+ 150.037   dht22 good 428 fail 0 | lora up | wifi up
+ 150.037   bridge last heard on wifi 1798 ms ago
+ 150.037   bridge never heard on lora
+ 150.037   task comms: core 0 prio 10 stack free 5264 of 8192 B
+ 150.037   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+ 150.037   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+ 150.037   longest comms loop 1168 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+ 150.037   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 878 | outbox 291

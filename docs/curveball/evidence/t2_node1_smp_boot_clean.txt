@@ -1,0 +1,5 @@
+[host] copy csc09_smp_node_1.uf2 took 4.612 s
+[host] new port /dev/cu.usbmodem3 appeared 5.933 s after the copy, opened at 5.958 s
+  10.527 [ENV] Temp: 23.4 C | Hum: 61.9% | Light: 1681 | Weather: Cloudy | PIR 0 Sound 0
+  20.509 [ENV] Temp: 23.4 C | Hum: 61.9% | Light: 1667 | Weather: Cloudy | PIR 0 Sound 0
+  30.540 [ENV] Temp: 23.5 C | Hum: 61.8% | Light: 1662 | Weather: Cloudy | PIR 0 Sound 0
