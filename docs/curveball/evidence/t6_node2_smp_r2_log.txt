@@ -1,0 +1,42 @@
+   2.004 >>> host sent 's'
+   2.022 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   2.022   wifi: tx 2731 rx 1059 delivered 406 relayed 653 dup 0 rxerr 39
+   2.022   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   2.022   dht22 good 1032 fail 0 | lora up | wifi up
+   2.022   bridge last heard on wifi 1669 ms ago
+   2.022   bridge never heard on lora
+   2.022   task comms: core 0 prio 10 stack free 5152 of 8192 B
+   2.022   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+   2.022   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+   2.022   longest comms loop 1194 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+   2.022   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+   5.001 >>> host sent 'x'
+   5.027 [T6] capture request 1: queued
+   5.027 [T6] capture request 2: queued
+   5.027 [T6] capture request 3: queued
+   5.027 [T6] capture request 4: queued
+   5.027 [T6] capture request 5: refused
+   5.556 capture N2-000660: no samples/*_NN.jpg on the SD card
+   5.557 capture N2-000661: no samples/*_NN.jpg on the SD card
+   5.557 capture N2-000662: no samples/*_NN.jpg on the SD card
+   5.557 capture N2-000663: no samples/*_NN.jpg on the SD card
+   6.363 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1483 | Weather: Cloudy | PIR 0 Sound 1
+  16.369 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1483 | Weather: Cloudy | PIR 0 Sound 1
+  26.383 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1520 | Weather: Cloudy | PIR 0 Sound 1
+  36.376 [ENV] Temp: 23.2 C | Hum: 65.1% | Light: 1548 | Weather: Cloudy | PIR 0 Sound 1
+  46.389 [ENV] Temp: 23.2 C | Hum: 65.1% | Light: 1516 | Weather: Cloudy | PIR 0 Sound 1
+  56.401 [ENV] Temp: 23.3 C | Hum: 65.2% | Light: 1490 | Weather: Cloudy | PIR 0 Sound 1
+  66.412 [ENV] Temp: 23.3 C | Hum: 65.2% | Light: 1472 | Weather: Cloudy | PIR 0 Sound 1
+  70.006 >>> host sent 's'
+  70.023 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  70.023   wifi: tx 2731 rx 1082 delivered 406 relayed 676 dup 0 rxerr 39
+  70.023   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  70.023   dht22 good 1064 fail 0 | lora up | wifi up
+  70.024   bridge last heard on wifi 694 ms ago
+  70.024   bridge never heard on lora
+  70.024   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  70.024   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  70.024   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  70.024   longest comms loop 1194 ms | capture q full 2 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  70.024   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+  76.416 [ENV] Temp: 23.2 C | Hum: 65.1% | Light: 1502 | Weather: Cloudy | PIR 0 Sound 1

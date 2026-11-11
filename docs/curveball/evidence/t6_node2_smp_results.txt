@@ -1,0 +1,50 @@
+== key_run t6_node2_smp  2026-11-11 14:20:21  port=/dev/cu.usbmodemMTK3PICO1  80 s
+   keys: 2:s,5:x,70:s
+== stats blocks (in order)
+   t=   2.03  capture q full=0  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=0  dht22 fail=0
+   t=  70.03  capture q full=1  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=0  dht22 fail=0
+== key lines
+   2.001 >>> host sent 's'
+   5.001 >>> host sent 'x'
+   5.013 [T6] capture request 1: queued
+   5.014 [T6] capture request 2: queued
+   5.014 [T6] capture request 3: queued
+   5.014 [T6] capture request 4: queued
+   5.014 [T6] capture request 5: refused
+  70.003 >>> host sent 's'
+== tx results
+== full log (without [ENV])
+   2.001 >>> host sent 's'
+   2.026 node 2 | alfp in 225 badcrc 0 | tx ok 30 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   2.026   wifi: tx 1487 rx 697 delivered 225 relayed 472 dup 0 rxerr 23
+   2.026   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   2.026   dht22 good 725 fail 0 | lora up | wifi up
+   2.026   bridge last heard on wifi 457 ms ago
+   2.026   bridge never heard on lora
+   2.026   task comms: core 0 prio 10 stack free 5152 of 8192 B
+   2.026   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+   2.026   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+   2.026   longest comms loop 1194 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+   2.026   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+   5.001 >>> host sent 'x'
+   5.013 [T6] capture request 1: queued
+   5.014 [T6] capture request 2: queued
+   5.014 [T6] capture request 3: queued
+   5.014 [T6] capture request 4: queued
+   5.014 [T6] capture request 5: refused
+   5.542 capture N2-000644: no samples/*_NN.jpg on the SD card
+   5.542 capture N2-000645: no samples/*_NN.jpg on the SD card
+   5.542 capture N2-000646: no samples/*_NN.jpg on the SD card
+   5.542 capture N2-000647: no samples/*_NN.jpg on the SD card
+  70.003 >>> host sent 's'
+  70.033 node 2 | alfp in 225 badcrc 0 | tx ok 30 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  70.033   wifi: tx 1487 rx 719 delivered 225 relayed 494 dup 0 rxerr 23
+  70.033   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  70.033   dht22 good 757 fail 0 | lora up | wifi up
+  70.033   bridge last heard on wifi 2449 ms ago
+  70.033   bridge never heard on lora
+  70.033   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  70.033   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  70.033   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  70.033   longest comms loop 1194 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  70.033   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
