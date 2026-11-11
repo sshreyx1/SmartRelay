@@ -231,13 +231,13 @@ is NOT used (it changes comms behaviour during the measurement).
 | Test | Status | Evidence |
 |---|---|---|
 | T1 throughput/stability, 200 packets over 2 hops | not run | needs nodes 3-5 (2 hops) and the backend; 1-hop WiFi only so far: 23 files, 0 failures (3b) |
-| T2 core assignment | ✅ passed on node 2 | measured boot lines `sensors: core 1`, `comms: core 0`, `usb_owner: core 0` (3a retry 2); node 1 boot lines not captured |
+| T2 core assignment | ✅ passed on node 2 (twice); ⚠️ node 1 not evidenced | node 2: 3a retry 2 + `evidence/t2_node2_smp_boot_control.txt`; node 1: port appears 5.99 s after boot, boot log lost (`evidence/t2_node1_smp_boot.txt`, F7) |
 | T3 audio under load | partly | `lost=0` on every capture (3a), but not during a T1 load |
 | T4 DHT22 under load | partly | 152/0 (bridge) and 153/0 (sender) during 23 WiFi transfers (3b); not under T1 |
 | T5 merged sensor task | not run | = T3 + T4 under T1 |
-| T6 capture queue full (`x`) | not run | `capture q full 0` only |
+| T6 capture queue full (`x`) | ✅ passed (2 runs) | `evidence/t6_node2_smp_results.txt`, `t6_node2_smp_r2_results.txt`: 4 queued, 1 refused, counter +1 each run |
 | T7 WiFi -> LoRa failover | not run, blocked | node 1 LoRa hardware fault on both firmwares |
-| T8 console stall (`z`) | not run | `log dropped 0` / `usb dropped 0` in normal running only |
+| T8 console stall (`z`) | ✅ passed | `evidence/t8_node2_smp_results.txt`: `log dropped` 0 -> 3, output resumed, transfers done, comms loop max unchanged |
 
 ---
 
@@ -250,6 +250,9 @@ is NOT used (it changes comms behaviour during the measurement).
 | F3 | Inbox names `n<src>_<16-bit sid>`, sid starts random per boot, and `s_rename` unlinks the target first | `alfp/src/alfp.c:104,883`, `firmware/app/storage_fatfs.c:122` | on a long-used bridge card a new file can silently overwrite an older received file. Fix: wider/unique names or refuse to overwrite |
 | F4 | `SMP=0` writes the same output name `uf2/csc09_smp_node_N.uf2` as the dual-core build | `firmware_smp/buildglue/build_smp.sh` (`OUT_DIR`, uf2 name) | the documented single-core command silently replaces a committed dual-core image. Fix: include `smp0` in the name |
 | F5 | Node 2's `captures` comms step costs ~0.9-1.1 s (881-1121 ms), including in a run with no visible captures | node 2 `s` (`slowest comms step`), `main_smp.c` captures step | stalls comms on the sender for ~1 s; cause unknown (SD create latency on node 2's card?). Needs a timed breakdown |
+| F6 | A capture whose sound class is unknown (`SC_UNKNOWN`, e.g. T6's `x` requests, or every capture in a `SOUND_LEGACY_MODE` build) falls back to generic `samples/img_NN.jpg`; node 2's card has none, so the capture is dropped entirely - **telemetry included** - with the misleading message `no samples/*_NN.jpg on the SD card` (the card has 70), and its capture id is already consumed and saved (gaps N2-000644..647) | `firmware_smp/app/main_smp.c:383-389`, same in `firmware/app/main.c:316` | silent loss of telemetry for unclassified captures; id gaps the backend may misread. Fix: still queue telemetry, fall back to any sample group, accurate message |
+| F7 | Node 1 (bridge, SMP) brings up its USB port ~6 s after boot (control: node 2, same image apart from NODE_ID, 0.96 s), so its whole boot log is lost: `usb_owner` holds start-up lines only 3 s | `firmware_smp/app/main_smp.c:800` (3 s hold); node-1 start-up work on core 0 | T2 cannot be evidenced on node 1; likely the same full-card SD work that slows receive finish. Retest after the card is cleared (MY_STEPS); otherwise a longer hold or printing the core lines again in `s` |
+| F8 | `rtos_msgq_send_nowait` returns `er >= E_OK`, so a full queue (`E_TMOUT` from `tk_snd_mbf(..., TMO_POL)`) and any other error look the same ("refused") | `firmware_smp/rtos_port_mtk3.c:293-297` | T6 shows the refusal but cannot prove the code was `E_TMOUT`; count/log the error code if this ever matters |
 
 ---
 
@@ -297,3 +300,73 @@ same card. Caveats:
   would separate order from firmware if the 0.3 s ever matters.
 - Still unexplained: why the handoff saw ~11 s on 2026-11-04 and this session sees ~5-6 s.
 - Next: step 3 (back up and clear node 1's card) should drop telemetry to well under 1 s on SMP.
+
+---
+
+## Continuation step 2 - T6 / T8 on node 2 (SMP), driver `docs/curveball/evidence/key_run.py`
+
+### T6 capture queue full - ✅ PASS (2026-11-11 14:20, `evidence/t6_node2_smp_results.txt`)
+
+Keys: `s` at 2 s, `x` at 5 s, `s` at 70 s. Node 1 on SMP as bridge, node 2 PIR covered.
+- `[T6] capture request 1-4: queued`, `capture request 5: refused` (all within 1 ms at 5.013 s).
+- `capture q full` 0 -> 1, exactly the one refusal. The refusal is the logged line README asks for.
+- Node kept running: second `s` answered; `log dropped 0`, `usb dropped 0`, `dht22 fail 0`
+  (good 725 -> 757), stacks/heap unchanged, longest comms loop unchanged (1194 ms), no FATAL.
+- Side finding (F6): the 4 accepted requests were processed at 5.542 s but each was discarded with
+  `no samples/*_NN.jpg on the SD card` (they carry no sound class); outbox stayed 0, ids
+  N2-000644..647 consumed. T6 itself (queue-full behaviour) is unaffected.
+
+---
+
+## Autonomous run, 2026-11-11 14:26-14:45 (no human at the boards)
+
+Start state found by probing (`s` on each port), not as described in the request: node 1 was on
+**SMP** (left there by step 1b), `/dev/cu.usbmodem3`; node 2 SMP `/dev/cu.usbmodemMTK3PICO1`,
+outbox 0, PIR covered. All flashing done without hands: SMP -> BOOTSEL via `B`, FreeRTOS -> BOOTSEL
+via 1200-baud open, image copied without extended attributes (`cp -X` / `shutil.copyfile`).
+
+### A/B pair 2 (reverse order: SMP first, then FreeRTOS) - both valid (6 captures, 0 PIR triggers)
+
+| Run (time order) | Bridge | Telemetry mean (range) | Image mean (range) | done / gave_up | Evidence |
+|---|---|---|---|---|---|
+| 1a 14:09 | FreeRTOS | 5.68 s (5.6-5.8) | 8.30 s (8.1-8.4) | 12 / 0 | `evidence/ab_freertos_results.txt` |
+| 1b 14:15 | SMP | 5.98 s (5.9-6.0) | 8.55 s (8.3-8.7) | 12 / 0 | `evidence/ab_smp_results.txt` |
+| 2a 14:26 | SMP | 6.15 s (6.1-6.2) | 8.73 s (8.6-8.9) | 12 / 0 | `evidence/ab_smp_r2_results.txt` |
+| 2b 14:30 | FreeRTOS | 6.10 s (6.0-6.2) | 8.60 s (8.5-8.8) | 12 / 0 | `evidence/ab_freertos_r2_results.txt` |
+
+- Order F-S-S-F cancels a linear drift. Averages: telemetry FreeRTOS 5.89 s vs SMP 6.07 s
+  (**SMP +0.18 s, +3 %**); image FreeRTOS 8.45 s vs SMP 8.64 s (**SMP +0.19 s, +2 %**).
+- Both bridges need ~6 s to finish a 27-byte single-fragment file, and the time grows as the card
+  fills: +0.4 s over the 48 files received in these four runs (~8 ms per file), on both firmwares.
+- SMP bridge `alfp service` max since its boot (covers 1b + 2a): 6439 ms. FreeRTOS does not
+  report per-step timing.
+- **Conclusion: the slow receive finish is node 1's SD card / FatFs (handoff section 5 branch 1).
+  The dual-core port adds ~0.2 s (2-3 %), small next to the ~6 s the card costs.**
+
+### T6 repeat - ✅ PASS again (`evidence/t6_node2_smp_r2_results.txt`)
+4 queued, request 5 refused, `capture q full` 1 -> 2; node unaffected. F6 reproduced
+(N2-000660..663 discarded). `E_TMOUT` is inferred, not observed (F8).
+
+### T8 console stall - ✅ PASS (`evidence/t8_node2_smp_results.txt`, raw `t8_node2_smp_log.txt`)
+Keys: `s` 2 s, `c` 4 s (transfer in flight during the stall), `z` 12 s, `s` x8 at 12.2-16.4 s, `s` 45 s.
+- `log dropped` 0 -> **3**; nothing printed between 12.0 and 17.06 s, then output resumed with the
+  queued stats blocks (7 blocks for 8 presses: presses during a blocked print share one event flag).
+- Telemetry `done` in 6.9 s (typical 6.1-6.2 s on SMP: ~0.75 s slower during the stall), image `done`
+  8.6 s; last `s` at 45 s answered; `dht22 fail 0` (good kept rising); `usb dropped 0`; no FATAL.
+- `longest comms loop` stayed 1194 ms (the stats print is inside the timed loop, `main_smp.c:586-643`),
+  so no comms iteration was held longer than the previous worst case by the full ring.
+
+### T2 node 1 - ⚠️ not evidenced; cause measured (`evidence/t2_node1_smp_boot.txt`, control `t2_node2_smp_boot_control.txt`)
+`boot_flash_capture.py` copies the image, then waits for the new port:
+- node 1 (SMP bridge): port appeared **5.99 s** after the copy finished -> no boot lines at all
+  (first line an `[ENV]` at 10.5 s).
+- node 2 (control, same procedure): port appeared **0.96 s** after the copy -> full boot log:
+  `dual core`, `sensors: core 1`, `comms: core 0`, `usb_owner: core 0`, both msgq self-tests ok,
+  clocks sys/peri 125 MHz, usb/adc 48 MHz (T2 on node 2 confirmed a second time).
+- Follow-up F7. Retest after node 1's card is cleared (MY_STEPS step B).
+
+### Board state left at the end (2026-11-11 ~14:45)
+| Board | Port | Firmware | Notes |
+|---|---|---|---|
+| Node 1 (bridge) | `/dev/cu.usbmodem3` | committed SMP `uf2/csc09_smp_node_1.uf2` | SD card untouched (full `inbox/`), LoRa module dead (hardware) |
+| Node 2 | `/dev/cu.usbmodemMTK3PICO1` | committed SMP `uf2/csc09_smp_node_2.uf2` (reflashed for the control) | PIR covered, outbox 0, next capture N2-000665 |
