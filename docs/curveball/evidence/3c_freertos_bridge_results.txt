@@ -1,0 +1,49 @@
+== n1 boot
+waiting: plug the board in now
+[host] /dev/cu.usbmodem101 appeared, opened 0.029 s later
+   0.984 
+   0.984 CSC09 trail mesh, node 1, ALFP v1
+   0.984 keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | h help
+   1.036 sd: mounted, 0 sample images
+   1.244 lora_radio: unexpected chip type 0x00 (SPI wiring?)
+   1.244 lora: init FAILED (check the Core1121 wiring and power, BUSY GP6, DIO9 GP7). Continuing with WiFi only.
+   1.244 wifi: ESP-01 MAC AC:0B:FB:C7:7F:E9 = WST-1
+   1.299 node 1 ready (bridge), outbox has 0 queued
+   1.350 sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20
+   9.508 [ENV] Temp: 23.6 C | Hum: 62.7% | Light: 1608 | Weather: Cloudy | PIR 0 Sound 0
+  19.511 [ENV] Temp: 23.6 C | Hum: 62.6% | Light: 1615 | Weather: Cloudy | PIR 0 Sound 0
+  25.012 rx from node 2: inbox/n2_10807.bin, 27 bytes via wifi, 0 dup
+  25.492 @ALFP FILE v1 src=2 sid=10807 size=27 crc=7cb8f39e radio=wifi frags=1 meta=010275020000d6030000030080ffffc203ffffff00500100b8110054454c454d45545259
+  25.492 @D AQJ1AgAA1gMAAAMAgP//wgP///8AUAEAuBEA
+  25.492 @ALFP END crc=7cb8f39e
+== n2 tx
+   3.458 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 8.2 s
+== n1 rx
+   2.778 rx from node 2: inbox/n2_10812.bin, 10032 bytes via wifi, 0 dup
+== @ALFP count
+2
+== stats
+opened /dev/cu.usbmodem101
+node 1 | alfp in 185 badcrc 0 | tx ok 0 fail 0 | rx ok 6 crcfail 0 expired 0 | outbox 0
+  wifi: tx 50 rx 244 delivered 185 relayed 0 dup 59 rxerr 73
+  lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  dht22 good 91 fail 0 | lora DOWN | wifi up
+  bridge never heard on wifi
+  bridge never heard on lora
+  comms stack free: 1535 words, heap free 30592 bytes
+
+=== captured 367 bytes from /dev/cu.usbmodem101 ===
+opened /dev/cu.usbmodemMTK3PICO1
+node 2 | alfp in 45 badcrc 0 | tx ok 6 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  wifi: tx 260 rx 106 delivered 45 relayed 61 dup 0 rxerr 5
+  lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  dht22 good 91 fail 0 | lora up | wifi up
+  bridge last heard on wifi 2209 ms ago
+  bridge never heard on lora
+  task comms: core 0 prio 10 stack free 5324 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  longest comms loop 1170 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 186 | captures 881 | outbox 290
+
+=== captured 710 bytes from /dev/cu.usbmodemMTK3PICO1 ===

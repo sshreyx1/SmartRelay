@@ -1,0 +1,115 @@
+== n1 boot
+waiting: plug the board in now
+[host] /dev/cu.usbmodemMTK3PICO1 appeared, opened 0.028 s later
+   0.083  size-ladder test payload (A.3) | x T6: fire 5 captures fast | z T8: stall the console 5 s | B reboot to BOOTSEL
+   0.084  (reflash) | h help
+   9.493 [ENV] Temp: 23.4 C | Hum: 65.9% | Light: 1617 | Weather: Cloudy | PIR 0 Sound 0
+  19.497 [ENV] Temp: 23.4 C | Hum: 65.1% | Light: 2131 | Weather: Cloudy | PIR 0 Sound 0
+  29.503 [ENV] Temp: 23.4 C | Hum: 64.3% | Light: 1720 | Weather: Cloudy | PIR 0 Sound 0
+  39.523 [ENV] Temp: 23.4 C | Hum: 64.0% | Light: 1428 | Weather: Cloudy | PIR 0 Sound 0
+== n2 tx
+   3.279 tx tel/N2_000604.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.7 s
+   3.279 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+  10.791 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 7.1 s
+  10.791 tx tel/N2_000605.bin size=27 thr=1024 radio=wifi reason=fallback
+  15.961 tx tel/N2_000605.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.7 s
+  15.962 tx samples/vehicle_01.jpg size=10029 thr=1024 radio=wifi reason=size
+  23.702 tx samples/vehicle_01.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 7.3 s
+  23.703 tx tel/N2_000606.bin size=27 thr=1024 radio=wifi reason=fallback
+  28.884 tx tel/N2_000606.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.7 s
+  28.884 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  36.532 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 7.3 s
+  36.533 tx tel/N2_000607.bin size=27 thr=1024 radio=wifi reason=fallback
+  41.811 tx tel/N2_000607.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.8 s
+  41.812 tx samples/weather_00.jpg size=9894 thr=1024 radio=wifi reason=size
+  49.735 tx samples/weather_00.jpg: done via wifi, 42 frags, 2 rounds, 4 resent, 7.5 s
+  49.736 tx tel/N2_000608.bin size=27 thr=1024 radio=wifi reason=fallback
+  55.016 tx tel/N2_000608.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.8 s
+  55.017 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+  62.526 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 7.1 s
+  62.527 tx tel/N2_000609.bin size=27 thr=1024 radio=wifi reason=fallback
+  67.721 tx tel/N2_000609.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.7 s
+  67.722 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+  75.476 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 2 rounds, 4 resent, 7.3 s
+  75.476 tx tel/N2_000610.bin size=27 thr=1024 radio=wifi reason=fallback
+  80.652 tx tel/N2_000610.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.7 s
+  80.652 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  88.536 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 2 resent, 7.4 s
+  88.537 tx tel/N2_000611.bin size=27 thr=1024 radio=wifi reason=fallback
+  93.668 tx tel/N2_000611.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.8 s
+  93.668 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+ 101.514 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 2 rounds, 4 resent, 7.4 s
+ 101.514 tx tel/N2_000612.bin size=27 thr=1024 radio=wifi reason=fallback
+ 106.803 tx tel/N2_000612.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.9 s
+ 106.804 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+ 114.762 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 2 resent, 7.5 s
+ 114.762 tx tel/N2_000613.bin size=27 thr=1024 radio=wifi reason=fallback
+ 120.019 tx tel/N2_000613.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.8 s
+ 120.019 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+ 128.000 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 4 resent, 7.5 s
+ 128.001 tx tel/N2_000614.bin size=27 thr=1024 radio=wifi reason=fallback
+ 133.287 tx tel/N2_000614.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.8 s
+ 133.287 tx samples/vehicle_01.jpg size=10029 thr=1024 radio=wifi reason=size
+ 141.230 tx samples/vehicle_01.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 7.6 s
+ 141.230 tx tel/N2_000615.bin size=27 thr=1024 radio=wifi reason=fallback
+ 146.447 tx tel/N2_000615.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 4.9 s
+ 146.447 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+== n1 rx
+   2.862 rx from node 2: inbox/n2_00156.bin, 27 bytes via wifi, 0 dup
+  10.202 rx from node 2: inbox/n2_00157.bin, 9241 bytes via wifi, 0 dup
+  15.547 rx from node 2: inbox/n2_00158.bin, 27 bytes via wifi, 0 dup
+  23.133 rx from node 2: inbox/n2_00159.bin, 10029 bytes via wifi, 0 dup
+  28.413 rx from node 2: inbox/n2_00160.bin, 27 bytes via wifi, 0 dup
+  35.930 rx from node 2: inbox/n2_00161.bin, 10032 bytes via wifi, 0 dup
+  41.305 rx from node 2: inbox/n2_00162.bin, 27 bytes via wifi, 0 dup
+  49.174 rx from node 2: inbox/n2_00163.bin, 9894 bytes via wifi, 1 dup
+  54.563 rx from node 2: inbox/n2_00164.bin, 27 bytes via wifi, 0 dup
+  61.930 rx from node 2: inbox/n2_00165.bin, 9222 bytes via wifi, 0 dup
+  67.268 rx from node 2: inbox/n2_00166.bin, 27 bytes via wifi, 0 dup
+  74.857 rx from node 2: inbox/n2_00167.bin, 9241 bytes via wifi, 1 dup
+  80.185 rx from node 2: inbox/n2_00168.bin, 27 bytes via wifi, 0 dup
+  87.919 rx from node 2: inbox/n2_00169.bin, 10032 bytes via wifi, 0 dup
+  93.236 rx from node 2: inbox/n2_00170.bin, 27 bytes via wifi, 0 dup
+ 100.890 rx from node 2: inbox/n2_00171.bin, 9241 bytes via wifi, 1 dup
+ 106.348 rx from node 2: inbox/n2_00172.bin, 27 bytes via wifi, 0 dup
+ 114.137 rx from node 2: inbox/n2_00173.bin, 10032 bytes via wifi, 0 dup
+ 119.611 rx from node 2: inbox/n2_00174.bin, 27 bytes via wifi, 0 dup
+ 127.360 rx from node 2: inbox/n2_00175.bin, 9495 bytes via wifi, 1 dup
+ 132.812 rx from node 2: inbox/n2_00176.bin, 27 bytes via wifi, 0 dup
+ 140.652 rx from node 2: inbox/n2_00177.bin, 10029 bytes via wifi, 0 dup
+ 146.059 rx from node 2: inbox/n2_00178.bin, 27 bytes via wifi, 0 dup
+== @ALFP count
+46
+== stats
+opened /dev/cu.usbmodemMTK3PICO1
+[ENV] Temp: 23.5 C | Hum: 62.9% | Light: 1720 | Weather: Cloudy | PIR 0 Sound 0
+node 1 | alfp in 1680 badcrc 0 | tx ok 0 fail 0 | rx ok 53 crcfail 0 expired 0 | outbox 0
+  wifi: tx 439 rx 1739 delivered 1680 relayed 0 dup 59 rxerr 707
+  lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  dht22 good 152 fail 0 | lora DOWN | wifi up
+  bridge never heard on wifi
+  bridge never heard on lora
+  task comms: core 0 prio 10 stack free 5536 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  task sensors: core 1 prio 10 stack free 7408 of 8192 B
+  longest comms loop 4985 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5320 B
+  slowest comms step (ms): wifi poll 17 | lora poll 0 | alfp service 4985 | captures 0 | outbox 0
+
+=== captured 789 bytes from /dev/cu.usbmodemMTK3PICO1 ===
+opened /dev/cu.usbmodem4
+node 2 | alfp in 391 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 22
+  wifi: tx 2454 rx 453 delivered 391 relayed 62 dup 0 rxerr 57
+  lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  dht22 good 153 fail 0 | lora up | wifi up
+  bridge last heard on wifi 1195 ms ago
+  bridge never heard on lora
+  task comms: core 0 prio 10 stack free 5096 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  longest comms loop 1121 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 243 | captures 1121 | outbox 370
+tx tel/N2_000618.bin: done via wifi, 1 frags, 2 rounds, 0 resent, 5.0 s
+tx samples/weather_00.jpg size=9894 thr=1024 radio=wifi reason=size
+[ENV] Temp: 23.5 C | Hum: 64.9% | Light: 1058 | Weather: Cloudy | PIR 0 Sound 1
+
+=== captured 941 bytes from /dev/cu.usbmodem4 ===
