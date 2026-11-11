@@ -238,3 +238,15 @@ is NOT used (it changes comms behaviour during the measurement).
 | T6 capture queue full (`x`) | not run | `capture q full 0` only |
 | T7 WiFi -> LoRa failover | not run, blocked | node 1 LoRa hardware fault on both firmwares |
 | T8 console stall (`z`) | not run | `log dropped 0` / `usb dropped 0` in normal running only |
+
+---
+
+## Follow-ups (recorded 2026-11-11, not fixed yet)
+
+| # | Item | Where | Why it matters |
+|---|---|---|---|
+| F1 | macOS `._*` AppleDouble files in node 2's SD `samples/` are counted as sample-image groups (`70 sample images in 38 groups`, half `._*`) | SD card content; sample scan in `main_smp.c` / `main.c` | a fallback pick could send a `._*.jpg` that is not a JPEG; group counts are wrong. Fix: delete them from the card and/or skip names starting with `._` in the scan |
+| F2 | Outbox drops the oldest job silently when full (`ALFP_OUTBOX_MAX 64`); `dropped_full` is never printed | `alfp/src/alfp_outbox.c:137-151`, `s` output of both firmwares | lost captures are invisible; captures still log "queued ..., outbox 64". Fix: print `dropped_full` in `s` and log each drop |
+| F3 | Inbox names `n<src>_<16-bit sid>`, sid starts random per boot, and `s_rename` unlinks the target first | `alfp/src/alfp.c:104,883`, `firmware/app/storage_fatfs.c:122` | on a long-used bridge card a new file can silently overwrite an older received file. Fix: wider/unique names or refuse to overwrite |
+| F4 | `SMP=0` writes the same output name `uf2/csc09_smp_node_N.uf2` as the dual-core build | `firmware_smp/buildglue/build_smp.sh` (`OUT_DIR`, uf2 name) | the documented single-core command silently replaces a committed dual-core image. Fix: include `smp0` in the name |
+| F5 | Node 2's `captures` comms step costs ~0.9-1.1 s (881-1121 ms), including in a run with no visible captures | node 2 `s` (`slowest comms step`), `main_smp.c` captures step | stalls comms on the sender for ~1 s; cause unknown (SD create latency on node 2's card?). Needs a timed breakdown |
