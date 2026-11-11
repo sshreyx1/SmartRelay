@@ -1,0 +1,99 @@
+   3.665 [ENV] Temp: 23.4 C | Hum: 64.9% | Light: 1424 | Weather: Cloudy | PIR 0 Sound 1
+  10.031 
+  10.031 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  15.026 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779304.2 zcr 0.000 mean 103, 80000 samples
+  15.038 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=76 rms=1 zcr=3948 lost=0 feat_us=909541 maxcall_us=3158 model_us=959
+  15.038 [ENV] Temp: 23.3 C | Hum: 64.8% | Light: 1418 | Weather: Cloudy | PIR 0 Sound 1
+  16.197 [ENV] Temp: 23.3 C | Hum: 64.9% | Light: 1409 | Weather: Cloudy | PIR 0 Sound 1
+  16.197 capture N2-000648: heard AMBIENT (76%) -> samples/ambient_00.jpg
+  16.197 capture N2-000648 telemetry queued (tel/N2_000648.bin)
+  16.197 capture N2-000648 queued (samples/ambient_00.jpg), outbox 2
+  16.197 tx tel/N2_000648.bin size=27 thr=1024 radio=wifi reason=fallback
+  22.578 tx tel/N2_000648.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.1 s
+  22.578 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  25.051 [ENV] Temp: 23.3 C | Hum: 64.9% | Light: 1410 | Weather: Cloudy | PIR 0 Sound 1
+  30.016 
+  30.016 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  31.339 tx samples/ambient_00.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 8.7 s
+  35.026 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779605.5 zcr 0.000 mean 103, 80000 samples
+  35.026 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=66 rms=1 zcr=4054 lost=0 feat_us=914746 maxcall_us=3402 model_us=954
+  35.026 [ENV] Temp: 23.3 C | Hum: 64.9% | Light: 1413 | Weather: Cloudy | PIR 0 Sound 1
+  36.201 [ENV] Temp: 23.3 C | Hum: 64.9% | Light: 1409 | Weather: Cloudy | PIR 0 Sound 1
+  36.201 capture N2-000649: heard AMBIENT (66%) -> samples/ambient_01.jpg
+  36.201 capture N2-000649 telemetry queued (tel/N2_000649.bin)
+  36.201 capture N2-000649 queued (samples/ambient_01.jpg), outbox 2
+  36.201 tx tel/N2_000649.bin size=27 thr=1024 radio=wifi reason=fallback
+  42.619 tx tel/N2_000649.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.1 s
+  42.619 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  45.077 [ENV] Temp: 23.3 C | Hum: 64.9% | Light: 1406 | Weather: Cloudy | PIR 0 Sound 1
+  50.027 
+  50.027 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  51.500 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 4 resent, 8.8 s
+  55.037 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779700.8 zcr 0.000 mean 103, 80000 samples
+  55.037 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=76 rms=1 zcr=4000 lost=0 feat_us=914593 maxcall_us=3422 model_us=932
+  55.037 [ENV] Temp: 23.3 C | Hum: 64.9% | Light: 1417 | Weather: Cloudy | PIR 0 Sound 1
+  56.212 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 1413 | Weather: Cloudy | PIR 0 Sound 1
+  56.212 capture N2-000650: heard AMBIENT (76%) -> samples/ambient_00.jpg
+  56.212 capture N2-000650 telemetry queued (tel/N2_000650.bin)
+  56.212 capture N2-000650 queued (samples/ambient_00.jpg), outbox 2
+  56.212 tx tel/N2_000650.bin size=27 thr=1024 radio=wifi reason=fallback
+  62.616 tx tel/N2_000650.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.1 s
+  62.616 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  65.103 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 1414 | Weather: Cloudy | PIR 0 Sound 1
+  70.018 
+  70.018 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  71.307 tx samples/ambient_00.jpg: done via wifi, 41 frags, 1 rounds, 0 resent, 8.6 s
+  75.024 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779262.8 zcr 0.000 mean 103, 80000 samples
+  75.024 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=70 rms=1 zcr=4196 lost=0 feat_us=907211 maxcall_us=3207 model_us=961
+  75.024 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 1411 | Weather: Cloudy | PIR 0 Sound 1
+  76.193 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 1411 | Weather: Cloudy | PIR 0 Sound 1
+  76.193 capture N2-000651: heard AMBIENT (70%) -> samples/ambient_01.jpg
+  76.193 capture N2-000651 telemetry queued (tel/N2_000651.bin)
+  76.193 capture N2-000651 queued (samples/ambient_01.jpg), outbox 2
+  76.193 tx tel/N2_000651.bin size=27 thr=1024 radio=wifi reason=fallback
+  82.631 tx tel/N2_000651.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.2 s
+  82.631 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  85.112 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 1418 | Weather: Cloudy | PIR 0 Sound 1
+  90.017 
+  90.017 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  91.440 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 8.8 s
+  95.039 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779581.5 zcr 0.000 mean 103, 80000 samples
+  95.039 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=76 rms=1 zcr=4391 lost=0 feat_us=911776 maxcall_us=3851 model_us=1084
+  95.039 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 1417 | Weather: Cloudy | PIR 0 Sound 1
+  96.205 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 1416 | Weather: Cloudy | PIR 0 Sound 1
+  96.205 capture N2-000652: heard AMBIENT (76%) -> samples/ambient_00.jpg
+  96.205 capture N2-000652 telemetry queued (tel/N2_000652.bin)
+  96.205 capture N2-000652 queued (samples/ambient_00.jpg), outbox 2
+  96.205 tx tel/N2_000652.bin size=27 thr=1024 radio=wifi reason=fallback
+ 102.674 tx tel/N2_000652.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.2 s
+ 102.674 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+ 105.122 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1421 | Weather: Cloudy | PIR 0 Sound 1
+ 110.016 
+ 110.016 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+ 111.340 tx samples/ambient_00.jpg: done via wifi, 41 frags, 1 rounds, 0 resent, 8.6 s
+ 115.023 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779268.5 zcr 0.000 mean 103, 80000 samples
+ 115.023 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=76 rms=1 zcr=4118 lost=0 feat_us=911815 maxcall_us=3304 model_us=944
+ 115.023 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1413 | Weather: Cloudy | PIR 0 Sound 1
+ 116.200 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1416 | Weather: Cloudy | PIR 0 Sound 1
+ 116.200 capture N2-000653: heard AMBIENT (76%) -> samples/ambient_01.jpg
+ 116.200 capture N2-000653 telemetry queued (tel/N2_000653.bin)
+ 116.200 capture N2-000653 queued (samples/ambient_01.jpg), outbox 2
+ 116.200 tx tel/N2_000653.bin size=27 thr=1024 radio=wifi reason=fallback
+ 122.660 tx tel/N2_000653.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.2 s
+ 122.660 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+ 125.148 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1423 | Weather: Cloudy | PIR 0 Sound 1
+ 131.612 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 8.9 s
+ 135.153 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1428 | Weather: Cloudy | PIR 0 Sound 1
+ 145.166 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1458 | Weather: Cloudy | PIR 0 Sound 1
+ 150.025 node 2 | alfp in 318 badcrc 0 | tx ok 42 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+ 150.025   wifi: tx 2119 rx 922 delivered 318 relayed 604 dup 0 rxerr 31
+ 150.025   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+ 150.025   dht22 good 936 fail 0 | lora up | wifi up
+ 150.025   bridge last heard on wifi 448 ms ago
+ 150.025   bridge never heard on lora
+ 150.025   task comms: core 0 prio 10 stack free 5152 of 8192 B
+ 150.025   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+ 150.025   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+ 150.025   longest comms loop 1194 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+ 150.025   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+ 155.170 [ENV] Temp: 23.3 C | Hum: 65.1% | Light: 1518 | Weather: Cloudy | PIR 0 Sound 1
