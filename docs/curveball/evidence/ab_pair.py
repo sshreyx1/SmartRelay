@@ -3,7 +3,7 @@
 Opens node 1 (bridge) and node 2 (sender) at the same time, sends 'c' to node 2 on a fixed
 schedule so both halves get identical traffic, sends 's' to both at the end, and writes:
 
-  <out>/ab_<label>_n1.log, ab_<label>_n2.log   every console line, host-timestamped
+  <out>/ab_<label>_n1_log.txt, _n2_log.txt every console line, host-timestamped
   <out>/ab_<label>_results.txt                 summary + the lines that matter (paste this back)
 
   python ab_pair.py --n1 /dev/cu.usbmodem101 --n2 /dev/cu.usbmodemMTK3PICO1 --label freertos
@@ -107,7 +107,7 @@ def main():
 
     os.makedirs(a.out, exist_ok=True)
     for name in ("n1", "n2"):
-        with open(os.path.join(a.out, f"ab_{a.label}_{name}.log"), "w") as f:
+        with open(os.path.join(a.out, f"ab_{a.label}_{name}_log.txt"), "w") as f:
             for t, text in lines[name]:
                 f.write(f"{t:8.3f} {text}\n")
 
