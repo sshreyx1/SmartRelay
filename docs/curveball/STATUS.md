@@ -231,7 +231,7 @@ is NOT used (it changes comms behaviour during the measurement).
 | Test | Status | Evidence |
 |---|---|---|
 | T1 throughput/stability, 200 packets over 2 hops | not run | needs nodes 3-5 (2 hops) and the backend; 1-hop WiFi only so far: 23 files, 0 failures (3b) |
-| T2 core assignment | ✅ passed on node 2 (twice); ⚠️ node 1 not evidenced | node 2: 3a retry 2 + `evidence/t2_node2_smp_boot_control.txt`; node 1: port appears 5.99 s after boot, boot log lost (`evidence/t2_node1_smp_boot.txt`, F7) |
+| T2 core assignment | ✅ passed on node 2 (twice); ⚠️ node 1 not evidenced | node 2: 3a retry 2 + `evidence/t2_node2_smp_boot_control.txt`; node 1: port appears ~6 s after boot with full or cleared card, boot log lost (`evidence/t2_node1_smp_boot.txt`, `t2_node1_smp_boot_clean.txt`, F7) |
 | T3 audio under load | partly | `lost=0` on every capture (3a), but not during a T1 load |
 | T4 DHT22 under load | partly | 152/0 (bridge) and 153/0 (sender) during 23 WiFi transfers (3b); not under T1 |
 | T5 merged sensor task | not run | = T3 + T4 under T1 |
@@ -251,8 +251,9 @@ is NOT used (it changes comms behaviour during the measurement).
 | F4 | `SMP=0` writes the same output name `uf2/csc09_smp_node_N.uf2` as the dual-core build | `firmware_smp/buildglue/build_smp.sh` (`OUT_DIR`, uf2 name) | the documented single-core command silently replaces a committed dual-core image. Fix: include `smp0` in the name |
 | F5 | Node 2's `captures` comms step costs ~0.9-1.1 s (881-1121 ms), including in a run with no visible captures | node 2 `s` (`slowest comms step`), `main_smp.c` captures step | stalls comms on the sender for ~1 s; cause unknown (SD create latency on node 2's card?). Needs a timed breakdown |
 | F6 | A capture whose sound class is unknown (`SC_UNKNOWN`, e.g. T6's `x` requests, or every capture in a `SOUND_LEGACY_MODE` build) falls back to generic `samples/img_NN.jpg`; node 2's card has none, so the capture is dropped entirely - **telemetry included** - with the misleading message `no samples/*_NN.jpg on the SD card` (the card has 70), and its capture id is already consumed and saved (gaps N2-000644..647) | `firmware_smp/app/main_smp.c:383-389`, same in `firmware/app/main.c:316` | silent loss of telemetry for unclassified captures; id gaps the backend may misread. Fix: still queue telemetry, fall back to any sample group, accurate message |
-| F7 | Node 1 (bridge, SMP) brings up its USB port ~6 s after boot (control: node 2, same image apart from NODE_ID, 0.96 s), so its whole boot log is lost: `usb_owner` holds start-up lines only 3 s | `firmware_smp/app/main_smp.c:800` (3 s hold); node-1 start-up work on core 0 | T2 cannot be evidenced on node 1; likely the same full-card SD work that slows receive finish. Retest after the card is cleared (MY_STEPS); otherwise a longer hold or printing the core lines again in `s` |
+| F7 | Node 1 (bridge, SMP) brings up its USB port ~6 s after boot (5.99 s full card, **5.93 s after the card was cleared**; control node 2 0.96 s), so its whole boot log is lost: `usb_owner` holds start-up lines only 3 s. **Not the SD card.** Lead, unproven: node 1's dead LoRa module - the LR11xx HAL busy-waits up to 1-10 s per command without yielding (`third_party/lora_mesh/src/lr1121/lr11xx_hal.c:186`), which on the SMP kernel can starve USB start-up on core 0; FreeRTOS node 1 reported its LoRa failure ~0.2 s after SD mount, so this is a candidate only | `firmware_smp/app/main_smp.c:800` (3 s hold); node 1 start-up on core 0 | T2 cannot be evidenced on node 1. Retest after the LoRa module is fixed or swapped; otherwise time the start-up steps, or print the core lines again in `s` |
 | F8 | `rtos_msgq_send_nowait` returns `er >= E_OK`, so a full queue (`E_TMOUT` from `tk_snd_mbf(..., TMO_POL)`) and any other error look the same ("refused") | `firmware_smp/rtos_port_mtk3.c:293-297` | T6 shows the refusal but cannot prove the code was `E_TMOUT`; count/log the error code if this ever matters |
+| F9 | Orphan `.part` files in the bridge's `rx/` are never deleted (no unlink in `alfp/src/alfp.c`, nothing at boot); node 1's card had 12 when cleared | `alfp/src/alfp.c:661` (create), no cleanup path | slow growth of `rx/` after every interrupted transfer (reboot/reflash mid-transfer). Fix: delete stale `.part` files at bridge start-up or on session expiry |
 
 ---
 
@@ -370,3 +371,48 @@ Keys: `s` 2 s, `c` 4 s (transfer in flight during the stall), `z` 12 s, `s` x8 a
 |---|---|---|---|
 | Node 1 (bridge) | `/dev/cu.usbmodem3` | committed SMP `uf2/csc09_smp_node_1.uf2` | SD card untouched (full `inbox/`), LoRa module dead (hardware) |
 | Node 2 | `/dev/cu.usbmodemMTK3PICO1` | committed SMP `uf2/csc09_smp_node_2.uf2` (reflashed for the control) | PIR covered, outbox 0, next capture N2-000665 |
+
+---
+
+## Retest after node 1's SD card was cleared (MY_STEPS part B), 2026-11-11 14:45-15:05, run without hands
+
+Card before clearing (`evidence/node1_sd_before_clear.txt`): **692 files in `inbox/`**, 12 in `rx/`,
+707 in total, 2.4 MB - far fewer than the handoff's "thousands of entries" guess. User backed it up
+and deleted `inbox/` and `rx/` contents.
+
+Node 2 had 5 jobs queued from captures made while node 1 was unplugged; they were drained first
+(telemetry 2.4 s, images 4.9-5.0 s) so the measured window had the same traffic as earlier runs.
+
+| Run | Bridge, card | Telemetry mean (range) | Image mean (range) | done / gave_up | node 1 `alfp service` max | Evidence |
+|---|---|---|---|---|---|---|
+| 2a (before) | SMP, full | 6.15 s (6.1-6.2) | 8.73 s (8.6-8.9) | 12 / 0 | 6439 ms | `ab_smp_r2_results.txt` |
+| 2b (before) | FreeRTOS, full | 6.10 s (6.0-6.2) | 8.60 s (8.5-8.8) | 12 / 0 | n/a | `ab_freertos_r2_results.txt` |
+| clean 1 | SMP, cleared | **2.50 s** (2.5-2.5) | **5.02 s** (4.9-5.2) | 12 / 0 | **2639 ms** | `ab_smp_clean_results.txt` |
+| clean 2 | FreeRTOS, cleared | **2.47 s** (2.4-2.5) | **5.02 s** (4.8-5.3) | 12 / 0 | n/a | `ab_freertos_clean_results.txt` |
+
+- **Branch 1 confirmed in part:** clearing the card cut the receive finish by ~3.6 s per file
+  (telemetry 6.1 -> 2.5 s, images 8.7 -> 5.0 s, `alfp service` 6439 -> 2639 ms), 0 resends on SMP,
+  `rxerr` per file ~21 -> 4.4.
+- **MY_STEPS B targets not met:** telemetry is not "well under 1 s" (2.5 s), images not ~3 s (5.0 s),
+  `alfp service` not < 1000 ms (2639 ms). About **2.5 s per file remains with an almost empty
+  `inbox/`**, identical on both firmwares (2.50 vs 2.47 s, 5.02 vs 5.02 s), so the remainder is
+  **not the dual-core port** either - it is common to both (SD write latency of the card itself,
+  FatFs work per file, or fixed protocol cost). Telling these apart needs per-call timing in a
+  debug build (handoff section 5 branch 2's method); node 2's ~0.9 s `captures` step on its own
+  card (F5) points the same way.
+- The time grew ~8 ms per received file on the full card; expect it to creep up again as `inbox/`
+  refills (handoff's point: the bridge needs a retention/cleanup policy - see also F3, F9).
+
+### T2 node 1 after clearing - ⚠️ still not evidenced (`evidence/t2_node1_smp_boot_clean.txt`)
+Port appeared **5.93 s** after the copy (5.99 s before clearing), no boot lines. The card was not
+the cause of F7 (updated in the follow-ups table).
+
+### Process notes
+- One `cp -X` to `/Volumes/RPI-RP2` failed with `Permission denied` because it ran before the drive
+  finished mounting; retried after a 2 s pause and it worked (not a repeated failure).
+
+### Board state left (2026-11-11 ~15:05)
+| Board | Port | Firmware | Notes |
+|---|---|---|---|
+| Node 1 (bridge) | `/dev/cu.usbmodem3` | committed SMP `csc09_smp_node_1.uf2` | SD card cleared (now ~24 received files), LoRa dead |
+| Node 2 | `/dev/cu.usbmodemMTK3PICO1` | committed SMP `csc09_smp_node_2.uf2` | PIR covered, outbox 0 |
