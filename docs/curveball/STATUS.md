@@ -273,3 +273,27 @@ traffic = `c` on node 2 at 10, 30, ..., 110 s (6 captures -> 6 telemetry + 6 ima
 Note for F5: node 2's `slowest comms step` / `longest comms loop` are maxima since node 2's last
 boot, so `captures 881 ms` in a window without captures (3c) can be an earlier capture. F5 still
 stands (~0.9 s per capture), but "even with no captures" was a misreading.
+
+### 1b - node 1 SMP (committed `csc09_smp_node_1.uf2`), 2026-11-11 14:15 - valid run
+
+| Metric | FreeRTOS bridge (1a) | SMP bridge (1b) | SMP - FreeRTOS |
+|---|---|---|---|
+| captures queued / `Dual trigger` | 6 / 0 | 6 / 0 | - |
+| telemetry (1 frag) mean (range) | 5.68 s (5.6-5.8) | 5.98 s (5.9-6.0) | +0.30 s (+5 %) |
+| image (40-43 frags) mean (range) | 8.30 s (8.1-8.4) | 8.55 s (8.3-8.7) | +0.25 s (+3 %) |
+| done / gave_up | 12 / 0 | 12 / 0 | - |
+| fragments resent (images) | 14 | 2 | - |
+| node 1 rx files / with dup > 0 | 12 / 2 | 12 / 0 | - |
+| node 1 wifi `rxerr` per file since boot | 16.7 | 20.8 | - |
+| node 1 `alfp service` max | (not reported by FreeRTOS) | 6202 ms | - |
+
+**Verdict: card / FatFs path, not the dual-core port (handoff section 5 branch 1).** Both firmwares
+need ~5.5 s to finish a 27-byte single-fragment file on node 1's card; the SMP bridge is
+0.25-0.30 s (3-5 %) slower, which is no bigger than the drift seen within this session on the
+same card. Caveats:
+- Order effect not separated: SMP ran second, with 12 more files in `inbox/`. Telemetry time has
+  risen across the session on this card (3b 4.78 s -> 1a 5.68 s -> 1b 5.98 s), but 3b used backlog
+  traffic rather than captures, so only 1a vs 1b is a like-for-like pair. An A-B-A (FreeRTOS again)
+  would separate order from firmware if the 0.3 s ever matters.
+- Still unexplained: why the handoff saw ~11 s on 2026-11-04 and this session sees ~5-6 s.
+- Next: step 3 (back up and clear node 1's card) should drop telemetry to well under 1 s on SMP.
