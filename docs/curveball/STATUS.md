@@ -250,3 +250,26 @@ is NOT used (it changes comms behaviour during the measurement).
 | F3 | Inbox names `n<src>_<16-bit sid>`, sid starts random per boot, and `s_rename` unlinks the target first | `alfp/src/alfp.c:104,883`, `firmware/app/storage_fatfs.c:122` | on a long-used bridge card a new file can silently overwrite an older received file. Fix: wider/unique names or refuse to overwrite |
 | F4 | `SMP=0` writes the same output name `uf2/csc09_smp_node_N.uf2` as the dual-core build | `firmware_smp/buildglue/build_smp.sh` (`OUT_DIR`, uf2 name) | the documented single-core command silently replaces a committed dual-core image. Fix: include `smp0` in the name |
 | F5 | Node 2's `captures` comms step costs ~0.9-1.1 s (881-1121 ms), including in a run with no visible captures | node 2 `s` (`slowest comms step`), `main_smp.c` captures step | stalls comms on the sender for ~1 s; cause unknown (SD create latency on node 2's card?). Needs a timed breakdown |
+
+---
+
+## Continuation step 1 - fair A/B pair (`docs/curveball/evidence/ab_pair.py`)
+
+Same SD card in node 1, node 2 on committed SMP with PIR covered and not replugged between halves,
+traffic = `c` on node 2 at 10, 30, ..., 110 s (6 captures -> 6 telemetry + 6 image transfers),
+150 s window, then `s` on both. Results: `docs/curveball/evidence/ab_<label>_results.txt`.
+
+### 1a - node 1 FreeRTOS (committed `csc09_node_1.uf2`), 2026-11-11 14:09 - valid run
+
+| Metric | FreeRTOS bridge |
+|---|---|
+| captures queued / `Dual trigger` lines | 6 / 0 |
+| telemetry (1 frag, 27 B) | 6/6 done, 5.6-5.8 s, mean **5.68 s** |
+| image (40-43 frags) | 6/6 done, 8.1-8.4 s, mean **8.30 s**, 14 fragments resent |
+| node 1 rx | 12 files, 12 distinct, 2 with dup > 0; 24 `@ALFP` lines |
+| node 1 wifi `rxerr` / files since boot | 300 / 18 = 16.7 per file |
+| node 2 heap / stacks | 1224 B / 5152, 2264, 7400 B free |
+
+Note for F5: node 2's `slowest comms step` / `longest comms loop` are maxima since node 2's last
+boot, so `captures 881 ms` in a window without captures (3c) can be an earlier capture. F5 still
+stands (~0.9 s per capture), but "even with no captures" was a misreading.

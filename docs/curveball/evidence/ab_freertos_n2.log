@@ -1,0 +1,99 @@
+   6.144 [ENV] Temp: 23.4 C | Hum: 64.8% | Light: 936 | Weather: Cloudy | PIR 0 Sound 1
+  10.016 
+  10.016 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  15.023 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3780012.8 zcr 0.000 mean 103, 80000 samples
+  16.194 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=37 rms=2 zcr=3328 lost=0 feat_us=908765 maxcall_us=3199 model_us=1328
+  16.194 [ENV] Temp: 23.4 C | Hum: 64.8% | Light: 943 | Weather: Cloudy | PIR 0 Sound 1
+  16.194 capture N2-000632: heard INSECT_FROG (37%) -> samples/insect_frog_01.jpg
+  16.194 capture N2-000632 telemetry queued (tel/N2_000632.bin)
+  16.194 capture N2-000632 queued (samples/insect_frog_01.jpg), outbox 2
+  16.194 tx tel/N2_000632.bin size=27 thr=1024 radio=wifi reason=fallback
+  16.194 [ENV] Temp: 23.4 C | Hum: 64.8% | Light: 938 | Weather: Cloudy | PIR 0 Sound 1
+  22.179 tx tel/N2_000632.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 5.6 s
+  22.179 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+  26.157 [ENV] Temp: 23.4 C | Hum: 64.8% | Light: 932 | Weather: Cloudy | PIR 0 Sound 1
+  30.018 
+  30.018 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  30.533 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 2 rounds, 6 resent, 8.3 s
+  35.025 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3780031.8 zcr 0.000 mean 103, 80000 samples
+  35.025 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=42 rms=3 zcr=1689 lost=0 feat_us=909072 maxcall_us=3167 model_us=1172
+  35.025 [ENV] Temp: 23.4 C | Hum: 64.8% | Light: 936 | Weather: Cloudy | PIR 0 Sound 1
+  36.190 capture N2-000633: heard INSECT_FROG (42%) -> samples/insect_frog_00.jpg
+  36.190 capture N2-000633 telemetry queued (tel/N2_000633.bin)
+  36.190 capture N2-000633 queued (samples/insect_frog_00.jpg), outbox 2
+  36.190 tx tel/N2_000633.bin size=27 thr=1024 radio=wifi reason=fallback
+  36.190 [ENV] Temp: 23.4 C | Hum: 64.8% | Light: 936 | Weather: Cloudy | PIR 0 Sound 1
+  42.166 tx tel/N2_000633.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 5.6 s
+  42.166 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  46.178 [ENV] Temp: 23.4 C | Hum: 64.9% | Light: 939 | Weather: Cloudy | PIR 0 Sound 1
+  50.027 
+  50.027 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  50.479 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 8.3 s
+  55.031 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3780857.0 zcr 0.000 mean 103, 80000 samples
+  55.031 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=62 rms=3 zcr=1690 lost=0 feat_us=913102 maxcall_us=3314 model_us=1183
+  55.031 [ENV] Temp: 23.4 C | Hum: 64.9% | Light: 933 | Weather: Cloudy | PIR 0 Sound 1
+  56.198 capture N2-000634: heard INSECT_FROG (62%) -> samples/insect_frog_01.jpg
+  56.198 capture N2-000634 telemetry queued (tel/N2_000634.bin)
+  56.198 capture N2-000634 queued (samples/insect_frog_01.jpg), outbox 2
+  56.198 tx tel/N2_000634.bin size=27 thr=1024 radio=wifi reason=fallback
+  56.198 [ENV] Temp: 23.4 C | Hum: 64.9% | Light: 942 | Weather: Cloudy | PIR 0 Sound 1
+  62.250 tx tel/N2_000634.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 5.7 s
+  62.250 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+  66.197 [ENV] Temp: 23.4 C | Hum: 64.9% | Light: 933 | Weather: Cloudy | PIR 0 Sound 1
+  70.029 
+  70.029 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  70.637 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 2 rounds, 4 resent, 8.3 s
+  75.037 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3780403.2 zcr 0.000 mean 103, 80000 samples
+  75.037 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=52 rms=3 zcr=1712 lost=0 feat_us=912212 maxcall_us=3154 model_us=1395
+  75.037 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 934 | Weather: Cloudy | PIR 0 Sound 1
+  76.204 capture N2-000635: heard INSECT_FROG (52%) -> samples/insect_frog_00.jpg
+  76.204 capture N2-000635 telemetry queued (tel/N2_000635.bin)
+  76.204 capture N2-000635 queued (samples/insect_frog_00.jpg), outbox 2
+  76.204 tx tel/N2_000635.bin size=27 thr=1024 radio=wifi reason=fallback
+  76.204 [ENV] Temp: 23.4 C | Hum: 64.9% | Light: 936 | Weather: Cloudy | PIR 0 Sound 1
+  82.277 tx tel/N2_000635.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 5.7 s
+  82.277 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  86.213 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 936 | Weather: Cloudy | PIR 0 Sound 1
+  90.013 
+  90.013 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  90.740 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 2 resent, 8.4 s
+  95.032 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779870.2 zcr 0.000 mean 103, 80000 samples
+  95.032 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=44 rms=2 zcr=2935 lost=0 feat_us=910252 maxcall_us=3148 model_us=1188
+  95.032 [ENV] Temp: 23.4 C | Hum: 64.9% | Light: 938 | Weather: Cloudy | PIR 0 Sound 1
+  96.188 capture N2-000636: heard INSECT_FROG (44%) -> samples/insect_frog_01.jpg
+  96.188 capture N2-000636 telemetry queued (tel/N2_000636.bin)
+  96.188 capture N2-000636 queued (samples/insect_frog_01.jpg), outbox 2
+  96.188 tx tel/N2_000636.bin size=27 thr=1024 radio=wifi reason=fallback
+  96.223 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 933 | Weather: Cloudy | PIR 0 Sound 1
+ 102.250 tx tel/N2_000636.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 5.7 s
+ 102.250 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+ 106.230 [ENV] Temp: 23.3 C | Hum: 65.0% | Light: 935 | Weather: Cloudy | PIR 0 Sound 1
+ 110.015 
+ 110.015 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+ 110.392 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 8.1 s
+ 115.020 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3779819.5 zcr 0.000 mean 103, 80000 samples
+ 115.020 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=62 rms=3 zcr=1589 lost=0 feat_us=917393 maxcall_us=3320 model_us=1193
+ 115.020 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 937 | Weather: Cloudy | PIR 0 Sound 1
+ 116.199 capture N2-000637: heard INSECT_FROG (62%) -> samples/insect_frog_00.jpg
+ 116.199 capture N2-000637 telemetry queued (tel/N2_000637.bin)
+ 116.199 capture N2-000637 queued (samples/insect_frog_00.jpg), outbox 2
+ 116.199 tx tel/N2_000637.bin size=27 thr=1024 radio=wifi reason=fallback
+ 116.230 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 939 | Weather: Cloudy | PIR 0 Sound 1
+ 122.314 tx tel/N2_000637.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 5.8 s
+ 122.314 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+ 126.245 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 937 | Weather: Cloudy | PIR 0 Sound 1
+ 130.751 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 2 resent, 8.4 s
+ 136.255 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 938 | Weather: Cloudy | PIR 0 Sound 1
+ 146.265 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 940 | Weather: Cloudy | PIR 0 Sound 1
+ 150.019 node 2 | alfp in 136 badcrc 0 | tx ok 18 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+ 150.020   wifi: tx 872 rx 435 delivered 136 relayed 299 dup 0 rxerr 14
+ 150.020   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+ 150.020   dht22 good 453 fail 0 | lora up | wifi up
+ 150.020   bridge last heard on wifi 1297 ms ago
+ 150.020   bridge never heard on lora
+ 150.020   task comms: core 0 prio 10 stack free 5152 of 8192 B
+ 150.020   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+ 150.020   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+ 150.020   longest comms loop 1170 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+ 150.020   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 186 | captures 881 | outbox 291
+ 156.265 [ENV] Temp: 23.4 C | Hum: 65.0% | Light: 944 | Weather: Cloudy | PIR 0 Sound 1
