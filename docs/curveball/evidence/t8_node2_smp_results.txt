@@ -1,0 +1,159 @@
+== key_run t8_node2_smp  2026-11-11 14:32:41  port=/dev/cu.usbmodemMTK3PICO1  55 s
+   keys: 2:s,4:c,12:z,12.2:s,12.8:s,13.4:s,14:s,14.6:s,15.2:s,15.8:s,16.4:s,45:s
+== stats blocks (in order)
+   t=   2.03  capture q full=2  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=0  dht22 fail=0
+   t=  17.06  capture q full=2  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=2  dht22 fail=0
+   t=  17.06  capture q full=2  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=2  dht22 fail=0
+   t=  17.07  capture q full=2  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=2  dht22 fail=0
+   t=  17.08  capture q full=2  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=2  dht22 fail=0
+   t=  17.08  capture q full=2  log dropped=0  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=2  dht22 fail=0
+   t=  17.08  capture q full=2  log dropped=3  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=2  dht22 fail=0
+   t=  17.36  capture q full=2  log dropped=3  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=1  dht22 fail=0
+   t=  45.02  capture q full=2  log dropped=3  usb dropped=0  longest comms loop ms=1194  heap used B=1224  outbox=0  dht22 fail=0
+== key lines
+   2.000 >>> host sent 's'
+   4.002 >>> host sent 'c'
+  12.003 >>> host sent 'z'
+  12.204 >>> host sent 's'
+  12.805 >>> host sent 's'
+  13.404 >>> host sent 's'
+  14.000 >>> host sent 's'
+  14.604 >>> host sent 's'
+  15.205 >>> host sent 's'
+  15.802 >>> host sent 's'
+  16.404 >>> host sent 's'
+  45.000 >>> host sent 's'
+== tx results
+  17.357 tx tel/N2_000664.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.9 s
+  25.968 tx samples/ambient_01.jpg: done via wifi, 41 frags, 1 rounds, 0 resent, 8.6 s
+== full log (without [ENV])
+   2.000 >>> host sent 's'
+   2.031 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   2.031   wifi: tx 2731 rx 1086 delivered 406 relayed 680 dup 0 rxerr 39
+   2.032   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   2.032   dht22 good 1070 fail 0 | lora up | wifi up
+   2.032   bridge last heard on wifi 823 ms ago
+   2.032   bridge never heard on lora
+   2.032   task comms: core 0 prio 10 stack free 5152 of 8192 B
+   2.032   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+   2.032   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+   2.032   longest comms loop 1194 ms | capture q full 2 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+   2.032   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+   4.002 >>> host sent 'c'
+   4.015 
+   4.015 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+   9.025 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3780170.8 zcr 0.000 mean 103, 80000 samples
+   9.025 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=1999 lost=0 feat_us=913790 maxcall_us=3220 model_us=954
+  10.201 capture N2-000664: heard AMBIENT (60%) -> samples/ambient_01.jpg
+  10.201 capture N2-000664 telemetry queued (tel/N2_000664.bin)
+  10.201 capture N2-000664 queued (samples/ambient_01.jpg), outbox 2
+  10.201 tx tel/N2_000664.bin size=27 thr=1024 radio=wifi reason=fallback
+  12.003 >>> host sent 'z'
+  12.204 >>> host sent 's'
+  12.805 >>> host sent 's'
+  13.404 >>> host sent 's'
+  14.000 >>> host sent 's'
+  14.604 >>> host sent 's'
+  15.205 >>> host sent 's'
+  15.802 >>> host sent 's'
+  16.404 >>> host sent 's'
+  17.063 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+  17.063   wifi: tx 2743 rx 1089 delivered 406 relayed 683 dup 0 rxerr 39
+  17.063   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.063   dht22 good 1073 fail 0 | lora up | wifi up
+  17.063   bridge last heard on wifi 2035 ms ago
+  17.063   bridge never heard on lora
+  17.063   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.063   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.063   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.063   longest comms loop 1194 ms | capture q full 2 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  17.063   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+  17.063 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+  17.063   wifi: tx 2745 rx 1089 delivered 406 relayed 683 dup 0 rxerr 39
+  17.063   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.063   dht22 good 1073 fail 0 | lora up | wifi up
+  17.063   bridge last heard on wifi 2623 ms ago
+  17.070   bridge never heard on lora
+  17.070   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.070   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.070   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.070   longest comms loop 1194 ms | capture q full 2 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  17.070   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+  17.070 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+  17.070   wifi: tx 2748 rx 1089 delivered 406 relayed 683 dup 0 rxerr 39
+  17.070   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.070   dht22 good 1074 fail 0 | lora up | wifi up
+  17.070   bridge last heard on wifi 3232 ms ago
+  17.070   bridge never heard on lora
+  17.070   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.070   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.070   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.076   longest comms loop 1194 ms | capture q full 2 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  17.076   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+  17.076 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+  17.076   wifi: tx 2751 rx 1089 delivered 406 relayed 683 dup 0 rxerr 39
+  17.076   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.076   dht22 good 1074 fail 0 | lora up | wifi up
+  17.076   bridge last heard on wifi 3820 ms ago
+  17.076   bridge never heard on lora
+  17.076   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.076   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.076   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.076   longest comms loop 1194 ms | capture q full 2 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  17.076   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+  17.076 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+  17.076   wifi: tx 2754 rx 1089 delivered 406 relayed 683 dup 0 rxerr 39
+  17.082   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.082   dht22 good 1074 fail 0 | lora up | wifi up
+  17.082   bridge last heard on wifi 4431 ms ago
+  17.082   bridge never heard on lora
+  17.082   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.082   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.082   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.082   longest comms loop 1194 ms | capture q full 2 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  17.082   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+  17.082 node 2 | alfp in 406 badcrc 0 | tx ok 54 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+  17.082   wifi: tx 2756 rx 1089 delivered 406 relayed 683 dup 0 rxerr 39
+  17.082   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.082   dht22 good 1074 fail 0 | lora up | wifi up
+  17.082   bridge last heard on wifi 5040 ms ago
+  17.082   bridge never heard on lora
+  17.082   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.357   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.357   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.357   wifi: tx 2756 rx 1089 delivered 406 relayed 683 dup 0 rxerr 39
+  17.357   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.357   dht22 good 1075 fail 0 | lora up | wifi up
+  17.357   bridge last heard on wifi 6843 ms ago
+  17.357   bridge never heard on lora
+  17.357   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.357   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.357   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.357   longest comms loop 1194 ms | capture q full 2 | log dropped 3 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  17.357   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 190 | captures 904 | outbox 291
+  17.357 tx tel/N2_000664.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 6.9 s
+  17.357 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  17.357 node 2 | alfp in 412 badcrc 0 | tx ok 55 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 1
+  17.364   wifi: tx 2757 rx 1096 delivered 412 relayed 683 dup 0 rxerr 41
+  17.364   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  17.364   dht22 good 1075 fail 0 | lora up | wifi up
+  17.364   bridge last heard on wifi 298 ms ago
+  17.364   bridge never heard on lora
+  17.364   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  17.364   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  17.364   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  17.364   longest comms loop 1194 ms | capture q full 2 | log dropped 3 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  17.364   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 195 | captures 904 | outbox 291
+  25.968 tx samples/ambient_01.jpg: done via wifi, 41 frags, 1 rounds, 0 resent, 8.6 s
+  45.000 >>> host sent 's'
+  45.020 node 2 | alfp in 421 badcrc 0 | tx ok 56 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  45.020   wifi: tx 2829 rx 1113 delivered 421 relayed 692 dup 0 rxerr 41
+  45.020   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  45.020   dht22 good 1089 fail 0 | lora up | wifi up
+  45.020   bridge last heard on wifi 1087 ms ago
+  45.020   bridge never heard on lora
+  45.020   task comms: core 0 prio 10 stack free 5152 of 8192 B
+  45.020   task usb_owner: core 0 prio 20 stack free 2264 of 3072 B
+  45.020   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  45.020   longest comms loop 1194 ms | capture q full 2 | log dropped 3 lines | usb dropped 0 lines 0 B | heap used 1224 B
+  45.020   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 195 | captures 904 | outbox 291
