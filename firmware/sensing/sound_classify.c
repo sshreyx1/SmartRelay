@@ -10,7 +10,7 @@ static const uint32_t k_min_conf = SOUND_STAGE2_MIN_CONF;
 
 void sm_predict(const sm_model_t* m, const float* f, uint8_t* label, uint8_t* conf)
 {
-    uint16_t votes[SM_MAX_CLASSES] = {0};
+    uint16_t votes[SM_MAX_CLASSES] = { 0 };
     for (uint32_t t = 0; t < m->n_trees; t++)
     {
         const sm_tree_t* tr = &m->trees[t];

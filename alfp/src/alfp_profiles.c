@@ -38,13 +38,13 @@
 
 static const alfp_profile_t k_profiles[] = {
     /* name   gap               gap_max           poll_to expiry  rounds stalled polls pcopies taildup id */
-    {"lora", ALFP_LORA_GAP_MS, ALFP_LORA_GAP_MS, 1500u, 60000u, 40u, 10u, 30u, 1u, 4u, ALFP_RADIO_LORA},
-    {"wifi", ALFP_WIFI_GAP_MS, ALFP_WIFI_GAP_MS, 200u, 15000u, 40u, 10u, 40u, 1u, 4u, ALFP_RADIO_WIFI},
+    { "lora", ALFP_LORA_GAP_MS, ALFP_LORA_GAP_MS, 1500u, 60000u, 40u, 10u, 30u, 1u, 4u, ALFP_RADIO_LORA },
+    { "wifi", ALFP_WIFI_GAP_MS, ALFP_WIFI_GAP_MS, 200u, 15000u, 40u, 10u, 40u, 1u, 4u, ALFP_RADIO_WIFI },
 };
 
 /* Unknown radio: be conservative (LoRa-like timing). */
-static const alfp_profile_t k_default = {"other", 500u, 500u, 1500u, 60000u, 40u, 10u, 30u, 1u, 4u,
-                                         ALFP_RADIO_UNKNOWN};
+static const alfp_profile_t k_default
+    = { "other", 500u, 500u, 1500u, 60000u, 40u, 10u, 30u, 1u, 4u, ALFP_RADIO_UNKNOWN };
 
 const alfp_profile_t* alfp_profile_for(const alfp_ctx_t* ctx, const mesh_radio_t* radio)
 {
@@ -97,8 +97,7 @@ const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* by_preference, 
 static bool radio_is_fresh(const mesh_radio_t* r, uint8_t bridge_id, uint32_t now_ms, uint32_t fresh_ms)
 {
     uint32_t t = 0;
-    return r != NULL && r->last_heard != NULL && r->last_heard(bridge_id, &t) &&
-           (uint32_t)(now_ms - t) <= fresh_ms;
+    return r != NULL && r->last_heard != NULL && r->last_heard(bridge_id, &t) && (uint32_t)(now_ms - t) <= fresh_ms;
 }
 
 static const mesh_radio_t* radio_named(const mesh_radio_t* const* by_preference, uint8_t n, const char* name)
@@ -114,9 +113,9 @@ static const mesh_radio_t* radio_named(const mesh_radio_t* const* by_preference,
     return NULL;
 }
 
-const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_preference, uint8_t n,
-                                               uint8_t bridge_id, uint32_t now_ms, uint32_t fresh_ms,
-                                               uint32_t size_bytes, uint32_t size_threshold)
+const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_preference, uint8_t n, uint8_t bridge_id,
+                                               uint32_t now_ms, uint32_t fresh_ms, uint32_t size_bytes,
+                                               uint32_t size_threshold)
 {
     const mesh_radio_t* lora = radio_named(by_preference, n, "lora");
     const mesh_radio_t* wifi = radio_named(by_preference, n, "wifi");
@@ -136,8 +135,8 @@ const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_pre
 bool alfp_radio_was_size_preferred(const mesh_radio_t* const* by_preference, uint8_t n, uint32_t size_bytes,
                                    uint32_t size_threshold, const mesh_radio_t* chosen)
 {
-    const mesh_radio_t* preferred = (size_bytes < size_threshold) ? radio_named(by_preference, n, "lora")
-                                                                   : radio_named(by_preference, n, "wifi");
+    const mesh_radio_t* preferred
+        = (size_bytes < size_threshold) ? radio_named(by_preference, n, "lora") : radio_named(by_preference, n, "wifi");
     return chosen != NULL && preferred != NULL && chosen == preferred;
 }
 

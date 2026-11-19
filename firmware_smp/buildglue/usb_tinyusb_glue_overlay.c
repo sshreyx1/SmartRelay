@@ -32,7 +32,7 @@
 
 uint32_t tusb_time_millis_api(void)
 {
-    volatile uint32_t const *timer_raw_low = (volatile uint32_t const *)0x40054028u;
+    volatile uint32_t const* timer_raw_low = (volatile uint32_t const*)0x40054028u;
     return *timer_raw_low / 1000U;
 }
 
@@ -143,9 +143,7 @@ uint32_t tm_tusb_diag_bus_seen(void)
 {
     /* Either the host has driven a bus reset, or the SIE reports a
        connection.  Both indicate the host is actually talking to us. */
-    return (usb_hw->sie_status &
-            (USB_SIE_STATUS_BUS_RESET_BITS | USB_SIE_STATUS_CONNECTED_BITS))
-           ? 1u : 0u;
+    return (usb_hw->sie_status & (USB_SIE_STATUS_BUS_RESET_BITS | USB_SIE_STATUS_CONNECTED_BITS)) ? 1u : 0u;
 }
 
 uint32_t tm_tusb_diag_inte(void)

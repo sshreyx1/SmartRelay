@@ -21,7 +21,9 @@ static int off_recv(uint8_t* s, uint8_t* b, uint16_t c)
     (void)c;
     return MESH_RECV_NONE;
 }
-static void off_poll(void) {}
+static void off_poll(void)
+{
+}
 static uint16_t off_maxp_lora(void)
 {
     return 250;
@@ -42,7 +44,7 @@ static bool off_busy(void)
 }
 static void off_stats(mesh_stats_t* o)
 {
-    *o = (mesh_stats_t){0};
+    *o = (mesh_stats_t) { 0 };
 }
 static void off_drop(float r)
 {
@@ -51,8 +53,8 @@ static void off_drop(float r)
 
 /* used when LoRa is not linked OR its init failed: a dead LR1121 must never be polled, because
  * the driver waits on its BUSY pin */
-static const mesh_radio_t lora_offline = {"lora",    off_send, off_recv,  off_poll, off_maxp_lora,
-                                          off_heard, off_busy, off_stats, off_drop};
+static const mesh_radio_t lora_offline
+    = { "lora", off_send, off_recv, off_poll, off_maxp_lora, off_heard, off_busy, off_stats, off_drop };
 
 #ifdef HAVE_LORA_MESH
 #include "lora_mesh.h" /* Mridula: exports lora_mesh_radio, lora_mesh_init, lora_mesh_set_heartbeat */
@@ -66,8 +68,8 @@ static const mesh_radio_t lora_offline = {"lora",    off_send, off_recv,  off_po
 #include "wifi_mesh_config.h"
 #include "wst_link.h"
 #else
-static const mesh_radio_t wifi_mesh = {"wifi",    off_send, off_recv,  off_poll, off_maxp_wifi,
-                                       off_heard, off_busy, off_stats, off_drop};
+static const mesh_radio_t wifi_mesh
+    = { "wifi", off_send, off_recv, off_poll, off_maxp_wifi, off_heard, off_busy, off_stats, off_drop };
 #endif
 
 #include "board.h"
@@ -106,8 +108,8 @@ static void check_wst(uint8_t node_id)
             owner = n;
         }
     }
-    printf("wifi: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X = WST-%d\n", mac[0], mac[1], mac[2], mac[3], mac[4],
-           mac[5], owner);
+    printf("wifi: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X = WST-%d\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+           owner);
     if (owner == 0)
     {
         printf("wifi: WARNING this ESP-01 is not in wifi_mesh_config.h, other nodes' topology filter will drop it\n");

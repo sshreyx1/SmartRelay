@@ -59,12 +59,13 @@ cp "$SCRIPT_DIR/sources.mk" "$BUILD_MAKE_DIR/sources.mk"
 
 # Round 2 review fix A1: 1 ms kernel tick (brief section 3.5); config.h defaults to 10 ms.
 CONFIG_H="$KERNEL_DIR/config/config.h"
-if ! grep -q '^#define CNF_TIMER_PERIOD\s\+10\b' "$CONFIG_H"; then
+if ! grep -Eq '^#define CNF_TIMER_PERIOD[[:space:]]+10([^0-9]|$)' "$CONFIG_H"; then
     echo "error: $CONFIG_H's CNF_TIMER_PERIOD line did not match the expected '10' - the" >&2
     echo "       submodule may have moved; update this script's sed pattern by hand." >&2
     exit 1
 fi
-sed -i 's/^#define CNF_TIMER_PERIOD\s\+10\b/#define CNF_TIMER_PERIOD\t1/' "$CONFIG_H"
+# perl -pi, not sed -i: BSD sed (macOS) and GNU sed disagree on -i and on \s / \+.
+perl -pi -e 's/^#define CNF_TIMER_PERIOD\s+10\b/#define CNF_TIMER_PERIOD\t1/' "$CONFIG_H"
 
 # Link recipe (makefile:72-75): add sources.mk's SmartRelay archive + section script after the
 # kernel objects, libm, and newlib's no-OS syscall stubs; and make the image depend on the
@@ -76,13 +77,20 @@ if ! grep -q '^\$(EXE_FILE).elf: \$(OBJS) \$(E2U)$' "$MAKEFILE" || ! grep -q '\$
     echo "       submodule may have moved; update this script by hand rather than skipping it." >&2
     exit 1
 fi
-sed -i 's/^\$(EXE_FILE).elf: \$(OBJS) \$(E2U)$/$(EXE_FILE).elf: $(OBJS) $(E2U) $(SMARTRELAY_LINK_DEPS)/' "$MAKEFILE"
-sed -i 's/\$(OBJS)$/$(OBJS) $(SMARTRELAY_LINK_EXTRA) -lm --specs=nosys.specs/' "$MAKEFILE"
+perl -pi -e 's/^\$\(EXE_FILE\)\.elf: \$\(OBJS\) \$\(E2U\)$/\$(EXE_FILE).elf: \$(OBJS) \$(E2U) \$(SMARTRELAY_LINK_DEPS)/' "$MAKEFILE"
+perl -pi -e 's/\$\(OBJS\)$/\$(OBJS) \$(SMARTRELAY_LINK_EXTRA) -lm --specs=nosys.specs/' "$MAKEFILE"
 
 # Round 2 review fix A2: USB-CDC console input (see the overlay's header comment).
 cp "$SCRIPT_DIR/usb_tinyusb_glue_overlay.c" "$USB_DIR/usb_tinyusb_glue.c"
 # Generic Pico SDK IRQ API on the kernel's vector table (see the overlay's header comment).
 cp "$SCRIPT_DIR/usb_sdk_compat_overlay.c" "$USB_DIR/usb_sdk_compat.c"
+
+# The kernel's subdir.mk rules write each object next to a mirror of its source path but never
+# create those directories (a fresh clone only has the ones holding a tracked subdir.mk), so make
+# them all first. Empty directories are invisible to git: the submodule stays clean.
+(cd "$KERNEL_DIR" && find lib kernel device app_program -type d) | while IFS= read -r d; do
+    mkdir -p "$BUILD_MAKE_DIR/mtkernel_3/$d"
+done
 
 mkdir -p "$OUT_DIR"
 EXE="mtk3pico_smp${SMP}_${CONSOLE}"
@@ -105,6 +113,6 @@ for N in $NODE_IDS; do
         fi
         echo "(make failed after linking, most likely the elf2uf2.exe step; continuing with elf2uf2.py)"
     fi
-    "${PYTHON:-python}" "$SCRIPT_DIR/elf2uf2.py" "$BUILD_MAKE_DIR/$EXE.elf" "$OUT_DIR/csc09_smp_node_$N.uf2"
+    "${PYTHON:-python3}" "$SCRIPT_DIR/elf2uf2.py" "$BUILD_MAKE_DIR/$EXE.elf" "$OUT_DIR/csc09_smp_node_$N.uf2"
     echo "=== node $N: $OUT_DIR/csc09_smp_node_$N.uf2"
 done

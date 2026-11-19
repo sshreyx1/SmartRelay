@@ -26,13 +26,13 @@
 #include <tm/tmonitor.h> /* tm_sprintf/tm_printf: the monitor library, not a kernel tk_* call -- same as main_smp.c */
 
 /* ---- cross-task signalling (brief 3.3: event flags, not volatile bools) ------------------- */
-#define EVT_START_CONCURRENCY (1u << 0)  /* core0 -> core1: start spinning (check 2 phase B) */
-#define EVT_CONCURRENCY_DONE (1u << 1)   /* core1 -> core0 */
-#define EVT_START_MSGQ_STRESS (1u << 2)  /* core0 -> core1: start producing (check 4) */
-#define EVT_MSGQ_STRESS_DONE (1u << 3)   /* core1 -> core0 */
-#define EVT_START_ATOMIC (1u << 4)       /* core0 -> core1: start adding (check 6) */
-#define EVT_ATOMIC_DONE (1u << 5)        /* core1 -> core0 */
-#define EVT_FLAGTEST_BIT_A (1u << 6)     /* check 5: two different bits set together */
+#define EVT_START_CONCURRENCY (1u << 0) /* core0 -> core1: start spinning (check 2 phase B) */
+#define EVT_CONCURRENCY_DONE (1u << 1)  /* core1 -> core0 */
+#define EVT_START_MSGQ_STRESS (1u << 2) /* core0 -> core1: start producing (check 4) */
+#define EVT_MSGQ_STRESS_DONE (1u << 3)  /* core1 -> core0 */
+#define EVT_START_ATOMIC (1u << 4)      /* core0 -> core1: start adding (check 6) */
+#define EVT_ATOMIC_DONE (1u << 5)       /* core1 -> core0 */
+#define EVT_FLAGTEST_BIT_A (1u << 6)    /* check 5: two different bits set together */
 #define EVT_FLAGTEST_BIT_B (1u << 7)
 
 static rtos_id_t g_flags = -1;
@@ -123,9 +123,8 @@ static void core1_task(void* arg)
     for (;;)
     {
         uint32_t bits = 0;
-        rtos_flags_wait_any(g_flags,
-                            EVT_START_CONCURRENCY | EVT_START_MSGQ_STRESS | EVT_START_ATOMIC,
-                            &bits, RTOS_WAIT_FOREVER);
+        rtos_flags_wait_any(g_flags, EVT_START_CONCURRENCY | EVT_START_MSGQ_STRESS | EVT_START_ATOMIC, &bits,
+                            RTOS_WAIT_FOREVER);
 
         if (bits & EVT_START_CONCURRENCY)
         {
@@ -137,7 +136,7 @@ static void core1_task(void* arg)
         {
             for (uint32_t seq = 0; seq < STRESS_COUNT; seq++)
             {
-                stress_msg_t m = {seq, seq * 2654435761u};
+                stress_msg_t m = { seq, seq * 2654435761u };
                 while (!rtos_msgq_send_nowait(g_stress_q, &m, sizeof(m)))
                 {
                     /* queue full: retry rather than drop -- "nothing lost" is a contract on the
@@ -165,8 +164,8 @@ static void check1_core_ids(void)
     char line[LOG_LINE_MAX];
     unsigned c0 = rtos_core_id();
     bool ok = (c0 == RTOS_CORE_0);
-    tm_sprintf((UB*)line, (UB*)"%s check1_core_ids: core0_task on core %u (want %u)",
-             ok ? "PASS" : "FAIL", c0, (unsigned)RTOS_CORE_0);
+    tm_sprintf((UB*)line, (UB*)"%s check1_core_ids: core0_task on core %u (want %u)", ok ? "PASS" : "FAIL", c0,
+               (unsigned)RTOS_CORE_0);
     log_write_line(line);
     /* core1_task already logged its own core id at startup (see above); this just confirms
      * core0_task's own side, since a task can only read rtos_core_id() about itself. */
@@ -188,10 +187,11 @@ static void check2_concurrency(void)
      * not one core time-sliced), and core1 made real, comparable progress. Not a speed-up claim,
      * just "both cores were actually counting during the same 1 s window". */
     bool ok = both1 > 0 && both0 > solo0 / 2u; /* generous: just rule out "core1 starved core0" */
-    tm_sprintf((UB*)line, (UB*)"%s check2_concurrency: solo core0=%lu both core0=%lu both core1=%lu ratio(both1/solo0)=%lu.%02lu",
-             ok ? "PASS" : "FAIL", (unsigned long)solo0, (unsigned long)both0, (unsigned long)both1,
-             (unsigned long)(both1 * 100u / (solo0 ? solo0 : 1u) / 100u),
-             (unsigned long)(both1 * 100u / (solo0 ? solo0 : 1u) % 100u));
+    tm_sprintf((UB*)line,
+               (UB*)"%s check2_concurrency: solo core0=%lu both core0=%lu both core1=%lu ratio(both1/solo0)=%lu.%02lu",
+               ok ? "PASS" : "FAIL", (unsigned long)solo0, (unsigned long)both0, (unsigned long)both1,
+               (unsigned long)(both1 * 100u / (solo0 ? solo0 : 1u) / 100u),
+               (unsigned long)(both1 * 100u / (solo0 ? solo0 : 1u) % 100u));
     log_write_line(line);
 }
 
@@ -204,15 +204,15 @@ static void check3_tick_accuracy(void)
     /* Millisecond-resolution clock measuring millisecond delays (see file header): PASS means
      * "close to 1 ms / 2 ms", not "exactly". A CNF_TIMER_PERIOD=10 misconfiguration (round 2 A1)
      * would show up here as min/mean/max all sitting near 10, which is the point of this check. */
-    bool ok1 = d1.max_ms <= 3u;    /* 1 ms requested: allow slack for ms-quantization + scheduling */
-    bool ok2 = d2.max_ms <= 4u;    /* 2 ms requested */
+    bool ok1 = d1.max_ms <= 3u; /* 1 ms requested: allow slack for ms-quantization + scheduling */
+    bool ok2 = d2.max_ms <= 4u; /* 2 ms requested */
     tm_sprintf((UB*)line, (UB*)"%s check3_tick_1ms: min=%lu mean=%lu.%02lu max=%lu (n=%lu, ms resolution)",
-             ok1 ? "PASS" : "FAIL", (unsigned long)d1.min_ms, (unsigned long)(d1.sum_ms / d1.n),
-             (unsigned long)(d1.sum_ms * 100u / d1.n % 100u), (unsigned long)d1.max_ms, (unsigned long)d1.n);
+               ok1 ? "PASS" : "FAIL", (unsigned long)d1.min_ms, (unsigned long)(d1.sum_ms / d1.n),
+               (unsigned long)(d1.sum_ms * 100u / d1.n % 100u), (unsigned long)d1.max_ms, (unsigned long)d1.n);
     log_write_line(line);
     tm_sprintf((UB*)line, (UB*)"%s check3_tick_2ms: min=%lu mean=%lu.%02lu max=%lu (n=%lu, ms resolution)",
-             ok2 ? "PASS" : "FAIL", (unsigned long)d2.min_ms, (unsigned long)(d2.sum_ms / d2.n),
-             (unsigned long)(d2.sum_ms * 100u / d2.n % 100u), (unsigned long)d2.max_ms, (unsigned long)d2.n);
+               ok2 ? "PASS" : "FAIL", (unsigned long)d2.min_ms, (unsigned long)(d2.sum_ms / d2.n),
+               (unsigned long)(d2.sum_ms * 100u / d2.n % 100u), (unsigned long)d2.max_ms, (unsigned long)d2.n);
     log_write_line(line);
 }
 
@@ -255,20 +255,19 @@ static void check4_msgq_stress(void)
 
     bool ok = g_stress_lost == 0 && g_stress_reordered == 0 && g_stress_bad_checksum == 0;
     tm_sprintf((UB*)line, (UB*)"%s check4_msgq_stress: received=%lu/%lu lost=%lu reordered=%lu bad_checksum=%lu",
-             ok ? "PASS" : "FAIL", (unsigned long)g_stress_received, (unsigned long)STRESS_COUNT,
-             (unsigned long)g_stress_lost, (unsigned long)g_stress_reordered,
-             (unsigned long)g_stress_bad_checksum);
+               ok ? "PASS" : "FAIL", (unsigned long)g_stress_received, (unsigned long)STRESS_COUNT,
+               (unsigned long)g_stress_lost, (unsigned long)g_stress_reordered, (unsigned long)g_stress_bad_checksum);
     log_write_line(line);
 
     /* Full-queue case, same shape as main_smp.c's 4-deep capture queue: the 5th nowait send into
      * an otherwise-empty, never-drained queue must be refused, not block and not silently drop
      * something already queued. */
     uint32_t v = 0;
-    bool ok4 = rtos_msgq_send_nowait(g_capq, &v, sizeof(v)) && rtos_msgq_send_nowait(g_capq, &v, sizeof(v)) &&
-              rtos_msgq_send_nowait(g_capq, &v, sizeof(v)) && rtos_msgq_send_nowait(g_capq, &v, sizeof(v)) &&
-              !rtos_msgq_send_nowait(g_capq, &v, sizeof(v)); /* 5th must be refused */
+    bool ok4 = rtos_msgq_send_nowait(g_capq, &v, sizeof(v)) && rtos_msgq_send_nowait(g_capq, &v, sizeof(v))
+        && rtos_msgq_send_nowait(g_capq, &v, sizeof(v)) && rtos_msgq_send_nowait(g_capq, &v, sizeof(v))
+        && !rtos_msgq_send_nowait(g_capq, &v, sizeof(v)); /* 5th must be refused */
     tm_sprintf((UB*)line, (UB*)"%s check4_capqueue_full: depth=%u, 5th send %s", ok4 ? "PASS" : "FAIL",
-             (unsigned)CAPQ_DEPTH, ok4 ? "correctly refused" : "NOT refused (bug)");
+               (unsigned)CAPQ_DEPTH, ok4 ? "correctly refused" : "NOT refused (bug)");
     log_write_line(line);
     while (rtos_msgq_recv(g_capq, &v, sizeof(v), RTOS_NO_WAIT))
     {
@@ -285,9 +284,8 @@ static void check4_msgq_stress(void)
     }
     uint32_t dropped_after = log_dropped_count();
     bool ok_ring = dropped_after > dropped_before;
-    tm_sprintf((UB*)line, (UB*)"%s check4_log_ring_capacity: dropped %lu -> %lu (rose: %s)",
-             ok_ring ? "PASS" : "FAIL", (unsigned long)dropped_before, (unsigned long)dropped_after,
-             ok_ring ? "yes" : "no");
+    tm_sprintf((UB*)line, (UB*)"%s check4_log_ring_capacity: dropped %lu -> %lu (rose: %s)", ok_ring ? "PASS" : "FAIL",
+               (unsigned long)dropped_before, (unsigned long)dropped_after, ok_ring ? "yes" : "no");
     log_write_line(line);
 }
 
@@ -304,7 +302,7 @@ static void check5_event_flags(void)
     bool got_b = rtos_flags_wait_any(g_flags, EVT_FLAGTEST_BIT_B, &bits2, 1000) && (bits2 & EVT_FLAGTEST_BIT_B) != 0;
     bool ok = got_a && got_b;
     tm_sprintf((UB*)line, (UB*)"%s check5_event_flags: bit A %s, bit B %s (not lost when A was waited on alone)",
-             ok ? "PASS" : "FAIL", got_a ? "seen" : "LOST", got_b ? "seen" : "LOST");
+               ok ? "PASS" : "FAIL", got_a ? "seen" : "LOST", got_b ? "seen" : "LOST");
     log_write_line(line);
 }
 
@@ -322,8 +320,7 @@ static void check6_atomic_counters(void)
     uint32_t want = ATOMIC_ITERS * 2u;
     bool ok = g_atomic_counter == want;
     tm_sprintf((UB*)line, (UB*)"%s check6_atomic_counters: got %lu want %lu (both cores, %lu each)",
-             ok ? "PASS" : "FAIL", (unsigned long)g_atomic_counter, (unsigned long)want,
-             (unsigned long)ATOMIC_ITERS);
+               ok ? "PASS" : "FAIL", (unsigned long)g_atomic_counter, (unsigned long)want, (unsigned long)ATOMIC_ITERS);
     log_write_line(line);
 }
 
@@ -354,8 +351,8 @@ static void check7_log_ring_stall(void)
     }
     bool ok = dropped_after > dropped_before && g_log_stall_longest_loop_ms < 100u;
     tm_sprintf((UB*)line, (UB*)"%s check7_log_ring_stall: dropped %lu -> %lu over 5 s, longest single loop %lu ms",
-             ok ? "PASS" : "FAIL", (unsigned long)dropped_before, (unsigned long)dropped_after,
-             (unsigned long)g_log_stall_longest_loop_ms);
+               ok ? "PASS" : "FAIL", (unsigned long)dropped_before, (unsigned long)dropped_after,
+               (unsigned long)g_log_stall_longest_loop_ms);
     log_write_line(line);
 }
 
@@ -369,7 +366,7 @@ static void check8_stack_high_water(void)
      * for a human to judge; still prints FAIL if a task is already within 10% of its stack. */
     bool ok = free0 > 409u && free1 > 409u;
     tm_sprintf((UB*)line, (UB*)"%s check8_stack_high_water: core0_task %lu B free, core1_task %lu B free",
-             ok ? "PASS" : "FAIL", (unsigned long)free0, (unsigned long)free1);
+               ok ? "PASS" : "FAIL", (unsigned long)free0, (unsigned long)free1);
     log_write_line(line);
 }
 
@@ -377,8 +374,7 @@ static void print_stats(void)
 {
     char line[LOG_LINE_MAX];
     tm_sprintf((UB*)line, (UB*)"[stats] atomic_counter=%lu log_dropped=%lu stress_received=%lu",
-             (unsigned long)g_atomic_counter, (unsigned long)log_dropped_count(),
-             (unsigned long)g_stress_received);
+               (unsigned long)g_atomic_counter, (unsigned long)log_dropped_count(), (unsigned long)g_stress_received);
     log_write_line(line);
 }
 

@@ -23,12 +23,12 @@
 
 typedef struct
 {
-    const int8_t* feat;   /* per internal node: feature index */
-    const float* thr;     /* go left if f[feat] <= thr */
-    const int16_t* left;  /* >= 0: internal node; < 0: leaf -(child + 1) */
+    const int8_t* feat;  /* per internal node: feature index */
+    const float* thr;    /* go left if f[feat] <= thr */
+    const int16_t* left; /* >= 0: internal node; < 0: leaf -(child + 1) */
     const int16_t* right;
-    const uint8_t* leaf;  /* n_leaves x n_classes, percent */
-    int16_t root;         /* 0, or a leaf code if the whole tree is one leaf */
+    const uint8_t* leaf; /* n_leaves x n_classes, percent */
+    int16_t root;        /* 0, or a leaf code if the whole tree is one leaf */
 } sm_tree_t;
 
 typedef struct

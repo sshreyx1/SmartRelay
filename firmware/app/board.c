@@ -8,7 +8,7 @@
 
 void board_spi1_idle(void)
 {
-    const uint pins[2] = {BOARD_LORA_CS_GPIO, BOARD_SD_CS_GPIO};
+    const uint pins[2] = { BOARD_LORA_CS_GPIO, BOARD_SD_CS_GPIO };
     for (int i = 0; i < 2; i++)
     {
         gpio_init(pins[i]);

@@ -66,8 +66,8 @@ static inline bool sound_class_valid(uint8_t id)
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
         return true;
-    default:
-        return false;
+        default:
+            return false;
     }
 }
 
@@ -76,13 +76,13 @@ static inline const char* sound_class_name(uint8_t id)
 {
     switch (id)
     {
-#define SC_CASE(id, name, group, kind, prefix) \
-    case id:                                   \
+#define SC_CASE(id, name, group, kind, prefix)                                                                         \
+    case id:                                                                                                           \
         return #name;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
-    default:
-        return id == SC_UNKNOWN ? "UNKNOWN" : "INVALID";
+        default:
+            return id == SC_UNKNOWN ? "UNKNOWN" : "INVALID";
     }
 }
 
@@ -91,13 +91,13 @@ static inline uint8_t sound_class_group(uint8_t id)
 {
     switch (id)
     {
-#define SC_CASE(id, name, group, kind, prefix) \
-    case id:                                   \
+#define SC_CASE(id, name, group, kind, prefix)                                                                         \
+    case id:                                                                                                           \
         return group;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
-    default:
-        return SC_UNKNOWN;
+        default:
+            return SC_UNKNOWN;
     }
 }
 
@@ -105,13 +105,13 @@ static inline uint8_t sound_class_kind(uint8_t id)
 {
     switch (id)
     {
-#define SC_CASE(id, name, group, kind, prefix) \
-    case id:                                   \
+#define SC_CASE(id, name, group, kind, prefix)                                                                         \
+    case id:                                                                                                           \
         return kind;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
-    default:
-        return SC_UNKNOWN;
+        default:
+            return SC_UNKNOWN;
     }
 }
 
@@ -120,13 +120,13 @@ static inline const char* sound_class_prefix(uint8_t id)
 {
     switch (id)
     {
-#define SC_CASE(id, name, group, kind, prefix) \
-    case id:                                   \
+#define SC_CASE(id, name, group, kind, prefix)                                                                         \
+    case id:                                                                                                           \
         return prefix;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
-    default:
-        return 0;
+        default:
+            return 0;
     }
 }
 

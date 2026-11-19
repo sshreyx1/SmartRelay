@@ -27,7 +27,7 @@ static sf_t s_sf; /* 1.9 kB: static, not on the 1024-word sensors task stack */
 static const char* s_legacy_label = "";
 #endif
 static sensing_sound_t s_sound;
-static sensing_env_t s_env = {.weather = -1};
+static sensing_env_t s_env = { .weather = -1 };
 static uint32_t s_last_dht_try, s_last_dht_good;
 static bool s_have_dht;
 static uint32_t s_cooldown_until;
@@ -43,7 +43,7 @@ static void update_weather(uint32_t now_ms)
     s_env.dht_ok = s_have_dht && (now_ms - s_last_dht_good) < SENSING_DHT_STALE_MS;
     if (s_env.dht_ok)
     {
-        float f[3] = {s_env.temp_c, s_env.hum_pct, (float)s_env.light};
+        float f[3] = { s_env.temp_c, s_env.hum_pct, (float)s_env.light };
         s_env.weather = weather_predict(f);
     }
     else
@@ -136,7 +136,7 @@ static int16_t to_x10_i16(float v)
 bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
 {
     sensing_sound_t* r = &s_sound;
-    *r = (sensing_sound_t){.ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN};
+    *r = (sensing_sound_t) { .ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN };
     if (!audio_capture(seconds, s_h.wait_ms, audio, &r->lost))
     {
         audio->samples = 0;
@@ -164,7 +164,7 @@ static uint16_t to_u16_meta(float v)
 bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
 {
     sensing_sound_t* r = &s_sound;
-    *r = (sensing_sound_t){.ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN};
+    *r = (sensing_sound_t) { .ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN };
     audio_timing_t tm;
     if (!audio_capture_sf(seconds, s_h.wait_ms, audio, &r->lost, &s_sf, &tm))
     {
@@ -209,8 +209,8 @@ void sensing_log_sound(void)
     return;
 #endif
     printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%lu feat_us=%lu maxcall_us=%lu model_us=%lu\n",
-           sound_class_name(sound_class_group(r->label_id)), sound_class_name(r->label_id), r->label_id, r->conf, r->rms,
-           r->zcr_per_s, (unsigned long)r->lost, (unsigned long)r->feat_us, (unsigned long)r->maxcall_us,
+           sound_class_name(sound_class_group(r->label_id)), sound_class_name(r->label_id), r->label_id, r->conf,
+           r->rms, r->zcr_per_s, (unsigned long)r->lost, (unsigned long)r->feat_us, (unsigned long)r->maxcall_us,
            (unsigned long)r->model_us);
     const uint32_t budget_us = AUDIO_SECONDS * 1000000u / 4u; /* 25% of the recording */
     if (r->feat_us + r->model_us > budget_us)

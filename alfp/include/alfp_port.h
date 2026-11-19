@@ -16,7 +16,7 @@ typedef struct alfp_storage_s
 {
     void* ctx;
     int (*open_read)(void* ctx, const char* path);
-    int (*open_write)(void* ctx, const char* path); /* create or truncate */
+    int (*open_write)(void* ctx, const char* path);                                       /* create or truncate */
     int (*read_at)(void* ctx, int h, uint32_t offset, uint8_t* buf, uint16_t len);        /* bytes read */
     int (*write_at)(void* ctx, int h, uint32_t offset, const uint8_t* buf, uint16_t len); /* bytes written */
     int32_t (*size)(void* ctx, int h);
@@ -32,8 +32,8 @@ typedef struct alfp_storage_s
 typedef struct alfp_platform_s
 {
     void* ctx;
-    uint32_t (*now_ms)(void* ctx);  /* ms since boot, wraps after ~49 days (handled) */
-    uint32_t (*rand32)(void* ctx);  /* only used for session ids and jitter */
+    uint32_t (*now_ms)(void* ctx);           /* ms since boot, wraps after ~49 days (handled) */
+    uint32_t (*rand32)(void* ctx);           /* only used for session ids and jitter */
     void (*log)(void* ctx, const char* msg); /* may be NULL */
 } alfp_platform_t;
 

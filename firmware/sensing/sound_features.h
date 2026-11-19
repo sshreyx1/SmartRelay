@@ -47,12 +47,12 @@
 typedef struct
 {
     uint16_t frame[SF_FRAME];
-    uint32_t fill;              /* samples in frame[] */
-    int16_t re[SF_FRAME];       /* FFT scratch, here so it is not on the caller's stack */
+    uint32_t fill;        /* samples in frame[] */
+    int16_t re[SF_FRAME]; /* FFT scratch, here so it is not on the caller's stack */
     int16_t im[SF_FRAME];
     uint32_t n_frames;
-    uint32_t n_samples;         /* every sample added, including a last partial frame */
-    uint64_t sum, sum_sq;       /* raw samples, for the DC-corrected RMS */
+    uint32_t n_samples;   /* every sample added, including a last partial frame */
+    uint64_t sum, sum_sq; /* raw samples, for the DC-corrected RMS */
     double band_mean[SF_N_BANDS], band_m2[SF_N_BANDS];
     double cen_mean, cen_m2, zcr_mean, zcr_m2, loud_mean, loud_m2;
     float loud_min, loud_max;

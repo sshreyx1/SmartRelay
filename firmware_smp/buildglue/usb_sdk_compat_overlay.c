@@ -24,24 +24,25 @@
 #include "hardware/irq.h"
 
 typedef void (*mtk_fp_t)();
-typedef struct {
+typedef struct
+{
     uint32_t intatr;
     mtk_fp_t inthdr;
 } mtk_dint_t;
 
-extern int32_t tk_def_int(uint32_t intno, const mtk_dint_t *definition);
+extern int32_t tk_def_int(uint32_t intno, const mtk_dint_t* definition);
 extern int32_t tk_wup_tsk(int32_t tskid);
 
 /* Read by usb_console.c / usb_tinyusb_glue.c, unchanged from the vendored file. */
 volatile int32_t tm_usb_service_tskid;
 volatile uint32_t tm_usb_irq_count;
-volatile int32_t  tm_usb_def_int_ercd = 1;
+volatile int32_t tm_usb_def_int_ercd = 1;
 volatile uint32_t tm_usb_nvic_enabled;
 
 #define MTK_TA_HLNG 1U
-#define NVIC_ISER0 (*(volatile uint32_t *)0xe000e100u)
-#define NVIC_ICER0 (*(volatile uint32_t *)0xe000e180u)
-#define NVIC_IPR0 ((volatile uint32_t *)0xe000e400u)
+#define NVIC_ISER0 (*(volatile uint32_t*)0xe000e100u)
+#define NVIC_ICER0 (*(volatile uint32_t*)0xe000e180u)
+#define NVIC_IPR0 ((volatile uint32_t*)0xe000e400u)
 
 #define IRQ_COUNT 32u
 #define IRQ_MAX_HANDLERS 4u
@@ -54,19 +55,24 @@ static irq_handler_t s_handlers[IRQ_COUNT][IRQ_MAX_HANDLERS];
  * enabled on the core that installed it, so the table needs no lock here. */
 static void irq_dispatch(uint32_t intno)
 {
-    if (intno >= IRQ_COUNT) {
+    if (intno >= IRQ_COUNT)
+    {
         return;
     }
-    if (intno == IRQ_USBCTRL) {
+    if (intno == IRQ_USBCTRL)
+    {
         tm_usb_irq_count++;
     }
-    for (uint32_t i = 0; i < IRQ_MAX_HANDLERS; i++) {
+    for (uint32_t i = 0; i < IRQ_MAX_HANDLERS; i++)
+    {
         irq_handler_t h = s_handlers[intno][i];
-        if (h != NULL) {
+        if (h != NULL)
+        {
             h();
         }
     }
-    if (intno == IRQ_USBCTRL && tm_usb_service_tskid > 0) {
+    if (intno == IRQ_USBCTRL && tm_usb_service_tskid > 0)
+    {
         /* Same as the vendored file: wake the USB service task now, not on the next tick. */
         (void)tk_wup_tsk(tm_usb_service_tskid);
     }
@@ -74,30 +80,40 @@ static void irq_dispatch(uint32_t intno)
 
 static void install(uint num, irq_handler_t handler, bool exclusive)
 {
-    if (num >= IRQ_COUNT || handler == NULL) {
+    if (num >= IRQ_COUNT || handler == NULL)
+    {
         return;
     }
     uint32_t was_enabled = (NVIC_ISER0 >> num) & 1u;
     NVIC_ICER0 = 1UL << num;
-    if (exclusive) {
-        for (uint32_t i = 0; i < IRQ_MAX_HANDLERS; i++) {
+    if (exclusive)
+    {
+        for (uint32_t i = 0; i < IRQ_MAX_HANDLERS; i++)
+        {
             s_handlers[num][i] = NULL;
         }
         s_handlers[num][0] = handler;
-    } else {
+    }
+    else
+    {
         bool placed = false;
-        for (uint32_t i = 0; i < IRQ_MAX_HANDLERS && !placed; i++) {
-            if (s_handlers[num][i] == handler) {
+        for (uint32_t i = 0; i < IRQ_MAX_HANDLERS && !placed; i++)
+        {
+            if (s_handlers[num][i] == handler)
+            {
                 placed = true;
             }
         }
-        for (uint32_t i = 0; i < IRQ_MAX_HANDLERS && !placed; i++) {
-            if (s_handlers[num][i] == NULL) {
+        for (uint32_t i = 0; i < IRQ_MAX_HANDLERS && !placed; i++)
+        {
+            if (s_handlers[num][i] == NULL)
+            {
                 s_handlers[num][i] = handler;
                 placed = true;
             }
         }
-        if (!placed) {
+        if (!placed)
+        {
             panic("irq %u: handler table full", num);
         }
     }
@@ -105,10 +121,12 @@ static void install(uint num, irq_handler_t handler, bool exclusive)
     dint.intatr = MTK_TA_HLNG;
     dint.inthdr = (mtk_fp_t)irq_dispatch;
     int32_t er = tk_def_int(num, &dint);
-    if (num == IRQ_USBCTRL) {
+    if (num == IRQ_USBCTRL)
+    {
         tm_usb_def_int_ercd = er;
     }
-    if (was_enabled) {
+    if (was_enabled)
+    {
         NVIC_ISER0 = 1UL << num;
     }
 }
@@ -137,33 +155,42 @@ irq_handler_t irq_get_vtable_handler(uint num)
 
 void irq_remove_handler(uint num, irq_handler_t handler)
 {
-    if (num >= IRQ_COUNT) {
+    if (num >= IRQ_COUNT)
+    {
         return;
     }
     NVIC_ICER0 = 1UL << num;
     bool any = false;
-    for (uint32_t i = 0; i < IRQ_MAX_HANDLERS; i++) {
-        if (s_handlers[num][i] == handler) {
+    for (uint32_t i = 0; i < IRQ_MAX_HANDLERS; i++)
+    {
+        if (s_handlers[num][i] == handler)
+        {
             s_handlers[num][i] = NULL;
         }
         any = any || s_handlers[num][i] != NULL;
     }
-    if (!any) {
+    if (!any)
+    {
         (void)tk_def_int(num, NULL);
     }
 }
 
 void irq_set_enabled(uint num, bool enabled)
 {
-    if (num >= IRQ_COUNT) {
+    if (num >= IRQ_COUNT)
+    {
         return;
     }
-    if (enabled) {
+    if (enabled)
+    {
         NVIC_ISER0 = 1UL << num;
-    } else {
+    }
+    else
+    {
         NVIC_ICER0 = 1UL << num;
     }
-    if (num == IRQ_USBCTRL) {
+    if (num == IRQ_USBCTRL)
+    {
         tm_usb_nvic_enabled = (NVIC_ISER0 >> num) & 1UL;
     }
 }
@@ -175,9 +202,12 @@ bool irq_is_enabled(uint num)
 
 void irq_set_mask_enabled(uint32_t mask, bool enabled)
 {
-    if (enabled) {
+    if (enabled)
+    {
         NVIC_ISER0 = mask;
-    } else {
+    }
+    else
+    {
         NVIC_ICER0 = mask;
     }
 }
@@ -192,13 +222,13 @@ void irq_set_priority(uint num, uint8_t hardware_priority)
 
 uint8_t rp2040_chip_version(void)
 {
-    volatile uint32_t const *chip_id = (volatile uint32_t const *)0x40000000u;
+    volatile uint32_t const* chip_id = (volatile uint32_t const*)0x40000000u;
     return (uint8_t)(*chip_id >> 28);
 }
 
 /* Fatal-error path for SDK code (hard_assert/panic). Defined weak so the node firmware can route
  * the message to its console first; this fallback just stops, as the vendored one did. */
-__attribute__((weak)) void smartrelay_fatal(const char *msg)
+__attribute__((weak)) void smartrelay_fatal(const char* msg)
 {
     (void)msg;
 }
@@ -207,13 +237,15 @@ void hard_assertion_failure(void)
 {
     smartrelay_fatal("hard assertion failure");
     NVIC_ICER0 = 1UL << IRQ_USBCTRL;
-    for (;;) __asm__ volatile ("wfi");
+    for (;;)
+        __asm__ volatile("wfi");
 }
 
-void __attribute__((noreturn)) panic(const char *format, ...)
+void __attribute__((noreturn)) panic(const char* format, ...)
 {
     smartrelay_fatal(format);
     NVIC_ICER0 = 1UL << IRQ_USBCTRL;
-    for (;;) __asm__ volatile ("wfi");
+    for (;;)
+        __asm__ volatile("wfi");
     __builtin_unreachable();
 }

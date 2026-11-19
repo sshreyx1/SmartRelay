@@ -57,7 +57,7 @@
 extern int32_t tk_dly_tsk(int32_t dlytim);
 extern int32_t tk_get_tid(void);
 extern int32_t tk_slp_tsk(int32_t tmout);
-extern void tm_usb_console_put(const uint8_t *buf, int32_t size);
+extern void tm_usb_console_put(const uint8_t* buf, int32_t size);
 
 #define KERNEL_TMO_FEVR (-1)
 
@@ -70,7 +70,7 @@ extern void tm_usb_console_put(const uint8_t *buf, int32_t size);
 #define SMARTRELAY_HEAP_BYTES (24u * 1024u)
 #endif
 
-static spin_lock_t *glue_lock(void)
+static spin_lock_t* glue_lock(void)
 {
     return spin_lock_instance(GLUE_SPINLOCK_ID);
 }
@@ -83,7 +83,8 @@ bool smartrelay_in_task(void)
     uint32_t primask;
     __asm volatile("mrs %0, ipsr" : "=r"(ipsr));
     __asm volatile("mrs %0, primask" : "=r"(primask));
-    if ((ipsr & 0x3fu) != 0u || (primask & 1u) != 0u) {
+    if ((ipsr & 0x3fu) != 0u || (primask & 1u) != 0u)
+    {
         return false;
     }
     return tk_get_tid() > 0;
@@ -91,7 +92,8 @@ bool smartrelay_in_task(void)
 
 static int32_t self_id(void)
 {
-    if (smartrelay_in_task()) {
+    if (smartrelay_in_task())
+    {
         return tk_get_tid();
     }
     /* handler context: never a task id, and never -1 (LOCK_INVALID_OWNER_ID, "mutex free") */
@@ -100,7 +102,8 @@ static int32_t self_id(void)
 
 static void glue_yield(void)
 {
-    if (smartrelay_in_task()) {
+    if (smartrelay_in_task())
+    {
         (void)tk_dly_tsk(1);
     }
 }
@@ -124,8 +127,8 @@ void smartrelay_runtime_init(void)
 
     /* Blocks Pico SDK's runtime would have released but the kernel does not. Releasing a block
      * that is already running is harmless; nothing is put INTO reset here. */
-    unreset_block_wait(RESETS_RESET_DMA_BITS | RESETS_RESET_TIMER_BITS | RESETS_RESET_PWM_BITS |
-                       RESETS_RESET_PIO0_BITS | RESETS_RESET_PIO1_BITS);
+    unreset_block_wait(RESETS_RESET_DMA_BITS | RESETS_RESET_TIMER_BITS | RESETS_RESET_PWM_BITS | RESETS_RESET_PIO0_BITS
+                       | RESETS_RESET_PIO1_BITS);
 
     /* TIMER ticks at 1 MHz from clk_ref via the watchdog tick divider. */
     watchdog_hw->tick = WATCHDOG_TICK_ENABLE_BITS | (REF_HZ / 1000000u);
@@ -140,7 +143,7 @@ void smartrelay_runtime_init(void)
 
 /* ---- pico/mutex.h ----------------------------------------------------------------------- */
 
-void mutex_init(mutex_t *mtx)
+void mutex_init(mutex_t* mtx)
 {
     uint32_t save = spin_lock_blocking(glue_lock());
     mtx->owner = LOCK_INVALID_OWNER_ID;
@@ -149,11 +152,13 @@ void mutex_init(mutex_t *mtx)
 }
 
 /* auto_init_mutex() objects start all-zero (spin_lock == NULL): initialise on first use. */
-static void mutex_lazy_init(mutex_t *mtx)
+static void mutex_lazy_init(mutex_t* mtx)
 {
-    if (mtx->core.spin_lock == NULL) {
+    if (mtx->core.spin_lock == NULL)
+    {
         uint32_t save = spin_lock_blocking(glue_lock());
-        if (mtx->core.spin_lock == NULL) {
+        if (mtx->core.spin_lock == NULL)
+        {
             mtx->owner = LOCK_INVALID_OWNER_ID;
             mtx->core.spin_lock = glue_lock();
         }
@@ -161,17 +166,21 @@ static void mutex_lazy_init(mutex_t *mtx)
     }
 }
 
-bool mutex_try_enter(mutex_t *mtx, uint32_t *owner_out)
+bool mutex_try_enter(mutex_t* mtx, uint32_t* owner_out)
 {
     mutex_lazy_init(mtx);
     lock_owner_id_t me = (lock_owner_id_t)self_id();
     bool ok;
     uint32_t save = spin_lock_blocking(glue_lock());
-    if (mtx->owner == LOCK_INVALID_OWNER_ID) {
+    if (mtx->owner == LOCK_INVALID_OWNER_ID)
+    {
         mtx->owner = me;
         ok = true;
-    } else {
-        if (owner_out != NULL) {
+    }
+    else
+    {
+        if (owner_out != NULL)
+        {
             *owner_out = (uint32_t)(int32_t)mtx->owner;
         }
         ok = false;
@@ -180,17 +189,20 @@ bool mutex_try_enter(mutex_t *mtx, uint32_t *owner_out)
     return ok;
 }
 
-void mutex_enter_blocking(mutex_t *mtx)
+void mutex_enter_blocking(mutex_t* mtx)
 {
-    while (!mutex_try_enter(mtx, NULL)) {
+    while (!mutex_try_enter(mtx, NULL))
+    {
         glue_yield();
     }
 }
 
-bool mutex_enter_block_until(mutex_t *mtx, absolute_time_t until)
+bool mutex_enter_block_until(mutex_t* mtx, absolute_time_t until)
 {
-    while (!mutex_try_enter(mtx, NULL)) {
-        if (time_reached(until)) {
+    while (!mutex_try_enter(mtx, NULL))
+    {
+        if (time_reached(until))
+        {
             return false;
         }
         glue_yield();
@@ -198,17 +210,17 @@ bool mutex_enter_block_until(mutex_t *mtx, absolute_time_t until)
     return true;
 }
 
-bool mutex_enter_timeout_ms(mutex_t *mtx, uint32_t timeout_ms)
+bool mutex_enter_timeout_ms(mutex_t* mtx, uint32_t timeout_ms)
 {
     return mutex_enter_block_until(mtx, make_timeout_time_ms(timeout_ms));
 }
 
-bool mutex_enter_timeout_us(mutex_t *mtx, uint32_t timeout_us)
+bool mutex_enter_timeout_us(mutex_t* mtx, uint32_t timeout_us)
 {
     return mutex_enter_block_until(mtx, make_timeout_time_us(timeout_us));
 }
 
-void mutex_exit(mutex_t *mtx)
+void mutex_exit(mutex_t* mtx)
 {
     uint32_t save = spin_lock_blocking(glue_lock());
     mtx->owner = LOCK_INVALID_OWNER_ID;
@@ -219,10 +231,13 @@ void mutex_exit(mutex_t *mtx)
 
 void sleep_us(uint64_t us)
 {
-    if (us >= 1000u && smartrelay_in_task()) {
+    if (us >= 1000u && smartrelay_in_task())
+    {
         (void)tk_dly_tsk((int32_t)(us / 1000u));
         busy_wait_us_32((uint32_t)(us % 1000u));
-    } else {
+    }
+    else
+    {
         busy_wait_us(us);
     }
 }
@@ -235,14 +250,16 @@ void sleep_ms(uint32_t ms)
 void sleep_until(absolute_time_t target)
 {
     int64_t d = absolute_time_diff_us(get_absolute_time(), target);
-    if (d > 0) {
+    if (d > 0)
+    {
         sleep_us((uint64_t)d);
     }
 }
 
 bool best_effort_wfe_or_timeout(absolute_time_t timeout_timestamp)
 {
-    if (time_reached(timeout_timestamp)) {
+    if (time_reached(timeout_timestamp))
+    {
         return true;
     }
     glue_yield();
@@ -256,9 +273,11 @@ static uint64_t s_rng_state;
 uint64_t get_rand_64(void)
 {
     uint32_t save = spin_lock_blocking(glue_lock());
-    if (s_rng_state == 0u) {
+    if (s_rng_state == 0u)
+    {
         uint64_t seed = time_us_64();
-        for (int i = 0; i < 64; i++) {
+        for (int i = 0; i < 64; i++)
+        {
             seed = (seed << 1) ^ (seed >> 63) ^ (uint64_t)(rosc_hw->randombit & 1u);
             busy_wait_at_least_cycles(37);
         }
@@ -284,13 +303,14 @@ uint32_t get_rand_32(void)
 static uint8_t s_heap[SMARTRELAY_HEAP_BYTES] __attribute__((aligned(8)));
 static size_t s_heap_used;
 
-void *_sbrk(ptrdiff_t incr)
+void* _sbrk(ptrdiff_t incr)
 {
-    if (incr < 0 || (size_t)incr > sizeof(s_heap) - s_heap_used) {
+    if (incr < 0 || (size_t)incr > sizeof(s_heap) - s_heap_used)
+    {
         errno = ENOMEM;
-        return (void *)-1;
+        return (void*)-1;
     }
-    void *p = &s_heap[s_heap_used];
+    void* p = &s_heap[s_heap_used];
     s_heap_used += (size_t)incr;
     return p;
 }
@@ -303,13 +323,15 @@ uint32_t smartrelay_heap_used(void)
 static volatile int32_t s_malloc_owner; /* 0 = free */
 static uint32_t s_malloc_depth;
 
-void __malloc_lock(struct _reent *r)
+void __malloc_lock(struct _reent* r)
 {
     (void)r;
     int32_t me = self_id();
-    for (;;) {
+    for (;;)
+    {
         uint32_t save = spin_lock_blocking(glue_lock());
-        if (s_malloc_owner == 0 || s_malloc_owner == me) {
+        if (s_malloc_owner == 0 || s_malloc_owner == me)
+        {
             s_malloc_owner = me;
             s_malloc_depth++;
             spin_unlock(glue_lock(), save);
@@ -320,11 +342,12 @@ void __malloc_lock(struct _reent *r)
     }
 }
 
-void __malloc_unlock(struct _reent *r)
+void __malloc_unlock(struct _reent* r)
 {
     (void)r;
     uint32_t save = spin_lock_blocking(glue_lock());
-    if (s_malloc_depth > 0u && --s_malloc_depth == 0u) {
+    if (s_malloc_depth > 0u && --s_malloc_depth == 0u)
+    {
         s_malloc_owner = 0;
     }
     spin_unlock(glue_lock(), save);
@@ -333,26 +356,26 @@ void __malloc_unlock(struct _reent *r)
 /* ---- stdout --------------------------------------------------------------------------------- */
 
 /* pico_printf (compiled with PICO_PRINTF_ALWAYS_INCLUDED=1, see sources.mk) */
-extern int __wrap_vsnprintf(char *buffer, size_t count, const char *format, va_list va);
-extern int vfctprintf(void (*out)(char character, void *arg), void *arg, const char *format, va_list va);
+extern int __wrap_vsnprintf(char* buffer, size_t count, const char* format, va_list va);
+extern int vfctprintf(void (*out)(char character, void* arg), void* arg, const char* format, va_list va);
 
 __attribute__((weak)) void smartrelay_stdout_putc(char c)
 {
     (void)c;
 }
 
-static void out_char(char c, void *arg)
+static void out_char(char c, void* arg)
 {
     (void)arg;
     smartrelay_stdout_putc(c);
 }
 
-int vsnprintf(char *buffer, size_t count, const char *format, va_list va)
+int vsnprintf(char* buffer, size_t count, const char* format, va_list va)
 {
     return __wrap_vsnprintf(buffer, count, format, va);
 }
 
-int snprintf(char *buffer, size_t count, const char *format, ...)
+int snprintf(char* buffer, size_t count, const char* format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -361,7 +384,7 @@ int snprintf(char *buffer, size_t count, const char *format, ...)
     return n;
 }
 
-int sprintf(char *buffer, const char *format, ...)
+int sprintf(char* buffer, const char* format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -370,17 +393,17 @@ int sprintf(char *buffer, const char *format, ...)
     return n;
 }
 
-int vsprintf(char *buffer, const char *format, va_list va)
+int vsprintf(char* buffer, const char* format, va_list va)
 {
     return __wrap_vsnprintf(buffer, (size_t)-1, format, va);
 }
 
-int vprintf(const char *format, va_list va)
+int vprintf(const char* format, va_list va)
 {
     return vfctprintf(out_char, NULL, format, va);
 }
 
-int printf(const char *format, ...)
+int printf(const char* format, ...)
 {
     va_list va;
     va_start(va, format);
@@ -389,10 +412,11 @@ int printf(const char *format, ...)
     return n;
 }
 
-int puts(const char *s)
+int puts(const char* s)
 {
     int n = 0;
-    while (s[n] != '\0') {
+    while (s[n] != '\0')
+    {
         smartrelay_stdout_putc(s[n]);
         n++;
     }
@@ -412,13 +436,15 @@ void stdio_flush(void)
 }
 
 /* newlib's own stdio (if any library code reaches it) ends up here for stdout/stderr. */
-int _write(int fd, const char *buf, int len)
+int _write(int fd, const char* buf, int len)
 {
-    if (fd != 1 && fd != 2) {
+    if (fd != 1 && fd != 2)
+    {
         errno = EBADF;
         return -1;
     }
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++)
+    {
         smartrelay_stdout_putc(buf[i]);
     }
     return len;
@@ -426,18 +452,21 @@ int _write(int fd, const char *buf, int len)
 
 /* ---- fatal errors (usb_sdk_compat_overlay.c's panic()/hard_assertion_failure()) ---------- */
 
-void smartrelay_fatal(const char *msg)
+void smartrelay_fatal(const char* msg)
 {
     static const char prefix[] = "\r\nFATAL: ";
-    tm_usb_console_put((const uint8_t *)prefix, (int32_t)(sizeof(prefix) - 1u));
-    if (msg != NULL) {
-        tm_usb_console_put((const uint8_t *)msg, (int32_t)strlen(msg));
+    tm_usb_console_put((const uint8_t*)prefix, (int32_t)(sizeof(prefix) - 1u));
+    if (msg != NULL)
+    {
+        tm_usb_console_put((const uint8_t*)msg, (int32_t)strlen(msg));
     }
-    tm_usb_console_put((const uint8_t *)"\r\n", 2);
-    if (smartrelay_in_task()) {
+    tm_usb_console_put((const uint8_t*)"\r\n", 2);
+    if (smartrelay_in_task())
+    {
         /* Park only the failing task; the USB service task keeps the message flowing out and
          * the other core keeps running. */
-        for (;;) {
+        for (;;)
+        {
             (void)tk_slp_tsk(KERNEL_TMO_FEVR);
         }
     }
@@ -448,7 +477,8 @@ void smartrelay_fatal(const char *msg)
 /* Referenced by hardware_irq headers' default-handler machinery; no SDK vector table here. */
 void __unhandled_user_irq(void)
 {
-    for (;;) {
+    for (;;)
+    {
     }
 }
 
@@ -456,13 +486,14 @@ void __unhandled_user_irq(void)
  * from the console without touching the button. Same ROM call Pico SDK's reset_usb_boot() makes. */
 void smartrelay_reboot_to_bootsel(void)
 {
-    typedef void *(*rom_table_lookup_fn)(uint16_t *table, uint32_t code);
+    typedef void* (*rom_table_lookup_fn)(uint16_t* table, uint32_t code);
     typedef void (*rom_reset_usb_boot_fn)(uint32_t gpio_mask, uint32_t disable_interface_mask);
-    uint16_t *func_table = (uint16_t *)(uintptr_t)(*(uint16_t *)0x14u);
-    rom_table_lookup_fn lookup = (rom_table_lookup_fn)(uintptr_t)(*(uint16_t *)0x18u);
-    rom_reset_usb_boot_fn reset_usb_boot =
-        (rom_reset_usb_boot_fn)lookup(func_table, (uint32_t)'U' | ((uint32_t)'B' << 8));
+    uint16_t* func_table = (uint16_t*)(uintptr_t)(*(uint16_t*)0x14u);
+    rom_table_lookup_fn lookup = (rom_table_lookup_fn)(uintptr_t)(*(uint16_t*)0x18u);
+    rom_reset_usb_boot_fn reset_usb_boot
+        = (rom_reset_usb_boot_fn)lookup(func_table, (uint32_t)'U' | ((uint32_t)'B' << 8));
     reset_usb_boot(0u, 0u);
-    for (;;) {
+    for (;;)
+    {
     }
 }

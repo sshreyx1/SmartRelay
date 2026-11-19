@@ -326,8 +326,7 @@ alfp_dec_t alfp_decode(const uint8_t* buf, uint16_t len, alfp_pkt_t* p)
     }
 }
 
-void alfp_nack_for_each(const alfp_nack_t* n, uint16_t frag_count, void (*fn)(uint16_t seq, void* user),
-                        void* user)
+void alfp_nack_for_each(const alfp_nack_t* n, uint16_t frag_count, void (*fn)(uint16_t seq, void* user), void* user)
 {
     switch (n->fmt)
     {

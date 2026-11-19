@@ -28,7 +28,7 @@ bool audio_capture(uint32_t seconds, void (*wait_ms)(uint32_t ms), audio_result_
 bool audio_capture_sf(uint32_t seconds, void (*wait_ms)(uint32_t ms), audio_result_t* out, uint32_t* lost, sf_t* sf,
                       audio_timing_t* timing)
 {
-    audio_timing_t tm = {0, 0, 0};
+    audio_timing_t tm = { 0, 0, 0 };
     if (sf)
     {
         sf_reset(sf);

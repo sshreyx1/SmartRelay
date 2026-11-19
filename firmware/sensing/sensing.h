@@ -35,18 +35,18 @@ typedef struct
 
 typedef struct
 {
-    bool dht_ok;      /* a good DHT22 reading in the last SENSING_DHT_STALE_MS */
-    float temp_c;     /* valid if dht_ok */
-    float hum_pct;    /* valid if dht_ok */
-    uint16_t light;   /* 0-4095 */
-    int weather;      /* weather_tree.h: 0 Cloudy, 1 Hot_Dry, 2 Humid_Rainy, -1 unknown (no DHT) */
+    bool dht_ok;       /* a good DHT22 reading in the last SENSING_DHT_STALE_MS */
+    float temp_c;      /* valid if dht_ok */
+    float hum_pct;     /* valid if dht_ok */
+    uint16_t light;    /* 0-4095 */
+    int weather;       /* weather_tree.h: 0 Cloudy, 1 Hot_Dry, 2 Humid_Rainy, -1 unknown (no DHT) */
     uint32_t dht_fail; /* failed DHT22 reads since boot */
     uint32_t dht_good;
 } sensing_env_t;
 
-#define SENSING_DHT_PERIOD_MS 2100u   /* DHT22.c refuses reads closer than 2000 ms */
-#define SENSING_DHT_STALE_MS 10000u   /* older than this = "missing" in the metadata */
-#define SENSING_COOLDOWN_MS 5000u     /* their main.c: 5 s PIR settle time after a capture */
+#define SENSING_DHT_PERIOD_MS 2100u /* DHT22.c refuses reads closer than 2000 ms */
+#define SENSING_DHT_STALE_MS 10000u /* older than this = "missing" in the metadata */
+#define SENSING_COOLDOWN_MS 5000u   /* their main.c: 5 s PIR settle time after a capture */
 
 void sensing_init(const sensing_hooks_t* hooks);
 
@@ -75,10 +75,10 @@ void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* m, 
  * no LOUD_ANIMAL_CALL / HIGH_FREQ_RUSTLE), conf is unknown, rms/zcr are mic.c's, the timings are 0. */
 typedef struct
 {
-    bool ok;             /* false: no DMA channel, nothing below is valid */
-    uint8_t label_id;    /* common/sound_classes.h */
-    uint8_t conf;        /* 0-100 */
-    uint16_t rms;        /* DC-corrected, ADC counts */
+    bool ok;          /* false: no DMA channel, nothing below is valid */
+    uint8_t label_id; /* common/sound_classes.h */
+    uint8_t conf;     /* 0-100 */
+    uint16_t rms;     /* DC-corrected, ADC counts */
     uint16_t zcr_per_s;
     uint32_t lost;       /* samples lost to a slow task: must be 0 */
     uint32_t feat_us;    /* time in the spectral feature code */

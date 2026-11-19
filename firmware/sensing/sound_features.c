@@ -11,15 +11,15 @@
 #define BIN_HZ ((float)SF_SAMPLE_RATE / (float)SF_FRAME) /* 62.5 */
 
 const char* const SF_FEATURE_NAMES[SF_N_FEATURES] = {
-    "band_62_250_mean",  "band_250_500_mean", "band_500_1k_mean", "band_1k_2k_mean",  "band_2k_3k_mean",
-    "band_3k_4k_mean",   "band_4k_5k5_mean",  "band_5k5_8k_mean", "band_62_250_std",  "band_250_500_std",
-    "band_500_1k_std",   "band_1k_2k_std",    "band_2k_3k_std",   "band_3k_4k_std",   "band_4k_5k5_std",
-    "band_5k5_8k_std",   "centroid_mean",     "centroid_std",     "zcr_mean",         "zcr_std",
-    "loud_std",          "loud_range",        "active_frac",      "flux_mean",        "log_rms",
+    "band_62_250_mean", "band_250_500_mean", "band_500_1k_mean", "band_1k_2k_mean", "band_2k_3k_mean",
+    "band_3k_4k_mean",  "band_4k_5k5_mean",  "band_5k5_8k_mean", "band_62_250_std", "band_250_500_std",
+    "band_500_1k_std",  "band_1k_2k_std",    "band_2k_3k_std",   "band_3k_4k_std",  "band_4k_5k5_std",
+    "band_5k5_8k_std",  "centroid_mean",     "centroid_std",     "zcr_mean",        "zcr_std",
+    "loud_std",         "loud_range",        "active_frac",      "flux_mean",       "log_rms",
 };
 
 /* first FFT bin of each band; the band ends where the next one starts (last ends after bin 128) */
-static const uint8_t k_band_lo[SF_N_BANDS + 1] = {1, 4, 8, 16, 32, 48, 64, 88, 129};
+static const uint8_t k_band_lo[SF_N_BANDS + 1] = { 1, 4, 8, 16, 32, 48, 64, 88, 129 };
 
 static void welford(double* mean, double* m2, uint32_t n, double x)
 {
@@ -79,7 +79,7 @@ static void process_frame(sf_t* s)
     }
     sound_fft256(s->re, s->im);
 
-    uint64_t band[SF_N_BANDS] = {0};
+    uint64_t band[SF_N_BANDS] = { 0 };
     uint64_t total = 0, weighted = 0;
     for (uint32_t b = 0; b < SF_N_BANDS; b++)
     {

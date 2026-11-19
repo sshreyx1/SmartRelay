@@ -33,11 +33,11 @@ enum
 };
 
 /* Fixed overheads, including the 2-byte CRC trailer. */
-#define ALFP_DATA_OVERHEAD     9u  /* b0 sid2 seq2 count2 + crc2 */
+#define ALFP_DATA_OVERHEAD 9u      /* b0 sid2 seq2 count2 + crc2 */
 #define ALFP_MANIFEST_OVERHEAD 19u /* b0 sid2 size4 count2 fsize2 crc4 radio1 metalen1 + crc2 */
-#define ALFP_POLL_LEN          6u  /* b0 sid2 round1 + crc2 */
-#define ALFP_ACK_LEN           6u  /* b0 sid2 status1 + crc2 */
-#define ALFP_NACK_MIN          8u  /* b0 sid2 flags1 round1 fmt1 + crc2 (fmt ALL / NONE) */
+#define ALFP_POLL_LEN 6u           /* b0 sid2 round1 + crc2 */
+#define ALFP_ACK_LEN 6u            /* b0 sid2 status1 + crc2 */
+#define ALFP_NACK_MIN 8u           /* b0 sid2 flags1 round1 fmt1 + crc2 (fmt ALL / NONE) */
 
 /* NACK flags */
 #define ALFP_NACK_NEED_MANIFEST 0x01u
@@ -54,11 +54,11 @@ enum
 /* ACK status */
 enum
 {
-    ALFP_ACK_OK = 0,          /* file complete, CRC-32 matched */
-    ALFP_ACK_CRC_FAIL = 1,    /* all fragments arrived but CRC-32 did not match: resend all */
-    ALFP_ACK_BUSY = 2,        /* bridge has no free session slot: try later */
-    ALFP_ACK_STORAGE = 3,     /* bridge could not write to its SD card */
-    ALFP_ACK_TOO_BIG = 4,     /* file exceeds ALFP_MAX_FRAGS or other limits */
+    ALFP_ACK_OK = 0,       /* file complete, CRC-32 matched */
+    ALFP_ACK_CRC_FAIL = 1, /* all fragments arrived but CRC-32 did not match: resend all */
+    ALFP_ACK_BUSY = 2,     /* bridge has no free session slot: try later */
+    ALFP_ACK_STORAGE = 3,  /* bridge could not write to its SD card */
+    ALFP_ACK_TOO_BIG = 4,  /* file exceeds ALFP_MAX_FRAGS or other limits */
 };
 
 /* Radio ids carried in the manifest, for logging and the dashboard. */
@@ -141,7 +141,6 @@ uint16_t alfp_enc_nack(uint8_t* out, uint16_t cap, uint16_t sid, uint8_t flags, 
 alfp_dec_t alfp_decode(const uint8_t* buf, uint16_t len, alfp_pkt_t* p);
 
 /* Helper: iterate the fragments a decoded NACK asks for. Calls fn(seq, user) for each. */
-void alfp_nack_for_each(const alfp_nack_t* n, uint16_t frag_count, void (*fn)(uint16_t seq, void* user),
-                        void* user);
+void alfp_nack_for_each(const alfp_nack_t* n, uint16_t frag_count, void (*fn)(uint16_t seq, void* user), void* user);
 
 #endif
