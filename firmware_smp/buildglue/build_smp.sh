@@ -7,7 +7,7 @@
 #   NODE_IDS="1 2 3 4 5" firmware_smp/buildglue/build_smp.sh    # all five nodes (default)
 #   NODE_IDS=2 firmware_smp/buildglue/build_smp.sh              # one node
 #
-# Output: uf2/csc09_smp_node_<N>.uf2 (next to the FreeRTOS build's csc09_node_<N>.uf2, never
+# Output: uf2/csc09_smp_node_<N>.uf2 (SMP=0: csc09_smp0_node_<N>.uf2) (next to the FreeRTOS build's csc09_node_<N>.uf2, never
 # overwriting them).
 #
 # Requires: arm-none-eabi-gcc/ar on PATH, make, a host C++ compiler (the kernel builds its own
@@ -113,6 +113,11 @@ for N in $NODE_IDS; do
         fi
         echo "(make failed after linking, most likely the elf2uf2.exe step; continuing with elf2uf2.py)"
     fi
-    "${PYTHON:-python3}" "$SCRIPT_DIR/elf2uf2.py" "$BUILD_MAKE_DIR/$EXE.elf" "$OUT_DIR/csc09_smp_node_$N.uf2"
-    echo "=== node $N: $OUT_DIR/csc09_smp_node_$N.uf2"
+    # Follow-up F4: the single-core build gets its own name so it never replaces a dual-core image.
+    UF2_NAME="csc09_smp_node_$N.uf2"
+    if [ "$SMP" = "0" ]; then
+        UF2_NAME="csc09_smp0_node_$N.uf2"
+    fi
+    "${PYTHON:-python3}" "$SCRIPT_DIR/elf2uf2.py" "$BUILD_MAKE_DIR/$EXE.elf" "$OUT_DIR/$UF2_NAME"
+    echo "=== node $N: $OUT_DIR/$UF2_NAME"
 done

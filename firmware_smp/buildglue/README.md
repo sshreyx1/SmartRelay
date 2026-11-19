@@ -49,6 +49,22 @@ linked cleanly) is superseded: it missed duplicate IRQ symbols, and the kernel n
 TIMER or populated the SDK clock table. **See `docs/SMP_HANDOFF.md`** for what was built, what
 was measured on hardware, the one open problem, and how to build/flash/test.
 
+## Building on macOS (verified 2026-11-19)
+
+```sh
+./tools/fetch_deps.sh ~/smartrelay-deps                 # pico-sdk 2.1.1 + FatFs (+ FreeRTOS for firmware/)
+git submodule update --init third_party/mtk3smp_rp2040
+ln -sfn "$PWD" ~/smartrelay-deps/repo && cd ~/smartrelay-deps/repo   # the kernel's Make breaks on spaces in paths
+export PICO_SDK_PATH=~/smartrelay-deps/pico-sdk FATFS_PICO_PATH=~/smartrelay-deps/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
+firmware_smp/buildglue/build_smp.sh                     # all 5 nodes, ~1 min each
+```
+
+Needs Arm GNU Toolchain 14.2 on PATH, GNU make (Apple's 3.81 works), perl and python3. The script
+uses `perl -pi` instead of GNU `sed -i`, and creates the kernel's object directories itself (a fresh
+clone has none). `SPI1_BAUD_HZ=1000000` before the command builds the old 1 MHz bus speed. The
+build leaves the submodule's working tree patched (config.h, makefile, overlays); restore it with
+`git -C third_party/mtk3smp_rp2040 checkout -- . && git -C third_party/mtk3smp_rp2040 clean -fdq`.
+
 ## Running the node images
 
 `build_smp.sh` builds all five nodes by default (`NODE_IDS="1 2 3 4 5"`), writing

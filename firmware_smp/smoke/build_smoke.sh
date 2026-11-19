@@ -43,13 +43,13 @@ cp "$SCRIPT_DIR/sources.mk" "$BUILD_MAKE_DIR/sources.mk"
 # Same 1 ms tick fix as build_smp.sh (round 2 review fix A1) -- the smoke app's check 3 (tick
 # accuracy) is specifically what would catch this being wrong if it were skipped.
 CONFIG_H="$KERNEL_DIR/config/config.h"
-if ! grep -q '^#define CNF_TIMER_PERIOD\s\+10\b' "$CONFIG_H"; then
+if ! grep -Eq '^#define CNF_TIMER_PERIOD[[:space:]]+10([^0-9]|$)' "$CONFIG_H"; then
     echo "error: $CONFIG_H's CNF_TIMER_PERIOD line did not match the expected '10' - the" >&2
     echo "       submodule may have moved since this was verified; check docs/curveball_findings.md" >&2
     echo "       and update this script's sed pattern by hand rather than skipping it." >&2
     exit 1
 fi
-sed -i 's/^#define CNF_TIMER_PERIOD\s\+10\b/#define CNF_TIMER_PERIOD\t1/' "$CONFIG_H"
+perl -pi -e 's/^#define CNF_TIMER_PERIOD\s+10\b/#define CNF_TIMER_PERIOD\t1/' "$CONFIG_H"   # portable: BSD/GNU sed -i differ
 
 # Same USB CDC console-input fix as build_smp.sh (round 2 review fix A2) -- check 9 needs it.
 cp "$SCRIPT_DIR/../buildglue/usb_tinyusb_glue_overlay.c" \
