@@ -32,14 +32,21 @@ static int lower(int c)
 
 bool sip_add_file(sip_table_t* t, const char* name)
 {
+    /* Hidden files are never images: macOS writes "._<name>" AppleDouble files next to every file
+     * it copies onto a FAT card (follow-up F1), and those would otherwise count as their own
+     * "._dog" group and could be picked and sent as if they were JPEGs. */
+    if (name[0] == '.')
+    {
+        return false;
+    }
     /* <prefix>_NN.jpg: the last '_' must be followed by exactly two digits and ".jpg" */
     const char* us = strrchr(name, '_');
     if (!us || us == name || (size_t)(us - name) > SIP_PREFIX_MAX)
     {
         return false;
     }
-    if (us[1] < '0' || us[1] > '9' || us[2] < '0' || us[2] > '9' || us[3] != '.' || lower(us[4]) != 'j' ||
-        lower(us[5]) != 'p' || lower(us[6]) != 'g' || us[7] != '\0')
+    if (us[1] < '0' || us[1] > '9' || us[2] < '0' || us[2] > '9' || us[3] != '.' || lower(us[4]) != 'j'
+        || lower(us[5]) != 'p' || lower(us[6]) != 'g' || us[7] != '\0')
     {
         return false;
     }
@@ -93,8 +100,8 @@ static int take(sip_prefix_t* p, char* name, size_t cap)
 
 int sip_pick(sip_table_t* t, uint8_t label_id, char* name, size_t cap)
 {
-    const char* chain[3] = {sound_class_prefix(label_id), sound_class_prefix(sound_class_group(label_id)),
-                            SIP_GENERIC};
+    const char* chain[3]
+        = { sound_class_prefix(label_id), sound_class_prefix(sound_class_group(label_id)), SIP_GENERIC };
     for (int i = 0; i < 3; i++)
     {
         if (!chain[i])
@@ -104,6 +111,17 @@ int sip_pick(sip_table_t* t, uint8_t label_id, char* name, size_t cap)
         sip_prefix_t* p = find(t, chain[i], strlen(chain[i]));
         if (p && p->count)
         {
+            return take(p, name, cap);
+        }
+    }
+    /* Follow-up F6: nothing for this label, its group or "img" (e.g. an unknown sound on a card
+     * with no img_NN.jpg). Any image beats dropping the capture: take the groups in turn. */
+    for (uint32_t k = 0; k < t->n; k++)
+    {
+        sip_prefix_t* p = &t->p[(t->any_next + k) % t->n];
+        if (p->count)
+        {
+            t->any_next = (uint8_t)((t->any_next + k + 1u) % t->n);
             return take(p, name, cap);
         }
     }

@@ -28,7 +28,8 @@ int main(void)
     expect(SC_DOG, NULL); /* empty card */
 
     const char* files[] = {"dog_00.jpg", "dog_02.JPG", "bird_00.jpg", "img_00.jpg", "img_01.jpg",
-                           "notes.txt",  "dog_1.jpg",  "dog_00.png",  "_00.jpg",    "dog_00.jpg"};
+                           "notes.txt",  "dog_1.jpg",  "dog_00.png",  "_00.jpg",    "dog_00.jpg",
+                           "._dog_00.jpg", "._img_05.jpg", ".hidden_00.jpg"}; /* F1: dot-files ignored */
     int accepted = 0;
     for (unsigned i = 0; i < sizeof(files) / sizeof(files[0]); i++)
     {
@@ -49,6 +50,18 @@ int main(void)
     expect(SC_WEATHER, "img_01.jpg");
     expect(SC_UNKNOWN, "img_00.jpg"); /* capture failed -> generic */
     expect(200, "img_01.jpg");        /* invalid id -> generic */
+
+    /* F6: a card with no img_NN.jpg (node 2's) still gives an unknown sound an image, any group, in
+     * turn, instead of dropping the capture. */
+    sip_reset(&t);
+    sip_add_file(&t, "dog_00.jpg");
+    sip_add_file(&t, "rooster_03.jpg");
+    sip_add_file(&t, "._img_00.jpg");
+    expect(SC_UNKNOWN, "dog_00.jpg");
+    expect(SC_UNKNOWN, "rooster_03.jpg");
+    expect(SC_UNKNOWN, "dog_00.jpg");
+    expect(SC_CAT, "rooster_03.jpg");
+    expect(SC_DOG, "dog_00.jpg"); /* own label still wins */
 
     sip_reset(&t);
     for (int i = 0; i < SIP_MAX_PREFIXES + 5; i++)
