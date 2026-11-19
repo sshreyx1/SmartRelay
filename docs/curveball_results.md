@@ -290,6 +290,20 @@ LoRa -> WiFi bridge UART0 -> full node, each step flashed and logged on its own.
 
 ## C5 - Tribunal tests T1-T8 on real hardware
 
+> **Update 2026-11-11 (real hardware, full node firmware on nodes 1 and 2; details and evidence
+> in `docs/curveball/STATUS.md` and `docs/curveball/evidence/`):**
+>
+> | Test | Result |
+> |---|---|
+> | T1 throughput, 200 packets over 2 hops | not run: needs nodes 3-5 and the backend (1-hop WiFi: 0 failures so far) |
+> | T2 core assignment | **passed on both nodes** from the boot lines (`sensors: core 1`, `comms: core 0`, `usb_owner: core 0`); node 1: `t2_node1_smp_boot_lora.txt`, node 2: `t2_node2_smp_boot_control.txt` |
+> | T3 / T4 / T5 | partly: audio `lost=0` and DHT22 0 failures during WiFi transfers, not yet under T1 load |
+> | T6 capture queue full | passed (2 runs) |
+> | T7 WiFi -> LoRa failover | **blocked**: node 1's LoRa is still down after its module was swapped (`unexpected chip type 0x00`), so a board/wiring fault is suspected (`docs/SMP_HANDOFF.md` 6.2) |
+> | T8 console stall | passed |
+>
+> The "BLOCKED - not attempted" text below is kept as the original record.
+
 **Result: BLOCKED - not attempted; depends on C4.** T2 (core assignment) and T8 (stalled-terminal
 log draining) have already had their context-free versions proven by C2's check 1 and check 7
 above; T6 (capture queue full) likewise by C2's check 4 sub-test. The rest (T1, T3, T4, T5, T7)

@@ -238,12 +238,28 @@ Then:
 - Tribunal tests T1-T8 (`docs/curveball_results.md` C5) on the full node firmware.
 - Long soak (hours) with both nodes, watching `s`: stack free, heap used, log dropped, usb dropped.
 
-### 6.2 Node 1 LoRa hardware fault (not a firmware issue)
+### 6.2 Node 1 LoRa hardware fault (not a firmware issue; board/wiring suspected)
 
 `lora_radio: unexpected chip type 0x00 (SPI wiring?)` on node 1 with the dual-core image **and**
 with the FreeRTOS `csc09_node_1.uf2` (stats: `lora DOWN` on both). The SD card on the same SPI1
 bus works, so check the Core1121 module itself: seated, 3V3, its CS on GP13, RESET GP5, BUSY GP6.
 Node 2's LoRa is fine on both firmwares.
+
+**Update 2026-11-11:** the module was swapped and LoRa is **still down**, with the same lines on
+the dual-core image:
+```
+lora_radio: unexpected chip type 0x00 (SPI wiring?)
+lora: init FAILED (check the Core1121 wiring and power, BUSY GP6, DIO9 GP7). Continuing with WiFi only.
+```
+Two modules failing the same way on node 1 (while node 2's works) points at **node 1's board or
+wiring** (CS GP13, SPI1 lines to the module, RESET GP5, 3V3/GND), not the module. Decisive test:
+fit node 2's known-good module on node 1 (`docs/curveball/MY_STEPS.md` part C). T7 stays blocked.
+
+The swap did change one thing: node 1's USB port now comes up ~1.0 s after boot instead of ~6 s,
+so its boot log is captured and **T2 passes on node 1** (`sensors: core 1`, `comms: core 0`,
+`usb_owner: core 0`; `docs/curveball/evidence/t2_node1_smp_boot_lora.txt`). Capturing it also
+needs a tool that does not flush input after opening the port (pyserial does; see
+`docs/curveball/STATUS.md` F10).
 
 ### 6.3 Known limitations of the port (documented, accepted for now)
 

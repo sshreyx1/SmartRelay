@@ -220,7 +220,9 @@ is NOT used (it changes comms behaviour during the measurement).
     long-used bridge card a new file can silently overwrite an older received file with the same
     sid. The handoff's "session ids in the 24 000s" therefore says nothing about card age.
 12. Node 1's boot output is lost even with an instant port open (3b) - T2 on node 1 is not
-    evidenced by measured core lines.
+    evidenced by measured core lines. **Update 2026-11-11 (later):** explained and resolved - see
+    "Node 1 boot log after the LoRa module swap" at the end: pyserial's `open()` flushes the input
+    right after raising DTR, which deletes the held start-up burst; T2 on node 1 now passes.
 
 ---
 
@@ -231,12 +233,12 @@ is NOT used (it changes comms behaviour during the measurement).
 | Test | Status | Evidence |
 |---|---|---|
 | T1 throughput/stability, 200 packets over 2 hops | not run | needs nodes 3-5 (2 hops) and the backend; 1-hop WiFi only so far: 23 files, 0 failures (3b) |
-| T2 core assignment | ✅ passed on node 2 (twice); ⚠️ node 1 not evidenced | node 2: 3a retry 2 + `evidence/t2_node2_smp_boot_control.txt`; node 1: port appears ~6 s after boot with full or cleared card, boot log lost (`evidence/t2_node1_smp_boot.txt`, `t2_node1_smp_boot_clean.txt`, F7) |
+| T2 core assignment | ✅ passed on both nodes | node 2: 3a retry 2 + `evidence/t2_node2_smp_boot_control.txt`; node 1: `evidence/t2_node1_smp_boot_lora.txt` (boot lines `dual core`, `sensors: core 1`, `comms: core 0`, `usb_owner: core 0`, both msgq self-tests ok; port up 1.04 s after boot). Earlier node 1 failures: F7 |
 | T3 audio under load | partly | `lost=0` on every capture (3a), but not during a T1 load |
 | T4 DHT22 under load | partly | 152/0 (bridge) and 153/0 (sender) during 23 WiFi transfers (3b); not under T1 |
 | T5 merged sensor task | not run | = T3 + T4 under T1 |
 | T6 capture queue full (`x`) | ✅ passed (2 runs) | `evidence/t6_node2_smp_results.txt`, `t6_node2_smp_r2_results.txt`: 4 queued, 1 refused, counter +1 each run |
-| T7 WiFi -> LoRa failover | not run, blocked | node 1 LoRa hardware fault on both firmwares |
+| T7 WiFi -> LoRa failover | not run, blocked | node 1 LoRa still DOWN on both firmwares, also after its module was swapped (2026-11-11): board/wiring fault suspected; decisive test in `MY_STEPS.md` part C |
 | T8 console stall (`z`) | ✅ passed | `evidence/t8_node2_smp_results.txt`: `log dropped` 0 -> 3, output resumed, transfers done, comms loop max unchanged |
 
 ---
@@ -251,9 +253,10 @@ is NOT used (it changes comms behaviour during the measurement).
 | F4 | `SMP=0` writes the same output name `uf2/csc09_smp_node_N.uf2` as the dual-core build | `firmware_smp/buildglue/build_smp.sh` (`OUT_DIR`, uf2 name) | the documented single-core command silently replaces a committed dual-core image. Fix: include `smp0` in the name |
 | F5 | Node 2's `captures` comms step costs ~0.9-1.1 s (881-1121 ms), including in a run with no visible captures | node 2 `s` (`slowest comms step`), `main_smp.c` captures step | stalls comms on the sender for ~1 s; cause unknown (SD create latency on node 2's card?). Needs a timed breakdown |
 | F6 | A capture whose sound class is unknown (`SC_UNKNOWN`, e.g. T6's `x` requests, or every capture in a `SOUND_LEGACY_MODE` build) falls back to generic `samples/img_NN.jpg`; node 2's card has none, so the capture is dropped entirely - **telemetry included** - with the misleading message `no samples/*_NN.jpg on the SD card` (the card has 70), and its capture id is already consumed and saved (gaps N2-000644..647) | `firmware_smp/app/main_smp.c:383-389`, same in `firmware/app/main.c:316` | silent loss of telemetry for unclassified captures; id gaps the backend may misread. Fix: still queue telemetry, fall back to any sample group, accurate message |
-| F7 | Node 1 (bridge, SMP) brings up its USB port ~6 s after boot (5.99 s full card, **5.93 s after the card was cleared**; control node 2 0.96 s), so its whole boot log is lost: `usb_owner` holds start-up lines only 3 s. **Not the SD card.** Lead, unproven: node 1's dead LoRa module - the LR11xx HAL busy-waits up to 1-10 s per command without yielding (`third_party/lora_mesh/src/lr1121/lr11xx_hal.c:186`), which on the SMP kernel can starve USB start-up on core 0; FreeRTOS node 1 reported its LoRa failure ~0.2 s after SD mount, so this is a candidate only | `firmware_smp/app/main_smp.c:800` (3 s hold); node 1 start-up on core 0 | T2 cannot be evidenced on node 1. Retest after the LoRa module is fixed or swapped; otherwise time the start-up steps, or print the core lines again in `s` |
+| F7 | **Resolved 2026-11-11.** Node 1 (bridge, SMP) brought its USB port up ~6 s after boot (5.99 s full card, 5.93 s cleared card; node 2 0.96 s), past the 3 s `usb_owner` hold. After the LoRa module was swapped the port comes up in **1.02-1.04 s** (2 timed boots), so the old module was the likely cause (consistent with the LR11xx HAL's non-yielding busy-waits, `third_party/lora_mesh/src/lr1121/lr11xx_hal.c:186`; not proven). Separately, every pyserial capture lost the burst anyway (F10) | `firmware_smp/app/main_smp.c:800` (3 s hold) | done: T2 node 1 passed (`evidence/t2_node1_smp_boot_lora.txt`). A board whose radio stalls start-up > 3 s would still lose its boot log (see the proposal in the swap section) |
 | F8 | `rtos_msgq_send_nowait` returns `er >= E_OK`, so a full queue (`E_TMOUT` from `tk_snd_mbf(..., TMO_POL)`) and any other error look the same ("refused") | `firmware_smp/rtos_port_mtk3.c:293-297` | T6 shows the refusal but cannot prove the code was `E_TMOUT`; count/log the error code if this ever matters |
 | F9 | Orphan `.part` files in the bridge's `rx/` are never deleted (no unlink in `alfp/src/alfp.c`, nothing at boot); node 1's card had 12 when cleared | `alfp/src/alfp.c:661` (create), no cleanup path | slow growth of `rx/` after every interrupted transfer (reboot/reflash mid-transfer). Fix: delete stale `.part` files at bridge start-up or on session expiry |
+| F10 | pyserial's `Serial.open()` raises DTR (serialposix.py line 336) and then flushes the input buffer (line 344). The SMP firmware sends all held start-up lines the moment DTR rises (`usb_owner_task`, `main_smp.c:801`), so any pyserial-based capture can lose the whole boot burst - this is what hid node 1's boot log in 3b | `firmware_smp/buildglue/flash_node.py`, `evidence/key_run.py`, `evidence/ab_pair.py` (boot captures only); `evidence/boot_flash_capture.py` fixed 2026-11-11 (raw `os.open` + `TCSANOW`) | tools can report "no boot log" for a board that printed one. Fix: open without the flush (as `boot_flash_capture.py` now does), or create `Serial()` with `dtr=False`, open, then raise DTR |
 
 ---
 
@@ -416,3 +419,63 @@ the cause of F7 (updated in the follow-ups table).
 |---|---|---|---|
 | Node 1 (bridge) | `/dev/cu.usbmodem3` | committed SMP `csc09_smp_node_1.uf2` | SD card cleared (now ~24 received files), LoRa dead |
 | Node 2 | `/dev/cu.usbmodemMTK3PICO1` | committed SMP `csc09_smp_node_2.uf2` | PIR covered, outbox 0 |
+
+---
+
+## Node 1 boot log after the LoRa module swap, 2026-11-11 ~18:45, run without hands
+
+The user swapped node 1's LoRa module (in a session run by mistake in the iCloud copy of the repo).
+Node 1 runs committed `uf2/csc09_smp_node_1.uf2` (5b3aff8, sha1 `1cc60865`, same as HEAD).
+
+**Board present:** only node 1 was on USB (as `/dev/cu.usbmodemMTK3PICO1`, the name node 2 used
+before; both SMP images share the serial `MTK3PICO`, so the name depends on what is plugged in).
+Node 2 was not enumerated, so nothing that needs node 2 was run. Node 1's port dropped once for
+~4 s at the start of the session, with near-zero counters afterwards: a reboot/replug before the run.
+
+### T2 node 1 - ✅ PASS (`evidence/t2_node1_smp_boot_lora.txt`)
+- First capture (pyserial): port up **1.016 s** after the copy, opened 1.041 s, yet only the last
+  two lines of the help text arrived. Cause found: pyserial `open()` raises DTR, then flushes the
+  input buffer; the firmware dumps its held lines the instant DTR rises, so the flush deletes them
+  (F10). `boot_flash_capture.py` changed to open the port with `os.open` + `termios` `TCSANOW`.
+- Second capture (fixed helper): port up **1.039 s**, opened 1.069 s, **full boot log**:
+  `uT-Kernel 3 SMP build, dual core`, both msgq self-tests `ok`, clocks sys/peri 125 MHz, usb/adc
+  48 MHz, **`sensors: core 1`, `comms: core 0`, `usb_owner: core 0`**.
+- The earlier T2 claim made from `s` output is not valid evidence (the core column in `s` is a
+  hard-coded table, `main_smp.c:497-499`); this capture replaces it.
+- No firmware change needed: the port now comes up well inside the 3 s hold. *If a board ever
+  again takes > 3 s*, the smallest change (proposed, not applied): keep the start-up lines in a
+  small static buffer as they are logged and add a console key (e.g. `b`) in `usb_owner_task` that
+  prints it again, ending with fresh `rtos_core_id()` lines from each task (via a flag each task
+  answers), so T2 never depends on catching the boot burst.
+
+### LoRa after the swap - ❌ still DOWN
+Exact lines (same as before the swap, same on the FreeRTOS build earlier):
+```
+lora_radio: unexpected chip type 0x00 (SPI wiring?)
+lora: init FAILED (check the Core1121 wiring and power, BUSY GP6, DIO9 GP7). Continuing with WiFi only.
+```
+Chip type `0x00` means the SPI read returned all zeros: the module never answered. With a second
+module giving the same result, the fault is most likely node 1's board or wiring (CS GP13,
+SPI1 SCK/MOSI/MISO, RESET GP5, 3V3), not the module. The SD card on the same SPI1 bus mounts, so
+SCK/MOSI/MISO reach the SD socket at least. Decisive test: put node 2's known-good module on
+node 1 (`MY_STEPS.md` part C).
+
+### Other boot lines worth keeping
+`sd: mounted, 0 sample images in 0 groups`, `capture id: next is N1-000001` (bridge never
+captures), `wifi: ESP-01 MAC AC:0B:FB:C7:7F:E9 = WST-1`, `node 1 ready (bridge), outbox has 0 queued`.
+`s` after boot: dht22 2/0, wifi up, lora DOWN, log dropped 0, usb dropped 0, heap 1224 B, stacks
+comms 6608 / usb_owner 2264 / sensors 7408 free.
+
+### `flash_node.py` on macOS - fixed and tested
+`find_drive()` only knew Windows drive letters (`ctypes.windll`, an AttributeError on macOS). It
+now checks `/Volumes/RPI-RP2` on macOS and waits up to 3 s for `INFO_UF2.TXT` to be readable and
+the volume writable; the macOS copy is data-only (`shutil.copyfile`, like `cp -X`) with one retry on
+`Permission denied`. Windows code path unchanged. Tested on node 1: `--bootsel-key` -> found
+`/Volumes/RPI-RP2` -> copied -> reopened the port -> `s` output read. It still opens the port with
+pyserial, so it can lose the boot burst (F10, not fixed).
+
+### Board state left (2026-11-11 ~18:55)
+| Board | Port | Firmware | Notes |
+|---|---|---|---|
+| Node 1 (bridge) | `/dev/cu.usbmodemMTK3PICO1` | committed SMP `csc09_smp_node_1.uf2` | LoRa DOWN (swapped module), wifi up, SD cleared |
+| Node 2 | not on USB | committed SMP `csc09_smp_node_2.uf2` (last known) | not enumerated during this run; PIR cover status unchecked |
