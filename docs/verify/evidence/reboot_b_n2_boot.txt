@@ -1,0 +1,3 @@
+waiting for RPI-RP2 drive...
+found /Volumes/RPI-RP2, copying uf2/csc09_smp_node_2.uf2
+TIMEOUT: could not open port /dev/cu.usbmodem3 ['/dev/cu.usbmodem14401', '/dev/cu.usbmodemMTK3PICO1']

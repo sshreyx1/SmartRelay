@@ -25,9 +25,9 @@ the command shown, in this session, on this machine (via WSL for the C/host side
 | Backend: existing sound-label behaviour unchanged | `backend/tests/test_sound_labels.py` (pre-existing, unmodified) | PASS | 5/5 |
 | Backend: offline receiver still saves the no-name-tail legacy case | `tools/test_bridge_receiver.py` against a real `test_uplink.c` stream | PASS | run manually this session, see below |
 | Verifier logic (manifest vs received vs DB) | `backend/tests/test_verify_received.py` (3 tests, Task E) | PASS | synthetic fixture only -- no real two-node run in this session |
-| BARR-C style/lint over in-scope, host-compilable files | `tools/check_style.sh` | PASS (format/lint SKIPPED: tools not installed) | see `docs/CODING_STANDARD.md` |
-| Dual-core SMP build | `firmware_smp/smoke/` + `firmware_smp/buildglue/check_env.sh` | BLOCKED | see `docs/curveball_results.md` |
-| Two-node hardware test (8 cases) | `docs/sound/TWO_NODE_TEST.md` | BLOCKED (no hardware) | see that file's own per-case notes |
+| BARR-C style/lint over in-scope, host-compilable files | `tools/check_style.sh` | PASS (2026-11-19: clang-format 23 run for real; 35 files reformatted, now clean) | `docs/CODING_STANDARD.md`, `docs/verify/RESULTS.md` |
+| Dual-core SMP build | `firmware_smp/buildglue/build_smp.sh` (all 5 nodes) + hardware on nodes 1 and 2 | PASS (2026-11-19, was BLOCKED) | `docs/verify/RESULTS.md`: builds on macOS, T2 core assignment, 60 min soak, tick measurement |
+| Two-node hardware test (8 cases) | `docs/sound/TWO_NODE_TEST.md`, `tools/soak_pair.py` | PASS for the cases runnable with 2 boards (was BLOCKED); T1 (multi-hop) needs nodes 3-5, T7 (ESP-01 removed) needs hands | `docs/verify/RESULTS.md` |
 | `ml/tests` unaffected | `ml/tests` (read-only) | PASS | 10/10, unmodified |
 
 ## Counts
@@ -38,8 +38,10 @@ the command shown, in this session, on this machine (via WSL for the C/host side
 - **Backend** (pytest): 13 tests, 0 failed.
 - **`ml/tests`** (pytest, read-only): 10 tests, 0 failed.
 - **BARR-C style check**: 1 stage, PASSED (3 of 4 checks SKIPPED for a missing tool, 1 actually run).
-- **Dual-core SMP**: 0 of 6 stages (C0-C5) could run past C0; C0 itself ran and correctly reported FAIL (missing toolchain).
-- **Two-node hardware**: 0 of 8 cases run (no hardware); verifier logic covered by 3 synthetic-fixture tests instead.
+- **Dual-core SMP** (updated 2026-11-19): builds for all 5 nodes and runs on nodes 1 and 2; see `docs/verify/RESULTS.md`.
+- **Two-node hardware** (updated 2026-11-19): run on nodes 1 and 2, including a 60 min soak, backend end-to-end and a
+  reboot-persistence test; see `docs/verify/RESULTS.md`. (The counts above this line are from round 3 and are kept as
+  they were.)
 
 ## Reproduction commands
 
@@ -101,8 +103,9 @@ missing a function this code needs -- see the script's own comment on `CC`.
    LoRa ~5 s, 20,000 B LoRa ~46 s) and was not run to avoid an open-ended session delay. The script
    and the estimate are both in `host/integration/run_size_ladder.sh`'s header comment; running the
    full ladder is a `host/integration/run_size_ladder.sh` away.
-4. **Dual-core SMP (Task C) and the two-node hardware test (Task E) could not run at all** -- no
-   toolchain, no board. See `docs/curveball_results.md` and `docs/sound/TWO_NODE_TEST.md`.
+4. ~~Dual-core SMP (Task C) and the two-node hardware test (Task E) could not run at all.~~ Resolved
+   2026-11-19: both ran on real boards, see `docs/verify/RESULTS.md`. Still not run: T1 multi-hop
+   (needs nodes 3-5) and T7 with the ESP-01 physically removed.
 5. **`backend/app.py`'s `on_transfer()` telemetry/image split logic itself has no direct test** --
    its merge/discriminator behaviour is covered indirectly through `backend/storage.py`'s
    `record_capture()` (which `test_telemetry_split.py` exercises directly, mirroring what

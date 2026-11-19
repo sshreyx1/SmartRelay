@@ -4,16 +4,27 @@
 
 **BARR-C:2018**, the Barr Group Embedded C Coding Standard, as requested by the professor.
 
-**This requires verification**: the actual BARR-C:2018 document was not available to consult
-directly in this environment (no network fetch of the Barr Group text, and no copy bundled in
-this repo -- checked `docs/` and the whole tree for "BARR-C"/"Barr Group", found nothing). Every
-rule below is therefore cited by its well-known plain-English theme (fixed-width types, braces on
-every block, no magic numbers, one statement per line, `const`/`static` use, no implicit
-signed/unsigned conversion, `volatile` for data shared with an ISR or another core, naming, no
-recursion, bounded loops), never by a specific rule number, since a number could not be confirmed
-against the real text. Before this is presented as BARR-C:2018 conformance to the professor,
-someone with access to the actual standard should check the themes below against its real rule
-numbers.
+### Rules applied, by BARR-C:2018 rule number
+
+Rule numbers below are cited from BARR-C:2018's published numbering (free PDF from Barr Group).
+They were written from the standard's numbering as known on 2026-11-19, not copied from a copy of
+the PDF bundled here (there is none in the repo); someone should open the PDF once and tick each
+row before the table is shown to the professor as a rule-by-rule audit.
+
+| BARR-C:2018 rule | Requirement (short) | How this repo meets it | Checked by |
+| --- | --- | --- | --- |
+| 1.2.a | lines no longer than 80 characters | **deviation**: 120 (see Deviations) | `.clang-format` `ColumnLimit: 120` |
+| 1.3.a | braces around every `if`/`else`/`switch`/`while`/`do`/`for` body, even one statement | yes | regex search for `if/for/while/else` followed by a statement on the same line: 0 hits |
+| 1.3.b | each `{` and `}` on its own line, aligned (Allman) | yes | `.clang-format` `BreakBeforeBraces: Allman`, `tools/check_style.sh` |
+| 1.7.c | no `goto` | yes (0 in scope) | `grep -rn goto` over scope |
+| 1.8.a / 1.8.b / 1.8.c | use `static`, `const`, `volatile` where they apply | file-local functions and data are `static`; read-only tables `const`; data shared between tasks/cores or with an ISR `volatile` (e.g. `log.c` `s_dropped`/`s_queued`, `main_smp.c` `g_task_core`) | review; cppcheck `constVariable`/`constParameter` style checks |
+| 3.4.a | indentation in multiples of 4 spaces | yes | `.clang-format` `IndentWidth: 4` |
+| 3.5.a | no tab characters | yes | `.clang-format` `UseTab: Never` |
+| 5.2.a | fixed-width types (`<stdint.h>`) wherever width matters | yes; plain `int` only for small counters/handles whose width does not matter | review + `-Wconversion` |
+| 5.3.b | no mixing signed and unsigned in comparisons/expressions | compiled with `-Wconversion -Wsign-compare`; the `%u`-with-signed-`NODE_ID` printf cases cppcheck found were fixed with explicit `(unsigned)` casts | gcc + cppcheck |
+| 6.2.a | functions kept short (about one page / 100 lines) | mostly; known long ones: `comms_task`, `usb_owner_task`, `handle_capture` (main loop / key dispatch) | review (not enforced by a tool) |
+
+## Scope
 
 ## Scope
 
@@ -22,10 +33,8 @@ In scope for this task: `alfp/**`, `common/**`, `firmware/app/**`, `firmware/sen
 `third_party/wifi_mesh/wst_link.c`/`.h` added by this project's own commits (not Goutham's
 original vendored code), and new test code. Out of scope / excluded: `third_party/mtk3smp_rp2040/**`
 (vendored kernel fork), `third_party/lora_mesh/**`, `third_party/sensors/**`, and everything else
-not listed. `firmware/app/main.c`, `firmware_smp/app/main_smp.c`, and every file under `alfp/**`
-were left untouched by this task specifically to avoid colliding with Task A's work on those same
-files in this branch -- their style was reviewed read-only (see "Other owners'/other tasks'
-files" below) and any fixes there are for whoever owns that code next.
+not listed. (Round 3 left `main.c`, `main_smp.c` and `alfp/**` unformatted to avoid colliding with
+Task A; the 2026-11-19 verification round formatted them too, so the whole scope is now clean.)
 
 ## How to run format / lint / build locally
 
@@ -55,35 +64,19 @@ gcc -std=c11 -Wall -Wextra -Wconversion -Wshadow -Wundef -Wstrict-prototypes -We
 any tool that is not installed, and exits non-zero only on an actual violation it could check. It
 is stage 1 of `tools/run_all_tests.sh`.
 
-## What was and was not actually run in this environment
+## What was actually run (2026-11-19, macOS, `docs/verify/RESULTS.md`)
 
-- **clang-format, cppcheck, clang-tidy: not installed**, neither on Windows PATH nor inside WSL
-  Ubuntu (checked with `command -v` for each, in both places). `tools/check_style.sh` detects
-  this and prints `SKIPPED: <tool> not installed` rather than claiming a result. Install with
-  (Ubuntu/WSL) `sudo apt install clang-format clang-tidy cppcheck`, or (Windows)
-  `winget install LLVM.LLVM` for clang-format/clang-tidy and `winget install cppcheck`.
-- **Compiler warnings: actually run**, via WSL `gcc` (no `cmake`/`make` available either; invoked
-  directly) with `-std=c11 -Wall -Wextra -Wconversion -Wshadow -Wundef -Wstrict-prototypes -Werror`,
-  on every in-scope `.c` file that compiles standalone without the real Pico SDK, FreeRTOS, or
-  uT-Kernel headers:
-  - `common/loopback_radio.c`, `common/uplink.c`, `firmware/sensing/audio_features.c`,
-    `firmware/sensing/sound_features.c`, `firmware/sensing/sound_fft.c`,
-    `firmware/sensing/sound_classify.c`, `firmware/sensing/sound_image_pick.c`,
-    `firmware/sensing/sound_tables.c` -- **all 8 compiled with zero warnings and zero errors**
-    under those flags.
-  - `firmware/sensing/sensing.c` could not be compiled standalone: it pulls in
-    `third_party/sensors/DHT22.h`, which needs the real Pico SDK (`pico/stdlib.h`). Reviewed by
-    reading instead (see findings below); genuinely compiling it needs a real toolchain run.
-  - `firmware/app/board.c`, `radios.c`, `storage_fatfs.c`, `freertos_hooks.c`, `hw_config.c`, all
-    of `firmware_smp/**`'s own C files (`log.c`, `usermain_smp.c`, `rtos_port_mtk3.c`,
-    `buildglue/usb_tinyusb_glue_overlay.c`), and the `wst_link.c` edit: all need the real Pico
-    SDK / FreeRTOS / uT-Kernel headers to compile and were **not compiled** here; reviewed by
-    reading.
-- **Braces-on-every-block, checked by direct search, not assumption**: a pattern search for
-  `if`/`while`/`for` followed by a single statement with no braces (`if (...) stmt;` on one
-  line) found **zero matches** across every in-scope, editable file (the two off-limits files,
-  `main.c` and `main_smp.c`, were excluded from this search since they belong to Task A's work
-  in this branch).
+- **clang-format 23.1.4** (Homebrew): `tools/check_style.sh`'s format stage over every in-scope
+  file. The first ever run found 35 files not matching `.clang-format` (33 from before plus two this
+  round touched); all 35 were reformatted with `clang-format -i`, no code change, and the host
+  tests (14/14) and both firmware builds were re-run afterwards. Format check now clean.
+- **cppcheck**: see `docs/verify/RESULTS.md` (installed from Homebrew for this run).
+- **Compiler warnings**: both firmware builds compile with zero warnings from project code
+  (FreeRTOS build: `-Werror` on; SMP build: the kernel's own Make flags). The only remaining
+  warnings are in vendored code (`lr11xx_radio.c` `#warning` about a deprecated sync-word call)
+  and newlib's "not implemented" stubs at link time. Host build: `-Wall -Wextra -Werror -Wshadow
+  -Wconversion` for the protocol library, 14/14 ctest.
+- Earlier rounds (Windows/WSL) had no clang-format/cppcheck at all; that is no longer the case.
 
 ## Compliance table
 
@@ -99,7 +92,7 @@ is stage 1 of `tools/run_all_tests.sh`.
 
 ### Deviations (with justification)
 
-- `.clang-format`'s `ColumnLimit: 120`: this codebase's longest existing lines already run to 121
+- **Rule 1.2.a (80-column lines)**: `.clang-format`'s `ColumnLimit: 120`. This codebase's longest existing lines already run to 121
   characters (`firmware/app/main.c`); BARR-C traditionally suggests a narrower limit (80 is the
   commonly cited figure), but matching the project's own established width avoids a disruptive
   repo-wide reflow for a line-length rule this codebase was never written to. Recorded here, not

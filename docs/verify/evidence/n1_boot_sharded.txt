@@ -1,0 +1,223 @@
+waiting for RPI-RP2 drive...
+found /Volumes/RPI-RP2, copying uf2/csc09_smp_node_1.uf2
+opened /dev/cu.usbmodemMTK3PICO1
+msgq selftest: wanted 64, sent 64, extra accepted 0, drained 64 - ok
+
+CSC09 trail mesh, node 1, ALFP v1 (uT-Kernel 3 SMP build, dual core)
+clocks (measured): sys 125000000 peri 125000000 usb 48000000 adc 48000000 Hz
+msgq selftest: wanted 4, sent 4, extra accepted 0, drained 4 - ok
+sensors: core 1
+comms: core 0
+sd: mounted, 0 sample images in 0 groups:
+sd: 0 test payload file(s) in test_payloads/
+capture id: next is N1-000001 (saved next 0, highest on card 0)
+sd: inbox/ has 408 files at its top level (old flat layout), listed in 505 ms
+lora_radio: LR1121 firmware 0x0101, hardware 0x22
+lora_radio: 924200000 Hz, SF7 BW125 CR4/5, 14 dBm, CRC on
+usb_owner: core 0
+keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 captures fast | z T8: stall the console 5 s | k measure the 1 ms 
+tick (1 s) | B reboot to BOOTSEL (reflash) | h help
+wifi: ESP-01 MAC AC:0B:FB:C7:7F:E9 = WST-1
+node 1 ready (bridge), outbox has 0 queued, radio size threshold 1024 B
+sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20
+rx from node 2: inbox/06/n2_01741.bin, 27 bytes via lora, 0 dup
+@ALFP FILE v1 src=2 sid=01741 size=27 crc=9cf86211 radio=lora frags=1 meta=0102580000003bad070003e500fe02c30400ffff01358c00e7130054454c454d45545259
+@D AQJYAAAAO60HAAPlAP4CwwQA//8BNYwA5xMA
+@ALFP END crc=9cf86211
+rx from node 2: inbox/06/n2_01742.bin, 8430 bytes via wifi, 0 dup
+@ALFP FILE v1 src=2 sid=01742 size=8430 crc=2d4252b7 radio=wifi frags=36 meta=0102580000003bad070003e500fe02c30400ffff01358c00e71300626972645f30302e6a7067
+[ENV] Temp: 26.9 C | Hum: 61.1% | Light: 1752 | Weather: Cloudy | PIR 0 Sound 0
+@D /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8L
+@D CwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUF
+@D BQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4e
+@D Hh4eHh4eHh4eHh4eHh7/wAARCACfAPADASIAAhEBAxEB/8QAHQAAAQUBAQEBAAAA
+@D AAAAAAAAAwIEBQYHAQAICf/EAD4QAAIBAwMDAgQDBQYEBwAAAAECAwAEEQUSIQYx
+@D QRMiB1FhcRQygRUjQpGhCBYzUsHhQ2LR8BckNFNysfH/xAAaAQACAwEBAAAAAAAA
+@D AAAAAAACAwABBAUG/8QALhEAAgIBBAEEAQIFBQAAAAAAAAECAxEEEiExQQUTImFR
+@D MoEUIzNSsXGR0eHw/9oADAMBAAIRAxEAPwDKJhwaaTGpCVeKYzjmvNRZiGE+OeKj
+@D rhTzUnMuc0zmT6VoiyEcUJbGKc2sJ+VLSL3dqfW8QwOKk5loLaw4A4qTtkxQrePA
+@D HFPoUrDOXIaDQrxT2Fe1AiXincQ7UhsjDxDinEfAoKDiiqeKSyghNLtYpLiZYohl
+@D 2PFCokMkkLCWJirryDVRxlZ6KJC10m5m1aDT2UhpGGSBkY8mpL4mTBLyy0G2cGON
+@D Qzgf0q1WxisukP20oWW5EWSfOazC1lmvryfU7olpZmzk+BXoXCGh0snB8y/wG1t6
+@D HQG1QoGAK6K4TXCea832AEBwK8XoZbikMfrRYIEZ6DI/ekuT86bu9EolMWz80kPQ
+@D GfmubzR7ShyZMUgyZIoJJPmk7qraWOFbJpatTZCfnS92KrBY6DcUndzQQ9e3c1Np
+@D CClXg0wuEOc4qTmWmkyZrdFlNEVKvNN3TIqRkj70Ex58U5SBwNEjwRTy2jrnp8ij
+@D wjFDKWQhzEuMVKLYzppn7QZrcQ8Hb6ymTbuZd23uAGXBz8x4NR8IyP0rQfh/0s2u
+@D 6b+Jtr2PbaK09yHj9QwFXzsVR/7ihcsedquACamnpV09rHVxUuCpvbz20xguYZYJ
+@D QASkiFWAIyMg8jIIP604jHalapfRarrF5qUN5PexXE7vHcSrtaVdxAbH8IIGQPAw
+@D PFcUdqx2xUZOK8APh4CL2NEQUhKIo4zSGULFKA4pIruTjgEknAHzPihxkov+g2rX
+@D Xw6umklIQAgc+BVDgwkYUDtV91SA9N/D+/s9SvreF7aP1LhgSUiUnHJx/mO0Ack9
+@D hVChUhADg48iu96otunqT7CknwK3V7NePFejjeWVY4xlmPFcHGQT2eKQ54ovoS4c
+@D hchRyaC/yo3Fx7RAUhNAcUd6CexokUCxXsZpRFdVcmrIhGOK8BzRCOKQ3FRlicgV
+@D wmvHmuVCCxSs8UhfpXieKhBnMvemkq0/kFNJV5rQmQZOtCKCnjL34oRSmJlMbbOa
+@D LHGRT/SreOeaSN4yxKe0jwady6S0UaN+IjYsu7FOVE5x3JZQSi2sjGFO1XbonUNS
+@D s+jurbWx0troXdp6YmVihjYqQw3jkez3DGOR3qnIuAM1cvhffTW2oatZQx3zm/02
+@D SLNq5DIV5Ddj8+45+2aHSSxcsh1v5FatVRYUEfMYRQn2xxTpOaa2Frc2llDa3kLQ
+@D 3EKCORGxkFeOf5D6U8QYxWO6O2bTAfDFqKKoAFDXvXWkVBlmAA+ZxSMEF4FWLoSy
+@D ifVhrOoejFpOmETXE84JjD/8JSF5b3YOPkD9qreoajoWgyOnUd6kE724a2tlb3u7
+@D gFd2OwAOTnHgVEzx9T9ZPC0kK6NFJGv4bTrANOX7MA0eOVJG7By2flXS0+kVeLLu
+@D Pryw4x8sneltN0jqXTeouqtY11Na1mS4eYWyzYis0MrMrFAcMxIJBPbsBUXcazDE
+@D GSD98yZDykfuwQMkZ7E1ctV0TUtK6PEdr0zeLu9Sa4sbWwZGln3BYvV2LkgZJIzj
+@D tn6Y5p9tq37bdNTu2hSJGNxC0ISWFh/w2hYhgOcKAPcfI5NegcKrlFzjn/Ucq92G
+@D yz3utyQQ+uGeT34SJQvvGOeRnAHkn/7IqR6e6gs5YZJLqH05du3erMFU+QFIyTyO
+@D AeM/WqxDFqFxemAW1rFCIC2Qm45XBG7Z55GecAceKkYFSDToZDcrCk2JpJZEUuqY
+@D BCopPB53YHcHv2NVOihtNwXH/vASpX4JP1dUnvyFk2W/djt7jxj/AHp4RVIW/Sz0
+@D 2LULHUXaL15TDuuOHC+JIuWViR8yAO481ZtC1yw1qL/yz+ncquZLdj71+o+Y+ork
+@D eqaO1fzY8x/wZrU1IeOKGRRm70nbXFQAIrXQKXivAVZBGOKG45o5FIYVEQARSCKK
+@D w70nGaJEODtSWPelNwKGxqyM5KOTTaQU7cd6byimIg1I5NJ2A0t+9eFNRDsJaN90
+@D bsjYxuU4NNNSTUvwKR283rem+48e4j5U8Hepzpzp+61izvr5L20s7SwAM8kzEtna
+@D WwiDknA7kgAkc81p0s7VPbX5Ci2uCHjYSRq5jaNsYdT4NSnT90NP12wvWlaJYrhC
+@D zquTtJw3HnIPbzXNa17ofTYnt7GHUtZ1FmQlbmP05WG0/u1WNsAAYbKlt2eTjgQ9
+@D r1fqUd7HbWXQw0u9MeUeZ5ZHycYcSMNqgDz4z8622+ntWb9yS7Cw08osfUWmLo/V
+@D GrWRXBNwJ3fsHZ1B+wwABgcADAoUEUsrbYoZJDjOEQnj51X1HWk11dX0/VaWV1dj
+@D 9+0ELTsxIIJ3OcA44GB2AxjFJn03qaYySL17qqSsCQAmEBxj/MSB/Ws2ohpbLXL3
+@D OH9FPl5yWTUriw0D8PcdQP6Ydg0VhH7rq6A52qgyVBxjccDv8qZQdT9Ts9xcaT0t
+@D DpM8rubWS5EZjhjJGEZCSchdwJx9u/AdJtJLR5ru6liuNRnYmW4SPaFXxGmckIOf
+@D PJJp7vHc0l6qFGY0xz9vv/oilt6AabaPA0txezQ3t9NgS3PoBWZR2XkkkD6/T5VK
+@D 2QvZ7gRWVxewSswy9tcvC36shBx9M4piXFWn4aJbT6vLHcN2Xcox5A70ijfqNQtz
+@D 5ZS+T5LDd9ddQdIavY2t7rGtXsF4m2Yi/dmtwOPUjU+04zyp748HFSXxFg03XLSw
+@D uNfvPxr20TSW9762EZHAO7eMsQQB7SeOTjvWWdSzyXfWF0ZJHdbb2IWOTVo+Huta
+@D rJqNj0v+1pLTTLmdvyxoxjcqSu0sOBuGcdsk8Gutq9RGGo9tcdGym/bLbJZRXOor
+@D HpuyntILu11ZxcFpI4TJEst3CWKMFUsHERYKG43MFI9oyajU0a3vZJdQlhYi4MaJ
+@D YrGmWJOAHKnkZXhR4GSQAa0zq7RtG0uBtUje51G7klaMTzSLI6nsdp/+XBPHY/Wr
+@D X8IPh9AmnR69q9rI3rBryK3flQioAntI85JwTgj71qqeVyaLcLpGC9S6J0J03ZRa
+@D e4k1gxxbi9nJGXiLtkqFZcFFBxkuG47eagNE0LReoWuLjTG12wubGUFGS6hYRA52
+@D nYwDeP4WPkE9qluq9f0GXUb4yW8k3r3W7c8J3wsAPaAMA8KF84K/I1SdT1aO4SWO
+@D 11W7twfSKSPE6SRjOd33PHt8gcV0Ivjsxyxno0TSk1BrPF3Pb3ssXtklgUo4Pj1I
+@D Typ7cpuU/MU4/TFZhBqsupMk0E8aXFsgeWJ3CfvAp3lHHz2lhnnH2qT6a61c3Zj1
+@D e6aaOT3NMfewJx7iflwc/auNrvSYSTsp7/H/AAZ3Fl7NdArowyq6MrqwDKynIYHs
+@D Qa6qmvNsE4RSHFGxQnFREAMO9Dbg0ZxgGgORimIglzzQyflXWbJpG7vREDyDg02l
+@D pxOWRijqysO4IwaaSnmjw08MgBzXAc15u5rg7j70xFEp0vpE/UPUVjodoyLLdyYL
+@D M+3Yg5ds/RQf1xVi+K+py6E9xpPQ97BaPPIUOnRRhfZ6YR3DHhhtX37uckY81YrC
+@D 3t9P+AsGq2UEVpf6jbXEE15DHukcCZgAX42n7nGBjxWPaFb30MJk1I2zTfkh9L3F
+@D I/ILY5yQDjx+tdyvZodP7mcykGuOR7pFja6bcm9itrf8fJzPOi/mJHuVM/lT5KMV
+@D LT3M1yby8u5hHaxKNozgA/Oo4NQ7uGK7tpLacFo3GCM4rlw1Ly/c5TLU/DHSuHjD
+@D qwZT2INLV/rStI6YFn00+qJqUYtFYr6cjcrg/wBPtTQMdoYHKnsR2NL1On2PdD9L
+@D KccdjsSV4yduabb+KS0nFZNpWByZB86s/wANXA6gdiMkRnFU7f8AWrT8OXVL25mO
+@D dyoe3yxW/wBMhnVRLiuURmoSF9d1GRhgmaiWU0cN3BcSpI8UUqu6xuVYqGBIUjkH
+@D GcH54qO/Em4v7yU+Zzj+ZpzG31pfqUsauUkW/wBTPrb4eaJpElhBqFnILq1dfXt3
+@D fDF953FiO24lj9s1c7q2jiTcg25XBAHgeK+ef7OvWs2n3cnS123qW0jevZ7mxsb+
+@D NB987gPvW/z3zKi8sVkUsD2bg/713dPZG6pTiPVjl2fHX9pjoe90/qWXWdNluLbR
+@D JJEaERuAltcPn2Ff4VJUkNyOwODWBatLcPczQXcsltdRuFkjYcFvHPyOMg/pX6H/
+@D ABM0DSuq9AudH1KL1LW5QRuUwGGeQwPgggEH+fHFfBfxb6V1DpnWrjStRDTm2H7q
+@D dR7zET7W/wCZDjt3U5xkU2Lw+Q5PKyirOybXYXMRlkTnCbdxB4HPZvkfmCPNR63L
+@D QzxuzBl/KxK43L25+3Yj/SmYkbd7vdnnt+b6/wC3mjH09uNyk+Vz+b/XP9R9abuw
+@D LwaD0V1lHogOl6s0stkZMwSBMvEp79u655x9yK1NCjoskbq8bqHR1OVZSMgj6EV8
+@D 23B9qkHcFXyOT860D4U9UXFvLDod0JJ7KaUR27d2gduygd9pPjx3HmuR6hoPdj7t
+@D a5Xf2KnHBqbDigsKIz4BHmgswrzyFg3HBptJ2ozuOaayv9aYkQG/ekE15m5oRamJ
+@D EL9edFXV/K2paZPusb6eVod67440U/L827A7Ajk/eoLqTpebTMmJ5pVjX983p5RG
+@D GARxyMnJHfgZJ5pHR3Vmp6Ot4La/0zS7tYBG096okPotu5HB59Ta27t4PFSVh1ce
+@D qtNWPVtduNOjW1YuXWOJblBkkBcKA0jKXx3wuMk4r1cnRevms/fk1OlS5RTpba4S
+@D My+kzxZx6kfuX+Y7frTdXUg4YEdvtWjdOaV05rV3pCpLtS7eQzRKSGRQrFQzJ7t2
+@D FBwAc5PNR3XFnp+gaLpnVWoWVzrVhcnEslqqFIYgCsbMBghcgZyTnaQcZrHZ6XW1
+@D muX+4t0POCwdN21ze/AeeBJoWY6jMFQyEGFWZeGB9vuLMRkdjWYRsSg7cf8A5Wp/
+@D D/qrUX+HdzcRaAZ9K1GVprVXmYXM4GfVncngZPCp2AXAqha1pbRMt7Btjt7qVo4o
+@D pZVD71OHCc+9AeA2eaZrNLOWnhtWXEqyGCMBr26kElThgQfka5muC4tcMUIu4Ibu
+@D 3aCcFoz3AOKmNK03R4Ok5bq41MRTRP6cNuTyf9TUQTQptrDDD9R3FPov2fGXMWHF
+@D ryOZA6EKVPuICn50a8tZLdrg+tDNHBMIC8bZDyYyVXySPNO7W1udb0ic6eqg2Kgn
+@D cwX7ck+ew+tSfVdvc9OWGkXlhNFplz6frrFK6Lc5lX3SbOSWx2PgGtK0dWHLPHj6
+@D GwqTTbZVRJzV5+HYW20i+1CUAo2V+2OKzppmJZndnY8szHJJ8k/WtT6P0mSXoDeN
+@D +2VSxY9j5pvo9a/iHL8IRnngpDyQmV2g/Izk0SN6ZTIltcyQRnIViKJG4rma756i
+@D b+yD8NjBBIIOQQcHP3rfPhV8R/21p0ek6rI37TtY+ZD/AMdBx6mT57bh8znzXz0H
+@D yKLBPLBMk0ErxSoco6HBU/MVWk1MtPLPh9oibR9WP1JotxZsDcIsqSGNlJ5bnI25
+@D 7/es5+KPS+i9SW227RZQQzRXCcSRH5g/LsSOR9Kp1nr91rwtrO3ha31BYXku5UA9
+@D FhEN/rkfwkKDkduOO9R03xFewfT9J1yxFrdXtvFIoQsWgkfcTFIjDKkAK+RkYavR
+@D QthdHdBmmvc1uXRjvxA+GevdNStO9lNc6ecurJFzj/Nx3XnuB374rO7q3iZi8Bzz
+@D yAckH/vx3+9fYN71BcS9JSyRyTK8bh4MLwc9+fHn3cdqy7qjStP6tBbUlFvexn/H
+@D hVYmY+N3GG/WjT8MttGExvNEuCcj5Hgj/pT+znEE0ckMhRyAzYBVopFyAykdj5qU
+@D 6o6evNFkOcywhfa4JLHn6KMfXv8AeoKN13ZHIPjH/f8ATH2oweza+ieqf27bG2vC
+@D i6jCu5ipws6/5wPBHkfrU871gen3c1ldRXNrM8U8TBo5U5ZG+3kfTGfpWu9Ka8mv
+@D WDuIylxAFEvvUiTjlxjGBnPGBiuJr9CoN2V9efoROGOUTEj96bSNxXZH5oLniuYk
+@D AJkbmhlq85oLMaNIgudI5oXhnRZInUq6t2KnuKamC8hv4b6w1JopokwonhWUAgkq
+@D 47e4E8ZyOB8qOzUkNT67Z1r4sKM5R6YHSJL/AEfUFv5pHuZo42IuVYsxfIIBAAPu
+@D OB9KssHVN1qn7UbUuoLJ7BNObTbaMQb7dY5QVJEZALMHOAwHBLeBkwiORyCRTW90
+@D 3T72J457ZQGAyYyUPByO31Ge1bK9c1xIfDUf3Id9AdcHoyb+6mu20+oaPclIo5Fk
+@D 3LsQMpKh+wJbcV4xtGDWm6E+h66tvbwa1pIWygKx+xhIPWdVK7DyzZPtC5B35JGK
+@D x59GPpiFNQEttuDGC7tY5QSBgYbuoxjxnjjA4qOuLCfTruXUdHto9HmF+JE9K7YQ
+@D tE64CHAOwhgee3uA8CuhTrIS4TDjYpfpZ9BxfDG8e5ura6/BxJZBWlDsGzHhtzFg
+@D cBvykYxnBrP9Y0eO0eMC2uool327Txt6qzTjJG0HHtwR2z/OqdB8X+pnl0601u/u
+@D 3SzRUmhlAR3yScsxGSQNpBbPy88T/SXVOjahcXc+v38iJPP6tjaWR98Sp2TH8JJU
+@D EkAgd+TT7HVZ/UimV7akNr+1vLOV4rmBkdPzecfcdx+tMXkyMjB/WtIf8Nf6NM0V
+@D 1EkcuLp2S4ST0mYFjlh7t2Am7HfHY1A3+gK989oz21/PESsrQPtk3BdzKHA2sQAe
+@D SCPmawz9NrlzXL9mBKmS6Ibpa1udVurzR02fgry2K37OPZHECDvPyIOMfWojp/p6
+@D cJqri/ub4xXPoW7zZ3PEg4Iz45qd1UR9P9O67c6DPeXUs8KoryxqnpRjljkHDe4h
+@D eMcckDNVrpO51jS9Ns761srh4PRWSQKPVG3ySRnH61IUSph7c1lB52V4fkU4k/EC
+@D 2YFZGcKAR5rderL+PQvh9Z2lvcEO0YGF4zUb0toGjdZJZ9Q2ZjQWjB3VcEsR4qv/
+@D ABfvLl51T2i0T/DIGK1aSqOnrnNMTt28lO9cySNIe7HNOYmzUTBJkjFP4XFebszK
+@D TkwB8jc04CSCMS7G2E4DY4NM4izlUjG52IVQPJNaFDptzYaILi6gjeC3TAAHP358
+@D mmafSu/P0HGG4qVlII5JN0k8aPDJHJ6QJcqyHIABG7PA2ng+c9qRqGgar1b0Paap
+@D o/4m/wBWtA0Vs0UIbfDIFLyFzkiRVYKecDYzYDMcda4juJWlRAoLeOw+lSem3Gqe
+@D m2n6XJpxvJraWW0kurhytj+8USyCAex5GwCMjPsJz2rVo5Ou11ZHUPnY+henR/sB
+@D YI9cttXu4LqJ47S2hkWF1PBa4CyDHpqR5wCWGOc1Xrq21HIYSRSePaNpx9c96mr2
+@D 8ivrtruGe7uFeOJfVuWy8hCAljgkZZyzEDgEkcYxTV2obtdbGzavH0KslsexeCt3
+@D 2mXrAq1sCh7CNt4qr6r0tY3+9oR+Hn8tGuAfup4P9K0djVc670+a409tSs5pori3
+@D XMvpMQWQfxD/AJl7/Vcj5U3T61zmoz4z5BjN9GZaj0/q1gCWhFzEvG+HkgfUfmH9
+@D aDpN1qFlqEF3aQytNGfVU+mxyBxyB3Hg1MDqHVbLdHeQQX0QAGcbGUf5gV4IP2/3
+@D C3Vl3Z30E1ik0EY95iaTOD/mRgOOOD8+zA111npjnlmn28ss1nbzTxNDLJEryRlc
+@D FWI5GPFcZqienOo7PXo2EUi/igNxiIw5HcnHz+3f6dqkHf615y6iVU2pLBmfB1m7
+@D 5oEjivO9AdqBIFhWcVwPTdnrqnNFgrI6Rs0TdQIzSyeKrBYtnpHqMDuUkH50gtSC
+@D eKtLJAGq2Fhqke3ULVJjgASA7ZFx8mHP6dqgLjpZraVLjRr5kkQ8JcsRtH/K6/6i
+@D rGWpDHHk0+u6yHTCU3Hoj7LUdd0586jp8V3bqS3rWzgypxjnGN4xwQRVq6c65ksb
+@D gSadLfL+53SM5DMSww2RtOxQAFGfq3Gar0jkAkGmjSRreRXEsQl2H3DcUZ1IwU3L
+@D yARwcVrr1Um+R8NQ+maXY9X9P6hDPba9+IsLu6nMUF5bQ7kLOoZo+eAicDbg5P1q
+@D ndHw3Wj6hqml6t6tzb3V4kNjqKZjiWUtgbMgBi2MHH5earc88d7p9vaXlna2txaB
+@D /RvbdmO853KJFOSAAAuV58tup1YpDqc0ega51BbWJjG/T9TkkkkjhnA3MgOMqj+R
+@D t/NjHmt0L+cpj8qSxk2/oa01jRNRmW21W30+J9sk34yBHgmXcQTnghsjGMgcE54q
+@D A+JU8/UOkR6lFBBEzyFVhjYgSEYyU3c+QMH58E4qG6F6xt7kTaPeaxDm0X0vxrBk
+@D R0XcdoRhlTk5z34Pmr1pGmdP6sLexhSYzFPQR7qUD0hg7mKrwnG9ssc/0rS5qcXG
+@D XTBcFJGMQOVbYwKsOGDDBB+op/CxrUdY+H8d5azvbWBIb/0RdGSZIIwR6j/xF3Cu
+@D +0+AM9xWd32jvbai9vb3G6ET+kr3C+k4Hgkdu3PBrj3+nzjzDlGd1tMsPw5topdX
+@D bU7rItrJS5JHBbHakdQ9TalrmoTuJjbWJc7IUA94+tPOrJ4tD6atNA0y7gMrgPcs
+@D pBLDzgj51U4XxgDik3t0QVS78lt7VtRJRvxgcVIaZeJZ3sFzJEJY45AzIXK5HYkF
+@D eQQM9qhkfmnKSe3j5dvnWBZjJNC08PKJrqGz07SupZ9O0uVGtfwsVwgVAqszM+51
+@D wScEBO5znJPemDHipXXltrnpSDqVL1o4tIgi0iGzIBeaZ3Ds7Y7Kckg+NozUK7YY
+@D j61o1kPmrPyFbH5Z/J1mApIkCtnvjwexoTuKGzmsuBRC3HTOntZrbxkKY23IWTkD
+@D 3ZXj+E5APfheOaYaT0naWN36l4IrtIS34c5IJBxjePOOfp86szNxQZWratZdjGQt
+@D zGhtbKORHjsraNo2LIY4gpUnuRjzxXGcfX9Tk12VsU2duKS5SksN5Aydd+e9DZq4
+@D xpBNWkQ6TSlPNCzSlNWWOUIxXS1CU0otVYIdY0NmNeY80gmiRD26kM1cJobtRJEy
+@D Imfimdy1Glbimc7U2ESAHPzpBYgcHH0pMjc0MvT0i8jm6Md0i3C+ja6jbRuy3IBL
+@D XZJztkycZxwDxxwatHTvX+r2V8ra/GFVYwkMzRjOM4Yh1/OOMeSNufpVLZ81pvwR
+@D 0yx6i0fXtE1W3W4sSu8Bh/hvt4Zccgg+RWzT5k9jHQseUmaL0R1lrlxpsVkz/wB5
+@D JL2Ufgt8+8gvKdxzwMgYPJwAMc84lr/SE1OW9g1ONrTVbb9++n3zLG7byWKgnIJY
+@D RjlSRtIFfPmq2dzoEQtbfVpzCHZUCRhQB4+ZP/Wlabruv9PX9vfWWpPqF0kYE/pu
+@D 3qxOpyFYEkOQCOBwOQRkVo3RhLGR/uZyav1B0XOVub9fwBJkLpbQwkIQ57R8eO/0
+@D 4PnFVzU+ldUsbxoLZPxXvQIqZLkN+UkEDGe3OKDpvxm6z0TULZtcsmsM3QkWO5sT
+@D 6RDblKqDjjDDjJwQOx5q5/8Ai7aa1araQWkNpeSRKJZUPO3Lcb+SCGC4ODjJqrqq
+@D rl8l+4Eopmdh2jlaOVGjkU4ZWGCD8qOkuB3NXPWtDiudOW6TT7a1nuHYQrPNlrkq
+@D QCV2987ix7ZwPtVOlsrj1n/D2+VBGVjYuEycYye/Y1y7/Tpx+UOUKcGjQ/hnI+o9
+@D EdYaKslsz+gtxBE8W9mbGC2OzKAvIPHOflWeW1wXtInLh2KDc2Mbj2J/mDWifAGe
+@D wl1DqHRL6KNLi9styvJKyEpHuLx8du+c554GMVn/AFFanS9dv9P9GaFIZ2EayoVJ
+@D UnORnnHJxz8qC6Demi34LlzBA3l+tJ35pmZOaWHrBgSxyW4pvNJSXkwtNpZMmrUS
+@D j0r02Z65LJzTdnwe9MUSgxc0lnxQt4obv3o1EvscbqUrU3c0pWqsEHIfilBuKa7+
+@D 9e9TFTBMDktSC1BD5NdzmrxggomhSGlGhyVaRQCXsaYztTqZvaaj7hjmtEEWBlbv
+@D QGeuyNwabs1aIoiC7s1sH9me1kurvWyATCqDfg4J9tYzu5r6Y/stdN2390b/AFQn
+@D fNOuWBOB24FatNhWIZFNsyH4hgR6g2xWRBOdoJ5HNV+OUk8nJJyT8z8/vVr+NKNB
+@D q6L6KRL6p4U5+dUVJSDS9XHNjIi36V1Je2ulz6VMI7ywnBSSGfLKUIwVwePAIPcE
+@D cEVU5dNutOkhXSnuJ4ZIsTMq+6Nu2OP4cfTPJo0U+RTuG4wQRkVmjZKAxTaWCydC
+@D dZ3WmbLe/kuLrTkcorhMtb8e8AHO0kDHzHfFaZBqmhXl3FdWLAuhjkhhUlYSHyhG
+@D By2Awwfp9TWKyx2t5zPCC+P8RcK47ef080uxuNS02Oe4Goy3UcZ9QpsCBUAO4kAj
+@D sDkbTyc8dq0V6hPrhjIzTN4g0ySy1KPW7TUo7N0umt4ZklRT7iwVePzcfTnb9M1A
+@D 9XaFcXl4NV1DV9QupZ41AdkEmFHC4BIODycA/wDSq5011PFcWNoZLA36Mnq+i+0O
+@D AFYooJ4GWHfnA8eK0PTuptI1uVoZTJbNHAYXDAmONmbBb2jPACjgc80/3I2pwsWQ
+@D 5VZXBk15BdWjOLiIgI+xpF5Tdzxn9DwcGhCUY4PNate2NlrNpc67p0dvcaZvjsYF
+@D eIqrKFBclCc8k579/wCdVA9FpdyQpa3MlrLcOFjjKh1OeT5GNoI881js9NzzU8oy
+@D zrcSrNLkEZpvJJRdc0++0i6MF2EKkn05EOQ455x3H61GSS1z3W4vDQoLI+aC78UJ
+@D pabyS+BRqJeBz6oHmuepmmYk5ya96h8UxQLwf//Z
+@ALFP END crc=2d4252b7
+[ENV] Temp: 26.8 C | Hum: 61.1% | Light: 1752 | Weather: Cloudy | PIR 0 Sound 0
+node 1 | alfp in 49 badcrc 0 | tx ok 0 fail 0 | rx ok 2 crcfail 0 expired 0 | outbox 0
+  wifi: tx 8 rx 54 delivered 45 relayed 0 dup 9 rxerr 1
+  lora: tx 12 rx 9 delivered 4 relayed 0 dup 5 rxerr 0
+  dht22 good 13 fail 0 | lora up | wifi up
+  bridge never heard on wifi
+  bridge last heard on lora 247 ms ago
+  task comms: core 0 prio 10 stack free 5856 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2192 of 3072 B
+  task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  longest comms loop 2703 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5240 B
+  outbox dropped (full) 0 | msgq errors 0 (last 0) | uplink sent 2 bad 0 waiting 0 (max 1) inline 0
+  slowest SD call (ms): open_r 336 open_w 332 read 17 write 14 size 0 close 42 remove 0 rename 689 list 505 mkdir 910 | worst mkdir 910 ms on inbox/06
+  slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 2366 | captures 0 | outbox 0 | uplink 354
+[ENV] Temp: 26.8 C | Hum: 61.1% | Light: 1746 | Weather: Cloudy | PIR 0 Sound 0
+
+=== captured 15042 bytes from /dev/cu.usbmodemMTK3PICO1 ===

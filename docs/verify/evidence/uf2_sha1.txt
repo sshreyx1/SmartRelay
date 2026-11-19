@@ -1,0 +1,14 @@
+5ad59f7fcb5a239cb28205903eaac0ad03a6fc91  uf2/alfp_selftest.uf2
+3cebc94cf1acaa7008ccccfa8ebe1470283aae0d  uf2/csc09_node_1.uf2
+d003163d856fc775e17ce266045bef0df43daec8  uf2/csc09_node_2.uf2
+59c4a9d320f1d7b0efd6e74d6e73235207b515a3  uf2/csc09_node_3.uf2
+3b8d3db0b0a6254e8f38e676fb464da505ba39e2  uf2/csc09_node_4.uf2
+9e8ccaeee8c18c80bc60355b557bd960ff6403ff  uf2/csc09_node_5.uf2
+4a18654ff1c44b049b7fbb7eff537a5e95e2df8e  uf2/csc09_smp_node_1.uf2
+e1b55600f75e4acc0dca22deefff8cee3f134e44  uf2/csc09_smp_node_2.uf2
+723c4fa0acd90177c43cb57847c0cd5666a4f2a5  uf2/csc09_smp_node_3.uf2
+2dd0940ba8744f652c12ae2200268abe5fe802c1  uf2/csc09_smp_node_4.uf2
+bebceb277bcfa6a06d37f952f1e5f118fd36fb00  uf2/csc09_smp_node_5.uf2
+c06d690e0f68a72629fe47536b06f5e178008753  uf2/lora_photo_rx.uf2
+f3063d76628366cb5d11a8760a454c8d7771f6ff  uf2/lora_photo_tx.uf2
+ee485bef12ab0e38361ec67f9bb1039c53248d8f  uf2/sensor_test.uf2

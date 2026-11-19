@@ -1,0 +1,45 @@
+waiting for RPI-RP2 drive...
+found /Volumes/RPI-RP2, copying uf2/csc09_smp_node_1.uf2
+opened /dev/cu.usbmodemMTK3PICO1
+msgq selftest: wanted 64, sent 64, extra accepted 0, drained 64 - ok
+
+CSC09 trail mesh, node 1, ALFP v1 (uT-Kernel 3 SMP build, dual core)
+clocks (measured): sys 125001000 peri 125001000 usb 48000000 adc 48000000 Hz
+msgq selftest: wanted 4, sent 4, extra accepted 0, drained 4 - ok
+sensors: core 1
+comms: core 0
+sd: mounted, 0 sample images in 0 groups:
+sd: 0 test payload file(s) in test_payloads/
+capture id: next is N1-000001 (saved next 0, highest on card 0)
+lora_radio: LR1121 firmware 0x0101, hardware 0x22
+lora_radio: 924200000 Hz, SF7 BW125 CR4/5, 14 dBm, CRC on
+wifi: ESP-01 MAC AC:0B:FB:C7:7F:E9 = WST-1
+node 1 ready (bridge), outbox has 0 queued, radio size threshold 1024 B
+sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20
+usb_owner: core 0
+keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 captures fast | z T8: stall the console 5 s | k measure the 1 ms 
+tick (1 s) | B reboot to BOOTSEL (reflash) | h help
+[ENV] Temp: 26.4 C | Hum: 62.2% | Light: 1755 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 26.4 C | Hum: 62.1% | Light: 1754 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 26.4 C | Hum: 62.0% | Light: 1754 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 26.4 C | Hum: 62.1% | Light: 1753 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 26.4 C | Hum: 62.1% | Light: 1756 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 26.4 C | Hum: 62.1% | Light: 1754 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 26.4 C | Hum: 62.1% | Light: 1874 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 26.4 C | Hum: 62.1% | Light: 1755 | Weather: Cloudy | PIR 0 Sound 0
+node 1 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  wifi: tx 0 rx 30 delivered 0 relayed 0 dup 30 rxerr 0
+  lora: tx 30 rx 30 delivered 0 relayed 0 dup 30 rxerr 0
+  dht22 good 42 fail 0 | lora up | wifi up
+  bridge never heard on wifi
+  bridge last heard on lora 1270 ms ago
+  task comms: core 0 prio 10 stack free 6280 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2192 of 3072 B
+  task sensors: core 1 prio 10 stack free 7400 of 8192 B
+  longest comms loop 1 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1144 B
+  outbox dropped (full) 0 | msgq errors 0 (last 0) | uplink sent 0 bad 0 waiting 0 (max 0) inline 0
+  slowest SD call (ms): open_r 0 open_w 0 read 0 write 0 size 0 close 0 remove 0 rename 0 list 13 mkdir 6 | worst list 13 ms on rx
+  slowest comms step (ms): wifi poll 1 | lora poll 0 | alfp service 0 | captures 0 | outbox 0 | uplink 0
+[ENV] Temp: 26.4 C | Hum: 62.1% | Light: 1754 | Weather: Cloudy | PIR 0 Sound 0
+
+=== captured 2777 bytes from /dev/cu.usbmodemMTK3PICO1 ===

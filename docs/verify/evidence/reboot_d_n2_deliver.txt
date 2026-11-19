@@ -1,0 +1,36 @@
+opened /dev/cu.usbmodemMTK3PICO1
+tx tel/N2_000185.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+tx samples/weather_00.jpg size=9894 thr=1024 radio=wifi reason=size
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1150 | Weather: Cloudy | PIR 0 Sound 0
+tx samples/weather_00.jpg: done via wifi, 42 frags, 1 rounds, 0 resent, 2.5 s
+tx tel/N2_000186.bin size=27 thr=1024 radio=lora reason=size
+tx tel/N2_000186.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+tx samples/weather_00.jpg size=9894 thr=1024 radio=wifi reason=size
+tx samples/weather_00.jpg: done via wifi, 42 frags, 2 rounds, 2 resent, 2.5 s
+tx tel/N2_000187.bin size=27 thr=1024 radio=lora reason=size
+tx tel/N2_000187.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.8 s
+tx samples/vehicle_01.jpg size=10029 thr=1024 radio=wifi reason=size
+tx samples/vehicle_01.jpg: done via wifi, 43 frags, 2 rounds, 6 resent, 2.7 s
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1149 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1150 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.5% | Light: 1150 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1158 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1155 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.5% | Light: 1166 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.5% | Light: 1150 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.5% | Light: 1152 | Weather: Cloudy | PIR 0 Sound 0
+node 2 | alfp in 8 badcrc 0 | tx ok 6 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  wifi: tx 143 rx 35 delivered 5 relayed 30 dup 0 rxerr 0
+  lora: tx 6 rx 33 delivered 3 relayed 30 dup 0 rxerr 0
+  dht22 good 64 fail 0 | lora up | wifi up
+  bridge last heard on wifi 2935 ms ago
+  bridge last heard on lora 2893 ms ago
+  task comms: core 0 prio 10 stack free 5096 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2192 of 3072 B
+  task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  longest comms loop 93 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1144 B
+  outbox dropped (full) 0 | msgq errors 0 (last 0)
+  slowest SD call (ms): open_r 20 open_w 0 read 5 write 0 size 0 close 1 remove 22 rename 0 list 8 mkdir 6 | worst remove 22 ms on tel/N2_000185.bin
+  slowest comms step (ms): wifi poll 1 | lora poll 0 | alfp service 39 | captures 1 | outbox 54 | uplink 0
+
+=== captured 2444 bytes from /dev/cu.usbmodemMTK3PICO1 ===

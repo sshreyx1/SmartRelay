@@ -75,7 +75,8 @@ DAT2 lines, which a card ignores in SPI mode.
 
 ## 2. Prepare the SD cards
 
-- **Node 1 (bridge):** an empty FAT32 card. Received files go into `inbox/`.
+- **Node 1 (bridge):** an empty FAT32 card. Received files go into `rcv/<xx>/` (xx = the session id's
+  high byte, so no folder grows large; firmware before 2026-11-19 used one flat `inbox/`, which can be deleted).
 - **Nodes 2 to 5:** a `samples/` folder of small images. They stand in for camera frames, and the
   node picks one **from what it heard** (`firmware/sensing/sound_image_pick.c`): it looks for
   `samples/<label>_NN.jpg` (e.g. `dog_00.jpg`), then the label's group (`bird_00.jpg`,
@@ -146,7 +147,7 @@ Build options (add to the first `cmake` line, e.g. `cmake -S firmware -B build-f
 | --- | --- | --- |
 | `-DLORA_IRQ_PIN=7` | 7 | DIO9 wired to a different free pin |
 | `-DLORA_BUSY_PIN=6` | 6 | BUSY wired to a different pin |
-| `-DSPI1_BAUD_HZ=1000000` | 1 MHz | try 4000000 once everything works, for faster SD access |
+| `-DSPI1_BAUD_HZ=4000000` | 4 MHz (since 2026-11-19) | back to 1000000 for a board whose LoRa or SD fails at 4 MHz (long SPI wires); SMP build: `SPI1_BAUD_HZ=1000000 NODE_IDS=N firmware_smp/buildglue/build_smp.sh` |
 | `-DAUDIO_SECONDS=5` | 5 | shorter recording per capture |
 | `-DALFP_LORA_GAP_MS=500` | 500 | use 1000 if the bridge is 3+ LoRa hops away |
 | `-DUSE_WIFI_MESH=OFF` / `-DUSE_LORA_MESH=OFF` | ON | build without one radio |

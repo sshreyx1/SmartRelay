@@ -1,0 +1,36 @@
+== final5: sender transfers (kind, radio, result: count, time s min/mean/max)
+   image     wifi done    :  14  2.1 / 2.4 / 2.8
+   telemetry lora done    :  14  0.8 / 1.0 / 2.1
+   radio choices: lora/size 14, wifi/size 14
+   bridge rx: 28 files (14 lora, 14 wifi)
+   bridge uplink: 28 FILE, 28 END, 0 ABORT
+   sound captures: 14, lost= max 0
+== n1 health over the run (first -> last 's', worst)
+   longest comms loop ms: first 136 last 136 max 136
+   slowest comms step (last): wifi poll 4 | lora poll 4 | alfp service 121 | captures 0 | outbox 0 | uplink 17
+   slowest SD call (last): open_r 13 open_w 23 read 9 write 12 size 0 close 21 remove 0 rename 52 list 85 mkdir 24 | worst list 85 ms on inbox
+   task comms: core 0 prio 10, stack free min 5840 of 8192 B (first 5936, last 5840)
+   task usb_owner: core 0 prio 20, stack free min 2192 of 3072 B (first 2192, last 2192)
+   task sensors: core 1 prio 10, stack free min 7400 of 8192 B (first 7400, last 7400)
+   wifi: rxerr 0 -> 0, tx 3 -> 28, relayed 0 -> 0
+   lora: rxerr 0 -> 0, tx 19 -> 134, relayed 0 -> 0
+   dht22: good 164 fail 0
+   log dropped 0, usb dropped 0
+   capture q full: 0
+   heap used: min 5240 max 5240 B
+   uplink: sent 32 bad 0 waiting 0 max waiting 1 inline 0
+   FATAL/ASSERT/outbox-FULL lines: 0
+== n2 health over the run (first -> last 's', worst)
+   longest comms loop ms: first 163 last 194 max 194
+   slowest comms step (last): wifi poll 3 | lora poll 3 | alfp service 44 | captures 168 | outbox 54 | uplink 0
+   slowest SD call (last): open_r 20 open_w 10 read 6 write 11 size 1 close 50 remove 26 rename 35 list 7 mkdir 6 | worst close 50 ms on outbox/q00000028.job
+   task comms: core 0 prio 10, stack free min 5096 of 8192 B (first 5160, last 5096)
+   task usb_owner: core 0 prio 20, stack free min 2192 of 3072 B (first 2192, last 2192)
+   task sensors: core 1 prio 10, stack free min 7392 of 8192 B (first 7392, last 7392)
+   wifi: rxerr 0 -> 0, tx 38 -> 673, relayed 7 -> 106
+   lora: rxerr 0 -> 0, tx 2 -> 32, relayed 7 -> 106
+   dht22: good 125 fail 0
+   log dropped 0, usb dropped 0
+   capture q full: 0
+   heap used: min 1144 max 1144 B
+   FATAL/ASSERT/outbox-FULL lines: 0

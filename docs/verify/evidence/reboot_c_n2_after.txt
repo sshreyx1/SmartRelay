@@ -1,0 +1,17 @@
+opened /dev/cu.usbmodemMTK3PICO1
+node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 6
+  wifi: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  dht22 good 13 fail 0 | lora up | wifi up
+  bridge never heard on wifi
+  bridge never heard on lora
+  task comms: core 0 prio 10 stack free 5160 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2192 of 3072 B
+  task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  longest comms loop 21 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1144 B
+  outbox dropped (full) 0 | msgq errors 0 (last 0)
+  slowest SD call (ms): open_r 6 open_w 0 read 2 write 0 size 0 close 1 remove 0 rename 0 list 8 mkdir 6 | worst list 8 ms on outbox
+  slowest comms step (ms): wifi poll 1 | lora poll 0 | alfp service 0 | captures 1 | outbox 21 | uplink 0
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1154 | Weather: Cloudy | PIR 0 Sound 0
+
+=== captured 963 bytes from /dev/cu.usbmodemMTK3PICO1 ===

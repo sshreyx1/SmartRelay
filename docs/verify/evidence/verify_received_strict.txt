@@ -1,0 +1,10 @@
+=== capture telemetry/image linkage: backend/smartrelay.db ===
+node   capture_id   has_image  has_telemetry  linked  
+--------------------------------------------------------
+2      65           True       True           True    
+2      179          True       True           True    
+2      180          True       True           True    
+2      181          True       True           True    
+2      182          True       True           True    
+2      183          True       True           True    
+2      184          True       True           True    

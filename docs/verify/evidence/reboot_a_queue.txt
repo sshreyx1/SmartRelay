@@ -1,0 +1,37 @@
+opened /dev/cu.usbmodem3
+[AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 5432.0 zcr 0.299 mean 2079, 80000 samples
+[SOUND] group=WEATHER label=WEATHER id=6 conf=46 rms=66 zcr=6196 lost=0 feat_us=907538 maxcall_us=3461 model_us=994
+[ENV] Temp: 23.2 C | Hum: 76.7% | Light: 1154 | Weather: Cloudy | PIR 0 Sound 0
+
+[ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+capture N2-000186: heard WEATHER (46%) -> samples/weather_00.jpg
+capture N2-000186 telemetry queued (tel/N2_000186.bin)
+capture N2-000186 queued (samples/weather_00.jpg), outbox 4
+[AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 3694.2 zcr 0.322 mean 2079, 80000 samples
+[SOUND] group=VEHICLE label=VEHICLE id=5 conf=49 rms=52 zcr=7050 lost=0 feat_us=911734 maxcall_us=3911 model_us=1260
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1220 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1215 | Weather: Cloudy | PIR 0 Sound 0
+capture N2-000187: heard VEHICLE (49%) -> samples/vehicle_01.jpg
+capture N2-000187 telemetry queued (tel/N2_000187.bin)
+capture N2-000187 queued (samples/vehicle_01.jpg), outbox 6
+[ENV] Temp: 23.2 C | Hum: 76.7% | Light: 1158 | Weather: Cloudy | PIR 0 Sound 0
+tx tel/N2_000185.bin: gave_up via lora, 1 frags, 1 rounds, 0 resent, 60.8 s
+[ENV] Temp: 23.2 C | Hum: 76.7% | Light: 1156 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.6% | Light: 1158 | Weather: Cloudy | PIR 0 Sound 0
+[ENV] Temp: 23.2 C | Hum: 76.7% | Light: 1150 | Weather: Cloudy | PIR 0 Sound 0
+node 2 | alfp in 177 badcrc 0 | tx ok 120 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 6
+  wifi: tx 2671 rx 1367 delivered 113 relayed 1254 dup 0 rxerr 0
+  lora: tx 160 rx 1321 delivered 64 relayed 1257 dup 0 rxerr 0
+  dht22 good 1720 fail 0 | lora up | wifi up
+  bridge last heard on wifi 94814 ms ago
+  bridge last heard on lora 94784 ms ago
+  task comms: core 0 prio 10 stack free 5040 of 8192 B
+  task usb_owner: core 0 prio 20 stack free 2192 of 3072 B
+  task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  longest comms loop 196 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 1144 B
+  outbox dropped (full) 0 | msgq errors 0 (last 0)
+  slowest SD call (ms): open_r 22 open_w 10 read 8 write 38 size 1 close 20 remove 27 rename 36 list 8 mkdir 6 | worst write 38 ms on meta/next_id.tmp
+  slowest comms step (ms): wifi poll 4 | lora poll 4 | alfp service 45 | captures 170 | outbox 58 | uplink 0
+[ENV] Temp: 23.2 C | Hum: 76.7% | Light: 1162 | Weather: Cloudy | PIR 0 Sound 0
+
+=== captured 2527 bytes from /dev/cu.usbmodem3 ===

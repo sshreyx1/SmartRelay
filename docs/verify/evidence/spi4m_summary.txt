@@ -1,0 +1,36 @@
+== spi4m: sender transfers (kind, radio, result: count, time s min/mean/max)
+   image     wifi done    :  12  2.2 / 2.3 / 2.4
+   telemetry lora done    :  12  0.8 / 0.9 / 0.9
+   radio choices: lora/size 12, wifi/size 12
+   bridge rx: 24 files (12 lora, 12 wifi)
+   bridge uplink: 24 FILE, 24 END, 0 ABORT
+   sound captures: 12, lost= max 0
+== n1 health over the run (first -> last 's', worst)
+   longest comms loop ms: first 1 last 133 max 133
+   slowest comms step (last): wifi poll 3 | lora poll 4 | alfp service 116 | captures 0 | outbox 0 | uplink 16
+   slowest SD call (last): open_r 13 open_w 21 read 10 write 18 size 0 close 22 remove 0 rename 44 list 86 mkdir 25 | worst list 86 ms on inbox
+   task comms: core 0 prio 10, stack free min 5864 of 8192 B (first 6336, last 5864)
+   task usb_owner: core 0 prio 20, stack free min 2192 of 3072 B (first 2192, last 2192)
+   task sensors: core 1 prio 10, stack free min 7400 of 8192 B (first 7400, last 7400)
+   wifi: rxerr 0 -> 0, tx 0 -> 15, relayed 0 -> 0
+   lora: rxerr 0 -> 0, tx 9 -> 101, relayed 0 -> 0
+   dht22: good 126 fail 0
+   log dropped 0, usb dropped 0
+   capture q full: 0
+   heap used: min 1144 max 5240 B
+   uplink: sent 24 bad 0 waiting 0 max waiting 1 inline 0
+   FATAL/ASSERT/outbox-FULL lines: 0
+== n2 health over the run (first -> last 's', worst)
+   longest comms loop ms: first 0 last 162 max 162
+   slowest comms step (last): wifi poll 3 | lora poll 1 | alfp service 45 | captures 137 | outbox 54 | uplink 0
+   slowest SD call (last): open_r 20 open_w 9 read 4 write 6 size 0 close 20 remove 27 rename 35 list 7 mkdir 6 | worst rename 35 ms on meta/next_id
+   task comms: core 0 prio 10, stack free min 5160 of 8192 B (first 5888, last 5160)
+   task usb_owner: core 0 prio 20, stack free min 2192 of 3072 B (first 2192, last 2192)
+   task sensors: core 1 prio 10, stack free min 7392 of 8192 B (first 7392, last 7392)
+   wifi: rxerr 0 -> 0, tx 0 -> 523, relayed 5 -> 84
+   lora: rxerr 0 -> 0, tx 0 -> 24, relayed 5 -> 85
+   dht22: good 103 fail 0
+   log dropped 0, usb dropped 0
+   capture q full: 0
+   heap used: min 1144 max 1144 B
+   FATAL/ASSERT/outbox-FULL lines: 0
