@@ -7,6 +7,7 @@ and sends console keys at the given second offsets ("5:s,20:e" = 's' at 5 s, 'e'
 --bootsel-key first sends 'B' to --port, which makes a node running the SMP firmware reboot
 itself into BOOTSEL (no button). A node running the FreeRTOS firmware is rebooted into BOOTSEL by
 opening its port at 1200 baud instead (see the handoff doc). --no-flash: only watch the console.
+Drive: the RPI-RP2 drive letter on Windows, /Volumes/RPI-RP2 on macOS.
 """
 import argparse
 import ctypes
@@ -20,7 +21,27 @@ import serial
 from serial.tools import list_ports
 
 
+MAC_VOLUME = "/Volumes/RPI-RP2"
+
+
+def mac_drive_ready(timeout=3.0):
+    """macOS: the volume's folder shows up before Finder has finished mounting it, and a copy
+    started then fails with 'Permission denied' (seen 2026-11-11). Wait up to `timeout` seconds
+    for INFO_UF2.TXT to be readable and the volume to be writable."""
+    end = time.time() + timeout
+    while True:
+        if os.path.isfile(os.path.join(MAC_VOLUME, "INFO_UF2.TXT")) and os.access(MAC_VOLUME, os.W_OK):
+            return True
+        if time.time() >= end:
+            return False
+        time.sleep(0.1)
+
+
 def find_drive():
+    if sys.platform == "darwin":
+        if os.path.isdir(MAC_VOLUME) and mac_drive_ready():
+            return MAC_VOLUME
+        return None
     for letter in string.ascii_uppercase:
         root = f"{letter}:\\"
         if os.path.exists(root):
@@ -29,6 +50,20 @@ def find_drive():
             if buf.value == "RPI-RP2":
                 return root
     return None
+
+
+def copy_uf2(uf2, drive):
+    if sys.platform != "darwin":
+        shutil.copy(uf2, drive)
+        return
+    # macOS: data only (like `cp -X`: no ._ AppleDouble file, no chmod on the FAT volume, which
+    # vanishes when the board reboots at the end of the copy). One retry for a late mount.
+    dst = os.path.join(drive, os.path.basename(uf2))
+    try:
+        shutil.copyfile(uf2, dst)
+    except PermissionError:
+        time.sleep(1.0)
+        shutil.copyfile(uf2, dst)
 
 
 def pico_ports():
@@ -65,7 +100,7 @@ if not a.no_flash:
         sys.exit(1)
     before = set(pico_ports())
     print(f"found {drive}, copying {a.uf2}", flush=True)
-    shutil.copy(a.uf2, drive)
+    copy_uf2(a.uf2, drive)
 
 port = a.port
 ser = None
