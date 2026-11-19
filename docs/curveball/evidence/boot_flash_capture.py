@@ -5,14 +5,17 @@ serial port that was not there before the copy, opens it at once and logs every 
 time since the copy finished (the board reboots at that moment). The header records when the
 port appeared and when it opened, so a missing boot log can be explained by timing: the SMP
 firmware holds its start-up lines for only 3 s waiting for a host (main_smp.c usb_owner_task).
+
+The port is opened with os.open + termios (TCSANOW), not pyserial: pyserial's open() raises DTR
+and then flushes the input buffer, and the SMP firmware sends all its held start-up lines the
+moment DTR rises, so pyserial throws exactly those lines away (2026-11-11, STATUS.md).
 """
 import glob
 import os
 import shutil
 import sys
+import termios
 import time
-
-import serial
 
 uf2, secs, out = sys.argv[1], float(sys.argv[2]), sys.argv[3]
 vol = "/Volumes/RPI-RP2"
@@ -33,27 +36,32 @@ if port is None:
     print("no new port within 30 s of the copy")
     sys.exit(1)
 t_appear = time.time() - t0
-ser = None
-while ser is None and time.time() - t0 < 40:
+fd = None
+while fd is None and time.time() - t0 < 40:
     try:
-        ser = serial.Serial(port, 115200, timeout=0.05)
-    except Exception:
-        time.sleep(0.02)
-try:
-    ser.dtr = True
-except Exception:
-    pass
+        fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)  # macOS raises DTR on open
+    except OSError:
+        time.sleep(0.005)
+attrs = termios.tcgetattr(fd)
+attrs[0] = 0                                    # iflag: raw
+attrs[1] = 0                                    # oflag: raw
+attrs[2] |= termios.CLOCAL | termios.CREAD      # keep HUPCL off the list: leave DTR alone
+attrs[3] = 0                                    # lflag: no echo, no canonical mode
+termios.tcsetattr(fd, termios.TCSANOW, attrs)   # TCSANOW: no flush of what already arrived
 t_open = time.time() - t0
 rows = [f"[host] copy {os.path.basename(uf2)} took {t0 - t_copy0:.3f} s",
         f"[host] new port {port} appeared {t_appear:.3f} s after the copy, opened at {t_open:.3f} s"]
 print("\n".join(rows), flush=True)
 buf = b""
 while time.time() - t0 < secs:
-    buf += ser.read(4096)
+    try:
+        buf += os.read(fd, 4096)
+    except BlockingIOError:
+        time.sleep(0.005)
     while b"\n" in buf:
         line, buf = buf.split(b"\n", 1)
         rows.append(f"{time.time() - t0:8.3f} {line.decode('utf-8', 'replace').rstrip()}")
-ser.close()
+os.close(fd)
 with open(out, "w") as f:
     f.write("\n".join(rows) + "\n")
 print("\n".join(rows[2:30]))
