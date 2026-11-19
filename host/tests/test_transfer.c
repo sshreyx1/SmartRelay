@@ -69,10 +69,10 @@ static bool received_equals(uint8_t node, const char* path, unsigned idx)
     return net_files_equal(&N, node, path, BRIDGE, b->rx_paths[idx]);
 }
 
-static unsigned count_files(uint8_t node, const char* dir, const char* suffix)
+/* Files ending in suffix under <node>/<dir>, one level of subfolders included (the bridge's inbox
+ * is inbox/<xx>/...). */
+static unsigned count_in(const char* p, const char* suffix, int depth)
 {
-    char p[600];
-    snprintf(p, sizeof(p), "%s/node%u/%s", N.root, (unsigned)node, dir);
     DIR* d = opendir(p);
     unsigned c = 0;
     if (!d)
@@ -82,14 +82,31 @@ static unsigned count_files(uint8_t node, const char* dir, const char* suffix)
     struct dirent* e;
     while ((e = readdir(d)))
     {
+        if (e->d_name[0] == '.')
+        {
+            continue;
+        }
         size_t l = strlen(e->d_name), s = strlen(suffix);
         if (l > s && strcmp(e->d_name + l - s, suffix) == 0)
         {
             c++;
         }
+        else if (depth > 0)
+        {
+            char sub[700];
+            snprintf(sub, sizeof(sub), "%s/%s", p, e->d_name);
+            c += count_in(sub, suffix, depth - 1);
+        }
     }
     closedir(d);
     return c;
+}
+
+static unsigned count_files(uint8_t node, const char* dir, const char* suffix)
+{
+    char p[600];
+    snprintf(p, sizeof(p), "%s/node%u/%s", N.root, (unsigned)node, dir);
+    return count_in(p, suffix, 1);
 }
 
 static void no_leaks(void)
@@ -435,7 +452,7 @@ static void test_store_and_forward(void)
         snprintf(p, sizeof(p), "img/s%u.jpg", i);
         CHECK(received_equals(3, p, i)); /* oldest first */
     }
-    CHECK(count_files(BRIDGE, "inbox", ".meta") == 3);
+    CHECK(count_files(BRIDGE, "inbox", ".met") == 3);
     net_close(&N);
 }
 
@@ -518,6 +535,62 @@ static void test_outbox_survives_reboot(void)
     net_close(&N);
 }
 
+/* F9 + F3: a bridge reboot deletes the .part files transfers cut off by the reboot left behind,
+ * and a session id that repeats after the reboot never overwrites a file already in the inbox. */
+static void test_bridge_reboot_parts_and_names(void)
+{
+    setup(0, 2, 2, false, 150);
+    CHECK(start_send(2, &sim_wifi, "img/f3a.jpg", 5000, 70));
+    CHECK(net_run_until(&N, sender2_done, 60000));
+    CHECK(N.node[BRIDGE].n_rx == 1);
+    uint16_t sid = N.node[2].tx_reports[0].sid;
+
+    /* a transfer the "reboot" will cut short */
+    CHECK(start_send(2, &sim_wifi, "img/cut.jpg", 20000, 71));
+    net_run_ms(&N, 300);
+    CHECK(count_files(BRIDGE, "rx", ".part") == 1);
+    N.node[2].n_radios = 0;
+    sim_set_link(SIM_WIFI, 1, 2, false);
+
+    /* reboot the bridge: a fresh alfp_init with the same settings (its done-list is forgotten) */
+    for (unsigned i = 0; i < ALFP_RX_SESSIONS; i++)
+    {
+        if (N.node[BRIDGE].alfp.rx[i].fh >= 0)
+        {
+            N.node[BRIDGE].st.close(N.node[BRIDGE].st.ctx, N.node[BRIDGE].alfp.rx[i].fh);
+        }
+    }
+    alfp_cfg_t cfg = N.node[BRIDGE].alfp.cfg;
+    sim_set_current(BRIDGE);
+    alfp_init(&N.node[BRIDGE].alfp, &cfg);
+    CHECK(count_files(BRIDGE, "rx", ".part") == 0);
+
+    /* node 2 "reboots" too and draws the same session id again */
+    if (N.node[2].alfp.tx.fh >= 0)
+    {
+        N.node[2].st.close(N.node[2].st.ctx, N.node[2].alfp.tx.fh);
+    }
+    alfp_cfg_t cfg2 = N.node[2].alfp.cfg;
+    sim_set_current(2);
+    alfp_init(&N.node[2].alfp, &cfg2);
+    N.node[2].n_radios = 2;
+    sim_set_link(SIM_WIFI, 1, 2, true);
+    N.node[2].alfp.next_sid = sid;
+    CHECK(start_send(2, &sim_wifi, "img/f3b.jpg", 6000, 72));
+    CHECK(net_run_until(&N, sender2_sent_twice, 60000));
+    CHECK(N.node[2].n_tx == 2 && N.node[2].tx_reports[1].result == ALFP_TX_DONE);
+    CHECK(N.node[2].tx_reports[1].sid == sid);
+    CHECK(N.node[BRIDGE].n_rx == 2);
+    CHECK(strcmp(N.node[BRIDGE].rx_paths[0], N.node[BRIDGE].rx_paths[1]) != 0);
+    CHECK(received_equals(2, "img/f3a.jpg", 0)); /* the first file is still intact */
+    CHECK(received_equals(2, "img/f3b.jpg", 1));
+    CHECK(count_files(BRIDGE, "inbox", ".bin") == 2);
+    char want[32];
+    snprintf(want, sizeof(want), "inbox/%02x/n2_%05u", (unsigned)(sid >> 8), (unsigned)sid);
+    CHECK(strncmp(N.node[BRIDGE].rx_paths[0], want, strlen(want)) == 0); /* sharded by sid >> 8 */
+    net_close(&N);
+}
+
 /* Metadata goes through intact and lands next to the image on the bridge. */
 static void test_metadata_delivered(void)
 {
@@ -538,7 +611,7 @@ static void test_metadata_delivered(void)
     char p[600];
     snprintf(p, sizeof(p), "%s/node1/%s", N.root, N.node[BRIDGE].rx_paths[0]);
     char* dot = strrchr(p, '.');
-    strcpy(dot, ".meta");
+    strcpy(dot, ".met");
     FILE* f = fopen(p, "rb");
     CHECK(f != NULL);
     if (f)
@@ -572,5 +645,6 @@ int main(void)
     RUN(test_edge_sizes);
     RUN(test_outbox_survives_reboot);
     RUN(test_metadata_delivered);
+    RUN(test_bridge_reboot_parts_and_names);
     return SUMMARY();
 }

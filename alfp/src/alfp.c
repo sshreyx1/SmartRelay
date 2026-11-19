@@ -13,7 +13,7 @@
  *   each DATA is CRC-checked, then written straight to SD at seq * frag_size (no RAM copy of the image)
  *   a bitmap records which fragments have arrived; duplicates are counted and ignored
  *   POLL is answered with a NACK built from the bitmap (list or bitmap, whichever is shorter)
- *   when every fragment is in: verify CRC-32 from SD, rename to inbox/, ACK, remember the result
+ *   when every fragment is in: verify CRC-32 from SD, rename to inbox/<xx>/, ACK, remember the result
  */
 #include "alfp.h"
 
@@ -83,6 +83,72 @@ static void pace_update(alfp_ctx_t* c, uint16_t missing);
 
 /* ---- init --------------------------------------------------------------------------------- */
 
+/* Follow-up F9: a transfer cut off by a reboot or reflash leaves its "<tmp_dir>/nS_SSSSS.part"
+ * behind, and nothing else ever deletes it (the session it belonged to is gone). At start-up no
+ * session is open, so every .part file in tmp_dir is stale. Names are collected first and removed
+ * afterwards, a batch at a time, so the directory is never changed while it is being listed. */
+#define STALE_BATCH 8u
+typedef struct
+{
+    char names[STALE_BATCH][24];
+    unsigned n;
+    bool more;
+} stale_list_t;
+
+static void stale_part_cb(const char* name, void* user)
+{
+    stale_list_t* l = (stale_list_t*)user;
+    size_t len = strlen(name);
+    if (len < 6u || strcmp(name + len - 5u, ".part") != 0 || len >= sizeof(l->names[0]))
+    {
+        return;
+    }
+    if (l->n < STALE_BATCH)
+    {
+        memcpy(l->names[l->n++], name, len + 1u);
+    }
+    else
+    {
+        l->more = true;
+    }
+}
+
+static void remove_stale_parts(alfp_ctx_t* ctx)
+{
+    if (!st(ctx)->list || !st(ctx)->remove)
+    {
+        return;
+    }
+    unsigned removed = 0;
+    for (unsigned pass = 0; pass < 64u; pass++)
+    {
+        stale_list_t l;
+        memset(&l, 0, sizeof(l));
+        st(ctx)->list(st(ctx)->ctx, ctx->cfg.tmp_dir, stale_part_cb, &l);
+        unsigned gone = 0;
+        for (unsigned i = 0; i < l.n; i++)
+        {
+            char p[ALFP_PATH_MAX + 24];
+            snprintf(p, sizeof(p), "%s/%s", ctx->cfg.tmp_dir, l.names[i]);
+            if (st(ctx)->remove(st(ctx)->ctx, p) >= 0)
+            {
+                gone++;
+            }
+        }
+        removed += gone;
+        if (!l.more || gone == 0u)
+        {
+            break;
+        }
+    }
+    if (removed && ctx->cfg.platform->log)
+    {
+        char line[64];
+        snprintf(line, sizeof(line), "alfp: removed %u stale .part file(s) from %s/", removed, ctx->cfg.tmp_dir);
+        ctx->cfg.platform->log(ctx->cfg.platform->ctx, line);
+    }
+}
+
 void alfp_init(alfp_ctx_t* ctx, const alfp_cfg_t* cfg)
 {
     memset(ctx, 0, sizeof(*ctx));
@@ -106,6 +172,10 @@ void alfp_init(alfp_ctx_t* ctx, const alfp_cfg_t* cfg)
     {
         st(ctx)->mkdir(st(ctx)->ctx, ctx->cfg.inbox_dir);
         st(ctx)->mkdir(st(ctx)->ctx, ctx->cfg.tmp_dir);
+    }
+    if (ctx->cfg.node_id == ctx->cfg.bridge_id)
+    {
+        remove_stale_parts(ctx);
     }
 }
 
@@ -658,8 +728,7 @@ static alfp_rx_t* rx_open(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src,
     slot->prof = alfp_profile_for(c, radio);
     slot->src = src;
     slot->sid = sid;
-    snprintf(slot->tmp_path, sizeof(slot->tmp_path), "%s/n%u_%05u.part", c->cfg.tmp_dir, (unsigned)src,
-             (unsigned)sid);
+    snprintf(slot->tmp_path, sizeof(slot->tmp_path), "%s/n%u_%05u.part", c->cfg.tmp_dir, (unsigned)src, (unsigned)sid);
     slot->fh = st(c)->open_write(st(c)->ctx, slot->tmp_path);
     if (slot->fh < 0)
     {
@@ -827,8 +896,8 @@ static void rx_try_send_nack(alfp_ctx_t* c, alfp_rx_t* r)
     {
         cap = sizeof(c->pkt);
     }
-    uint16_t len = alfp_enc_nack(c->pkt, cap, r->sid, flags, r->pending_round, r->have, r->frag_count,
-                                 r->frag_count == 0);
+    uint16_t len
+        = alfp_enc_nack(c->pkt, cap, r->sid, flags, r->pending_round, r->have, r->frag_count, r->frag_count == 0);
     if (r->radio->send(r->src, c->pkt, len))
     {
         r->pending_nack = false;
@@ -853,8 +922,7 @@ static void rx_on_poll(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, co
     {
         /* Everything so far was lost (or we rebooted): ask for manifest + all data. */
         uint8_t pkt[ALFP_NACK_MIN];
-        uint16_t len =
-            alfp_enc_nack(pkt, sizeof(pkt), p->sid, ALFP_NACK_NEED_MANIFEST, p->u.round, NULL, 0, true);
+        uint16_t len = alfp_enc_nack(pkt, sizeof(pkt), p->sid, ALFP_NACK_NEED_MANIFEST, p->u.round, NULL, 0, true);
         if (!radio->send(src, pkt, len))
         {
             c->stats.send_blocked++;
@@ -875,19 +943,71 @@ static void rx_on_poll(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, co
     rx_try_send_nack(c, r);
 }
 
+/* Where a finished file goes. Two problems with the old flat "inbox/n<src>_<sid>.bin":
+ *  - Follow-up F3: the session id is 16 bits and starts at a random value every boot, so on a card
+ *    used long enough a new name can meet an older file, and the storage rename replaces its
+ *    target. Now the first free name of n<src>_<sid>.bin, n<src>_<sid>_1.bin ... _99 is used (the
+ *    .met sidecar takes the same stem).
+ *  - Bridge freeze: one flat folder holding every file ever received. FatFs looks names up by
+ *    reading the whole folder, and a long name (the old ".meta") needs up to ~6 more passes to pick
+ *    a unique 8.3 alias, so the create and rename here took up to 2.8 s each on node 1's card
+ *    (SPI at 1 MHz, ~6 ms per 512-byte sector), all inside alfp_service() with both radios
+ *    unpolled. Files are now spread over 256 subfolders by the session id's high byte
+ *    ("rcv/7f/"), so a folder holds at most 256 ids per sender, and both names are plain 8.3
+ *    ("n2_32561.bin" + "n2_32561.met"), so each create is one pass over a small folder. */
+#define INBOX_SUFFIX_MAX 99u
+
+static bool path_exists(alfp_ctx_t* c, const char* path)
+{
+    int h = st(c)->open_read(st(c)->ctx, path);
+    if (h < 0)
+    {
+        return false;
+    }
+    st(c)->close(st(c)->ctx, h);
+    return true;
+}
+
+static void inbox_stem(alfp_ctx_t* c, const alfp_rx_t* r, char* stem, size_t cap)
+{
+    unsigned bucket = (unsigned)(r->sid >> 8);
+    char dir[ALFP_PATH_MAX];
+    if (snprintf(dir, sizeof(dir), "%s/%02x", c->cfg.inbox_dir, bucket) < 0)
+    {
+        dir[0] = 0;
+    }
+    if (!(c->inbox_made[bucket / 8u] & (1u << (bucket % 8u))))
+    {
+        if (st(c)->mkdir)
+        {
+            st(c)->mkdir(st(c)->ctx, dir);
+        }
+        c->inbox_made[bucket / 8u] = (uint8_t)(c->inbox_made[bucket / 8u] | (1u << (bucket % 8u)));
+    }
+    /* (return values checked: a too-long inbox_dir just gives a truncated name, never an overflow) */
+    int n = snprintf(stem, cap, "%s/n%u_%05u", dir, (unsigned)r->src, (unsigned)r->sid);
+    char probe[ALFP_PATH_MAX + 8];
+    n = n < 0 ? n : snprintf(probe, sizeof(probe), "%s.bin", stem);
+    for (unsigned k = 1; n >= 0 && k <= INBOX_SUFFIX_MAX && path_exists(c, probe); k++)
+    {
+        n = snprintf(stem, cap, "%s/n%u_%05u_%u", dir, (unsigned)r->src, (unsigned)r->sid, k);
+        n = n < 0 ? n : snprintf(probe, sizeof(probe), "%s.bin", stem);
+    }
+}
+
 static void rx_finish_ok(alfp_ctx_t* c, alfp_rx_t* r)
 {
     char final_path[ALFP_PATH_MAX + 8];
+    char stem[ALFP_PATH_MAX];
     st(c)->close(st(c)->ctx, r->fh);
     r->fh = -1;
-    snprintf(final_path, sizeof(final_path), "%s/n%u_%05u.bin", c->cfg.inbox_dir, (unsigned)r->src,
-             (unsigned)r->sid);
+    inbox_stem(c, r, stem, sizeof(stem));
+    snprintf(final_path, sizeof(final_path), "%s.bin", stem);
     bool ok = st(c)->rename(st(c)->ctx, r->tmp_path, final_path) >= 0;
     if (ok && r->m.meta_len)
     {
         char meta_path[ALFP_PATH_MAX + 8];
-        snprintf(meta_path, sizeof(meta_path), "%s/n%u_%05u.meta", c->cfg.inbox_dir, (unsigned)r->src,
-                 (unsigned)r->sid);
+        snprintf(meta_path, sizeof(meta_path), "%s.met", stem);
         int mh = st(c)->open_write(st(c)->ctx, meta_path);
         if (mh >= 0)
         {
@@ -1008,8 +1128,7 @@ static void rx_step(alfp_ctx_t* c)
  * DISPATCH
  * ========================================================================================= */
 
-void alfp_handle_packet(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t src, const uint8_t* buf,
-                        uint16_t len)
+void alfp_handle_packet(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t src, const uint8_t* buf, uint16_t len)
 {
     alfp_pkt_t p;
     ctx->stats.pkts_in++;

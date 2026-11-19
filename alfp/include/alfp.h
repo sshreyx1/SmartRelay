@@ -53,19 +53,19 @@ const alfp_profile_t* alfp_default_profile(const mesh_radio_t* radio);
 typedef enum
 {
     ALFP_OK = 0,
-    ALFP_E_BUSY,         /* a transfer is already running on this node */
-    ALFP_E_OPEN,         /* cannot open the file */
-    ALFP_E_EMPTY,        /* file is empty */
-    ALFP_E_TOO_BIG,      /* needs more than ALFP_MAX_FRAGS fragments */
-    ALFP_E_ARG,          /* bad argument (meta too long, radio NULL, ...) */
+    ALFP_E_BUSY,    /* a transfer is already running on this node */
+    ALFP_E_OPEN,    /* cannot open the file */
+    ALFP_E_EMPTY,   /* file is empty */
+    ALFP_E_TOO_BIG, /* needs more than ALFP_MAX_FRAGS fragments */
+    ALFP_E_ARG,     /* bad argument (meta too long, radio NULL, ...) */
 } alfp_err_t;
 
 typedef enum
 {
-    ALFP_TX_DONE = 0,     /* bridge confirmed the file with a matching CRC-32 */
-    ALFP_TX_GAVE_UP,      /* max_rounds or max_polls exhausted */
-    ALFP_TX_REFUSED,      /* bridge answered BUSY / STORAGE / TOO_BIG */
-    ALFP_TX_IO_ERROR,     /* local SD read failed */
+    ALFP_TX_DONE = 0, /* bridge confirmed the file with a matching CRC-32 */
+    ALFP_TX_GAVE_UP,  /* max_rounds or max_polls exhausted */
+    ALFP_TX_REFUSED,  /* bridge answered BUSY / STORAGE / TOO_BIG */
+    ALFP_TX_IO_ERROR, /* local SD read failed */
 } alfp_tx_result_t;
 
 typedef struct
@@ -77,17 +77,17 @@ typedef struct
     const char* radio;
     const char* path;
     uint32_t file_size;
-    uint32_t file_crc32;     /* CRC-32 of the file as read from this node's SD card */
+    uint32_t file_crc32; /* CRC-32 of the file as read from this node's SD card */
     uint16_t frag_count;
     uint16_t frag_size;
-    uint8_t rounds;          /* 1 = everything arrived first time */
-    uint16_t data_sent;      /* DATA packets including resends */
+    uint8_t rounds;     /* 1 = everything arrived first time */
+    uint16_t data_sent; /* DATA packets including resends */
     uint16_t data_resent;
     uint16_t manifests_sent;
     uint16_t polls_sent;
     uint16_t nacks_received;
-    uint32_t bytes_on_air;   /* ALFP bytes handed to the mesh (excluding mesh header) */
-    uint32_t gap_ms_end;     /* adaptive pacing gap when the transfer finished */
+    uint32_t bytes_on_air; /* ALFP bytes handed to the mesh (excluding mesh header) */
+    uint32_t gap_ms_end;   /* adaptive pacing gap when the transfer finished */
     uint32_t started_ms;
     uint32_t finished_ms;
 } alfp_tx_report_t;
@@ -97,7 +97,7 @@ typedef struct
     uint8_t src;
     uint16_t sid;
     const char* radio;
-    const char* path;       /* final file on the bridge's SD card */
+    const char* path; /* final file on the bridge's SD card */
     uint32_t file_size;
     uint16_t frag_count;
     uint32_t file_crc32;
@@ -148,7 +148,7 @@ typedef struct
     uint8_t todo[ALFP_BITMAP_BYTES]; /* fragments still to send this round */
     uint16_t todo_next;              /* scan position in todo */
     bool send_manifest;
-    uint8_t polls_left; /* copies of the POLL still to send */
+    uint8_t polls_left;    /* copies of the POLL still to send */
     uint16_t last_missing; /* fragments the previous NACK asked for */
     uint8_t copies;        /* copies of each fragment this round (1 or 2) */
     uint8_t copy_left;     /* extra copies of the current fragment still to send */
@@ -220,8 +220,12 @@ typedef struct
     uint8_t bridge_id; /* node that reassembles (1 = A in our deployment) */
     const alfp_storage_t* storage;
     const alfp_platform_t* platform;
-    const char* inbox_dir; /* bridge: finished files go here, e.g. "inbox" */
-    const char* tmp_dir;   /* bridge: partial files, e.g. "rx" */
+    /* bridge: finished files go to <inbox_dir>/<xx>/n<src>_<sid>.bin (+ .met with the capture
+     * metadata), xx = sid >> 8 in hex, e.g. "rcv/7f/n2_32561.bin". One flat folder grew without
+     * limit and made every FatFs create and rename on it scan the whole folder (2.8 s measured on
+     * the bridge, see rx_finish_ok). */
+    const char* inbox_dir;
+    const char* tmp_dir; /* bridge: partial files, e.g. "rx" */
     void (*on_tx_done)(alfp_ctx_t* ctx, const alfp_tx_report_t* r);
     void (*on_rx_done)(alfp_ctx_t* ctx, const alfp_rx_report_t* r);
     void* user;
@@ -245,6 +249,7 @@ struct alfp_ctx_s
     uint8_t pkt[ALFP_MAX_PKT];
     uint8_t io[ALFP_HASH_CHUNK];
     alfp_stats_t stats;
+    uint8_t inbox_made[256 / 8]; /* bridge: <inbox_dir>/<xx>/ subfolders already made this boot */
 };
 
 /* ---- API -------------------------------------------------------------------------------- */
@@ -262,8 +267,7 @@ alfp_err_t alfp_send_file(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t ds
 bool alfp_tx_active(const alfp_ctx_t* ctx);
 
 /* Feed one packet that radio->recv() returned. */
-void alfp_handle_packet(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t src, const uint8_t* buf,
-                        uint16_t len);
+void alfp_handle_packet(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t src, const uint8_t* buf, uint16_t len);
 
 /* Timers, pacing, hashing, verification. Call every few ms. */
 void alfp_step(alfp_ctx_t* ctx);
@@ -282,9 +286,9 @@ const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* by_preference, 
  * threshold, prefers "wifi" and falls back to "lora". Returns NULL if neither is fresh, same as
  * alfp_select_radio(). by_preference does not need "lora"/"wifi" in any particular order; radios
  * are matched by name. See docs/DESIGN.md "Radio choice by size". */
-const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_preference, uint8_t n,
-                                               uint8_t bridge_id, uint32_t now_ms, uint32_t fresh_ms,
-                                               uint32_t size_bytes, uint32_t size_threshold);
+const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_preference, uint8_t n, uint8_t bridge_id,
+                                               uint32_t now_ms, uint32_t fresh_ms, uint32_t size_bytes,
+                                               uint32_t size_threshold);
 
 /* True if chosen is the radio alfp_select_radio_for_size() would have preferred by size alone
  * (i.e. it was not a freshness fallback). Used only to log "reason=size" vs "reason=fallback". */

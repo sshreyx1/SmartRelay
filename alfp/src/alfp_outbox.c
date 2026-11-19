@@ -52,7 +52,7 @@ static void log_size_choice(alfp_outbox_t* ob, const char* path, int32_t size_by
 static bool parse_seq(const char* name, uint32_t* seq)
 {
     unsigned long v = 0;
-    char tail[8] = {0};
+    char tail[8] = { 0 };
     if (name[0] != 'q' || sscanf(name + 1, "%8lu%7s", &v, tail) != 2 || strcmp(tail, ".job") != 0)
     {
         return false;
@@ -74,10 +74,10 @@ typedef struct
 
 static void scan_cb(const char* name, void* user)
 {
-    scan_t* s = user;
     uint32_t seq;
     if (parse_seq(name, &seq))
     {
+        scan_t* s = user;
         if (s->count == 0 || seq < s->min)
         {
             s->min = seq;
@@ -92,7 +92,7 @@ static void scan_cb(const char* name, void* user)
 
 static scan_t scan(alfp_outbox_t* ob)
 {
-    scan_t s = {0, 0, 0};
+    scan_t s = { 0, 0, 0 };
     st(ob)->list(st(ob)->ctx, ob->dir, scan_cb, &s);
     return s;
 }
@@ -149,6 +149,15 @@ bool alfp_outbox_add(alfp_outbox_t* ob, const char* image_path, const uint8_t* m
         }
         drop_job(ob, victim);
         ob->dropped_full++;
+        /* Follow-up F2: a dropped capture must be visible, not only counted. */
+        const alfp_platform_t* p = ob->alfp ? ob->alfp->cfg.platform : NULL;
+        if (p != NULL && p->log != NULL)
+        {
+            char line[96];
+            snprintf(line, sizeof(line), "outbox: FULL (%u jobs), dropped oldest job q%08lu (%lu dropped so far)",
+                     (unsigned)ALFP_OUTBOX_MAX, (unsigned long)victim, (unsigned long)ob->dropped_full);
+            p->log(p->ctx, line);
+        }
     }
     uint8_t buf[2 + 1 + ALFP_PATH_MAX + 1 + ALFP_MAX_META];
     size_t n = 0;
@@ -268,10 +277,11 @@ void alfp_outbox_pump(alfp_outbox_t* ob)
         {
             radio = alfp_select_radio_for_size(ob->radios, ob->n_radios, ob->bridge_id, t, ob->fresh_ms,
                                                (uint32_t)size_bytes, ob->size_threshold);
-            reason = (radio != NULL && alfp_radio_was_size_preferred(ob->radios, ob->n_radios, (uint32_t)size_bytes,
-                                                                     ob->size_threshold, radio))
-                         ? "size"
-                         : "fallback";
+            reason = (radio != NULL
+                      && alfp_radio_was_size_preferred(ob->radios, ob->n_radios, (uint32_t)size_bytes,
+                                                       ob->size_threshold, radio))
+                ? "size"
+                : "fallback";
         }
         else
         {
