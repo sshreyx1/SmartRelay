@@ -47,7 +47,7 @@ if(LORA_IRQ_PIN EQUAL 15)
 endif()
 
 # ---- microSD: the Maker Pi Pico slot, sharing SPI1 with the LoRa module ----------------------
-set(SPI1_BAUD_HZ 1000000 CACHE STRING "Shared SPI1 speed for LoRa + SD (1 MHz = what Mridula tested)")
+set(SPI1_BAUD_HZ 4000000 CACHE STRING "Shared SPI1 speed for LoRa + SD (4 MHz since 2026-11-19, docs/verify/RESULTS.md; 1000000 = what Mridula first tested)")
 set(SD_DEFS SD_SPI_INST=1 SD_SCK=10 SD_MOSI=11 SD_MISO=12 SD_CS=15 SPI1_BAUD_HZ=${SPI1_BAUD_HZ}u)
 message(STATUS "microSD: Maker slot, SPI1 GP10/11/12, CS GP15, shared with LoRa (CS GP13) at ${SPI1_BAUD_HZ} Hz")
 message(STATUS "LoRa: BUSY GP${LORA_BUSY_PIN}, DIO9 GP${LORA_IRQ_PIN}")

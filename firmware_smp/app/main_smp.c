@@ -36,6 +36,7 @@
 #include "capture_id.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
+#include "hardware/sync.h"
 #include "log.h"
 #include "pico/rand.h"
 #include "pico/stdlib.h"
@@ -97,8 +98,8 @@ static rtos_id_t g_capture_q = -1;
 #define CAPTURE_Q_DEPTH 4
 static uint8_t g_capture_q_buf[RTOS_MSGQ_BYTES(sizeof(capture_meta_t), CAPTURE_Q_DEPTH)];
 static volatile uint32_t g_capture_q_waiting; /* for the 'H' message; the kernel queue has no count call */
-static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
-static uint32_t g_capture_id;           /* last id used; restored from the SD card at boot */
+static const mesh_radio_t* g_radios[2];       /* preference: WiFi first, then LoRa */
+static uint32_t g_capture_id;                 /* last id used; restored from the SD card at boot */
 static char g_payload_names[TEST_PAYLOADS_MAX][32];
 static uint8_t g_n_payloads, g_next_payload;
 static sip_table_t g_images; /* samples/<prefix>_NN.jpg found at boot */
@@ -119,9 +120,11 @@ enum
     STEP_ALFP_SERVICE,
     STEP_CAPTURES,
     STEP_OUTBOX,
+    STEP_UPLINK,
     STEP_COUNT
 };
-static const char* const k_step_names[STEP_COUNT] = {"wifi poll", "lora poll", "alfp service", "captures", "outbox"};
+static const char* const k_step_names[STEP_COUNT]
+    = { "wifi poll", "lora poll", "alfp service", "captures", "outbox", "uplink" };
 static uint32_t g_step_max_ms[STEP_COUNT];
 
 static void step_done(int step, uint32_t* t)
@@ -135,6 +138,162 @@ static void step_done(int step, uint32_t* t)
     *t = now;
 }
 static uint32_t g_usb_lines_dropped;
+
+/* Bridge -> laptop: finished files wait here and go out a few lines per comms pass (uplink.h). */
+static uplink_queue_t g_uplink;
+#define UPLINK_LINES_PER_PASS 8u /* one SD read of UPLINK_CHUNK_BYTES */
+#define UPLINK_LOG_RESERVE 16u   /* ring slots always left for every other task's lines */
+
+/* Defect B.1: 's' printed a hard-coded core table. Each task now writes the core the kernel says
+ * it is running on (tk_get_prc via rtos_core_id) on every pass of its loop. */
+enum
+{
+    TASK_COMMS,
+    TASK_USB_OWNER,
+    TASK_SENSORS,
+    TASK_COUNT
+};
+static volatile uint8_t g_task_core[TASK_COUNT] = { 0xFF, 0xFF, 0xFF };
+
+/* ---- SD timing: every storage call the comms task makes, timed (bridge freeze measurement) ----
+ * A thin wrapper over storage_fatfs() that records the slowest call of each kind and the single
+ * slowest call overall with its file, for 's'. Costs two clock reads per call. */
+enum
+{
+    SD_OPEN_R,
+    SD_OPEN_W,
+    SD_READ,
+    SD_WRITE,
+    SD_SIZE,
+    SD_CLOSE,
+    SD_REMOVE,
+    SD_RENAME,
+    SD_LIST,
+    SD_MKDIR,
+    SD_OPS
+};
+static const char* const k_sd_names[SD_OPS]
+    = { "open_r", "open_w", "read", "write", "size", "close", "remove", "rename", "list", "mkdir" };
+#define SD_HANDLES 8 /* storage_fatfs.c MAX_OPEN */
+static uint32_t g_sd_max_ms[SD_OPS];
+static uint32_t g_sd_worst_ms;
+static uint8_t g_sd_worst_op;
+static char g_sd_worst_path[ALFP_PATH_MAX + 8];
+static char g_sd_handle_path[SD_HANDLES][ALFP_PATH_MAX + 8];
+
+static const alfp_storage_t* sd_inner(void)
+{
+    return storage_fatfs();
+}
+
+static const char* sd_handle_path(int h)
+{
+    return (h >= 0 && h < SD_HANDLES) ? g_sd_handle_path[h] : "?";
+}
+
+static void sd_note(int op, uint32_t t0, const char* path)
+{
+    uint32_t d = rtos_elapsed_ms(t0);
+    if (d > g_sd_max_ms[op])
+    {
+        g_sd_max_ms[op] = d;
+    }
+    if (d > g_sd_worst_ms)
+    {
+        g_sd_worst_ms = d;
+        g_sd_worst_op = (uint8_t)op;
+        snprintf(g_sd_worst_path, sizeof(g_sd_worst_path), "%s", path ? path : "");
+    }
+}
+
+static int sd_open_common(int op, const char* path)
+{
+    uint32_t t0 = rtos_now_ms();
+    int h = op == SD_OPEN_R ? sd_inner()->open_read(sd_inner()->ctx, path)
+                            : sd_inner()->open_write(sd_inner()->ctx, path);
+    if (h >= 0 && h < SD_HANDLES)
+    {
+        snprintf(g_sd_handle_path[h], sizeof(g_sd_handle_path[h]), "%s", path);
+    }
+    sd_note(op, t0, path);
+    return h;
+}
+static int sd_open_read(void* c, const char* path)
+{
+    (void)c;
+    return sd_open_common(SD_OPEN_R, path);
+}
+static int sd_open_write(void* c, const char* path)
+{
+    (void)c;
+    return sd_open_common(SD_OPEN_W, path);
+}
+static int sd_read_at(void* c, int h, uint32_t off, uint8_t* buf, uint16_t len)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int r = sd_inner()->read_at(sd_inner()->ctx, h, off, buf, len);
+    sd_note(SD_READ, t0, sd_handle_path(h));
+    return r;
+}
+static int sd_write_at(void* c, int h, uint32_t off, const uint8_t* buf, uint16_t len)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int r = sd_inner()->write_at(sd_inner()->ctx, h, off, buf, len);
+    sd_note(SD_WRITE, t0, sd_handle_path(h));
+    return r;
+}
+static int32_t sd_size(void* c, int h)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int32_t r = sd_inner()->size(sd_inner()->ctx, h);
+    sd_note(SD_SIZE, t0, sd_handle_path(h));
+    return r;
+}
+static int sd_close(void* c, int h)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int r = sd_inner()->close(sd_inner()->ctx, h);
+    sd_note(SD_CLOSE, t0, sd_handle_path(h));
+    return r;
+}
+static int sd_remove(void* c, const char* path)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int r = sd_inner()->remove(sd_inner()->ctx, path);
+    sd_note(SD_REMOVE, t0, path);
+    return r;
+}
+static int sd_rename(void* c, const char* from, const char* to)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int r = sd_inner()->rename(sd_inner()->ctx, from, to);
+    sd_note(SD_RENAME, t0, to);
+    return r;
+}
+static int sd_list(void* c, const char* dir, void (*fn)(const char* name, void* user), void* user)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int r = sd_inner()->list(sd_inner()->ctx, dir, fn, user);
+    sd_note(SD_LIST, t0, dir);
+    return r;
+}
+static int sd_mkdir(void* c, const char* dir)
+{
+    (void)c;
+    uint32_t t0 = rtos_now_ms();
+    int r = sd_inner()->mkdir(sd_inner()->ctx, dir);
+    sd_note(SD_MKDIR, t0, dir);
+    return r;
+}
+static const alfp_storage_t k_timed_storage = { NULL,     sd_open_read, sd_open_write, sd_read_at, sd_write_at, sd_size,
+                                                sd_close, sd_remove,    sd_rename,     sd_list,    sd_mkdir };
 
 /* ---- stdout: every printf/puts/putchar byte (pico_runtime_mtk3.c) ------------------------ */
 
@@ -163,7 +322,7 @@ static void p_log(void* c, const char* m)
     printf("%s\n", m);
 }
 
-static const alfp_platform_t k_plat = {NULL, p_now, p_rand, p_log};
+static const alfp_platform_t k_plat = { NULL, p_now, p_rand, p_log };
 
 /* ---- callbacks ---------------------------------------------------------------------------- */
 
@@ -178,7 +337,7 @@ static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
     {
         /* The telemetry job's "file" was a temp copy of its own meta made just for this transfer:
          * remove it once sent, as main.c does. */
-        storage_fatfs()->remove(storage_fatfs()->ctx, r->path);
+        k_timed_storage.remove(k_timed_storage.ctx, r->path);
     }
     alfp_outbox_on_tx_done(&g_outbox, r);
 }
@@ -194,11 +353,37 @@ static void uplink_out(const char* s, void* user)
     }
 }
 
+/* Runs inside alfp_service() the moment a file is complete. It used to stream the whole file to the
+ * laptop right here (~200 SD reads + ~200 log lines per image, 3.4-4 s with both radios unpolled
+ * and the sender's ACK held back). Now it only queues the report; the comms loop sends it a few
+ * lines per pass (uplink_pump). Only if the queue is full does it fall back to the old way. */
 static void on_rx_done(alfp_ctx_t* ctx, const alfp_rx_report_t* r)
 {
     printf("rx from node %u: %s, %lu bytes via %s, %u dup\n", r->src, r->path, (unsigned long)r->file_size, r->radio,
            r->duplicates);
-    uplink_send_file(ctx->cfg.storage, r, uplink_out, NULL);
+    if (!uplink_queue_add(&g_uplink, r))
+    {
+        printf("uplink: queue full (%u files), sending %s inline\n", (unsigned)UPLINK_QUEUE_DEPTH, r->path);
+        uplink_send_file(ctx->cfg.storage, r, uplink_out, NULL);
+    }
+}
+
+/* Bridge only, once per comms pass: send up to UPLINK_LINES_PER_PASS lines of waiting files, but
+ * only as many as the log ring has room for, so comms never waits on a full ring (or a slow USB
+ * host) here. */
+static void uplink_pump(void)
+{
+    if (uplink_queue_waiting(&g_uplink) == 0u)
+    {
+        return;
+    }
+    uint32_t room = log_free_slots();
+    uint32_t budget = room > UPLINK_LOG_RESERVE ? room - UPLINK_LOG_RESERVE : 0u;
+    if (budget > UPLINK_LINES_PER_PASS)
+    {
+        budget = UPLINK_LINES_PER_PASS;
+    }
+    (void)uplink_queue_service(&g_uplink, budget, uplink_out, NULL);
 }
 
 /* ---- capture requests (any task) --------------------------------------------------------- */
@@ -225,10 +410,20 @@ static void count_samples_cb(const char* name, void* user)
     sip_add_file(&g_images, name);
 }
 
+static void count_cb(const char* name, void* user)
+{
+    (void)name;
+    (*(uint32_t*)user)++;
+}
+
 static void count_payloads_cb(const char* name, void* user)
 {
     (void)user;
     size_t nl = strlen(name);
+    if (name[0] == '.')
+    {
+        return; /* F1: macOS "._*" AppleDouble files and other hidden files are not payloads */
+    }
     if (g_n_payloads < TEST_PAYLOADS_MAX && nl < sizeof(g_payload_names[0]))
     {
         memcpy(g_payload_names[g_n_payloads], name, nl + 1u);
@@ -269,7 +464,7 @@ static uint32_t read_u32_file(const alfp_storage_t* st, const char* path)
     {
         return 0;
     }
-    char txt[16] = {0};
+    char txt[16] = { 0 };
     int n = st->read_at(st->ctx, h, 0, (uint8_t*)txt, sizeof(txt) - 1);
     st->close(st->ctx, h);
     unsigned long v = 0;
@@ -368,7 +563,7 @@ static void restore_capture_id(const alfp_storage_t* st)
 
 static void handle_capture(const capture_meta_t* in)
 {
-    const alfp_storage_t* st = storage_fatfs();
+    const alfp_storage_t* st = &k_timed_storage;
     capture_meta_t m = *in;
     m.node_id = NODE_ID;
     m.capture_id = ++g_capture_id;
@@ -381,34 +576,35 @@ static void handle_capture(const capture_meta_t* in)
     capture_id_format(id, sizeof(id), NODE_ID, m.capture_id);
 
     /* the image follows the sound: label -> its group -> generic img_NN (legacy: always img_NN, round robin) */
+    /* Follow-up F6: sip_pick() now falls back to any group, so it fails only on a card with no
+     * <prefix>_NN.jpg at all; even then the telemetry below is still sent. */
     char name[ALFP_MAX_META - CAPTURE_META_LEN + 1];
     int nn = sip_pick(&g_images, SOUND_LEGACY_MODE ? SC_UNKNOWN : m.sound_class, name, sizeof(name));
-    if (nn < 0)
+    char path[ALFP_PATH_MAX] = "";
+    if (nn >= 0)
     {
-        printf("capture %s: no samples/*_NN.jpg on the SD card\n", id);
-        return;
+        m.image_index = (uint8_t)nn;
+        snprintf(path, sizeof(path), "samples/%s", name);
     }
-    m.image_index = (uint8_t)nn;
-    char path[ALFP_PATH_MAX];
-    snprintf(path, sizeof(path), "samples/%s", name);
+    const char* shown = nn >= 0 ? path : "no image (samples/ has no <prefix>_NN.jpg), telemetry only";
     if (m.sound_class == CM_UNKNOWN_U8)
     {
-        printf("capture %s: heard unknown (recording failed) -> %s\n", id, path);
+        printf("capture %s: heard unknown (recording failed) -> %s\n", id, shown);
     }
     else if (m.sound_conf == CM_UNKNOWN_U8) /* legacy thresholds give no confidence */
     {
-        printf("capture %s: heard %s -> %s\n", id, sound_class_name(m.sound_class), path);
+        printf("capture %s: heard %s -> %s\n", id, sound_class_name(m.sound_class), shown);
     }
     else
     {
-        printf("capture %s: heard %s (%u%%) -> %s\n", id, sound_class_name(m.sound_class), m.sound_conf, path);
+        printf("capture %s: heard %s (%u%%) -> %s\n", id, sound_class_name(m.sound_class), m.sound_conf, shown);
     }
 
     /* meta = the 27-byte record + the image's file name (the optional-name tail, <= 64 bytes in all) */
     uint8_t mb[ALFP_MAX_META];
     uint8_t meta_len = capture_meta_pack(&m, mb);
 
-    if (APP_SPLIT_TELEMETRY)
+    if (APP_SPLIT_TELEMETRY || nn < 0)
     {
         /* Telemetry: a tiny transfer tagged with APP_TELEMETRY_MARKER instead of an image name,
          * small enough that the size rule always sends it over LoRa (see main.c). */
@@ -433,9 +629,13 @@ static void handle_capture(const capture_meta_t* in)
         }
         else
         {
-            printf("capture %s: telemetry SD write failed, image still sent\n", id);
+            printf("capture %s: telemetry SD write failed%s\n", id, nn >= 0 ? ", image still sent" : "");
             st->remove(st->ctx, tel_path);
         }
+    }
+    if (nn < 0)
+    {
+        return;
     }
 
     /* Image: meta + the image's file name (the optional-name tail), exactly as main.c. */
@@ -458,7 +658,7 @@ static void print_stats(void)
 {
     const alfp_stats_t* s = &g_alfp.stats;
     printf("node %u | alfp in %lu badcrc %lu | tx ok %lu fail %lu | rx ok %lu crcfail %lu expired %lu | outbox %u\n",
-           NODE_ID, (unsigned long)s->pkts_in, (unsigned long)s->pkts_bad_crc, (unsigned long)s->tx_ok,
+           (unsigned)NODE_ID, (unsigned long)s->pkts_in, (unsigned long)s->pkts_bad_crc, (unsigned long)s->tx_ok,
            (unsigned long)s->tx_failed, (unsigned long)s->rx_ok, (unsigned long)s->rx_crc_fail,
            (unsigned long)s->rx_expired, alfp_outbox_count(&g_outbox));
     for (int i = 0; i < 2; i++)
@@ -485,29 +685,45 @@ static void print_stats(void)
         }
     }
 
-    /* --- Section 7: per-core / per-task view of the dual-core build --- */
+    /* --- Section 7: per-core / per-task view of the dual-core build ---
+     * Defect B.1: core and priority are what the kernel reports now (each task's last
+     * tk_get_prc(), and tk_ref_tsk() for the priority), not the values the code asked for. */
     struct
     {
         const char* name;
         rtos_id_t id;
-        unsigned core;
-        unsigned prio;
         uint32_t stack;
-    } tasks[3] = {
-        {"comms", g_comms_task_id, RTOS_CORE_0, RTOS_PRIO_COMMS, STACK_COMMS},
-        {"usb_owner", g_owner_task_id, RTOS_CORE_0, RTOS_PRIO_USB_OWNER, STACK_USB_OWNER},
-        {"sensors", g_sensors_task_id, RTOS_CORE_1, RTOS_PRIO_SENSORS, STACK_SENSORS},
+    } const tasks[TASK_COUNT] = {
+        [TASK_COMMS] = { "comms", g_comms_task_id, STACK_COMMS },
+        [TASK_USB_OWNER] = { "usb_owner", g_owner_task_id, STACK_USB_OWNER },
+        [TASK_SENSORS] = { "sensors", g_sensors_task_id, STACK_SENSORS },
     };
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < TASK_COUNT; i++)
     {
-        printf("  task %s: core %u prio %u stack free %lu of %lu B\n", tasks[i].name, tasks[i].core, tasks[i].prio,
-               (unsigned long)rtos_task_stack_free(tasks[i].id), (unsigned long)tasks[i].stack);
+        printf("  task %s: core %u prio %u stack free %lu of %lu B\n", tasks[i].name, (unsigned)g_task_core[i],
+               rtos_task_priority(tasks[i].id), (unsigned long)rtos_task_stack_free(tasks[i].id),
+               (unsigned long)tasks[i].stack);
     }
     printf("  longest comms loop %lu ms | capture q full %lu | log dropped %lu lines | usb dropped %lu lines %lu B"
            " | heap used %lu B\n",
            (unsigned long)g_longest_comms_loop_ms, (unsigned long)g_capture_queue_full_count,
            (unsigned long)log_dropped_count(), (unsigned long)g_usb_lines_dropped, (unsigned long)tm_usb_dropped,
            (unsigned long)smartrelay_heap_used());
+    printf("  outbox dropped (full) %lu | msgq errors %lu (last %ld)", (unsigned long)g_outbox.dropped_full,
+           (unsigned long)rtos_msgq_error_count(), (long)rtos_msgq_last_error());
+    if (NODE_ID == BRIDGE_ID)
+    {
+        printf(" | uplink sent %lu bad %lu waiting %u (max %u) inline %lu", (unsigned long)g_uplink.sent_ok,
+               (unsigned long)g_uplink.sent_bad, uplink_queue_waiting(&g_uplink), (unsigned)g_uplink.max_waiting,
+               (unsigned long)g_uplink.queue_full);
+    }
+    printf("\n");
+    printf("  slowest SD call (ms):");
+    for (int i = 0; i < SD_OPS; i++)
+    {
+        printf(" %s %lu", k_sd_names[i], (unsigned long)g_sd_max_ms[i]);
+    }
+    printf(" | worst %s %lu ms on %s\n", k_sd_names[g_sd_worst_op], (unsigned long)g_sd_worst_ms, g_sd_worst_path);
     printf("  slowest comms step (ms):");
     for (int i = 0; i < STEP_COUNT; i++)
     {
@@ -518,7 +734,8 @@ static void print_stats(void)
 static void comms_task(void* arg)
 {
     (void)arg;
-    printf("comms: core %u\n", rtos_core_id());
+    g_task_core[TASK_COMMS] = (uint8_t)rtos_core_id();
+    printf("comms: core %u\n", g_task_core[TASK_COMMS]);
 
     /* The SD card goes first: it must be switched to SPI mode before any LoRa traffic appears on
      * the shared SPI1 bus (board.h). */
@@ -527,12 +744,9 @@ static void comms_task(void* arg)
         printf("sd: mount failed (card in the Maker slot? FAT32?), retrying\n");
         rtos_delay_ms(2000);
     }
-    const alfp_storage_t* st = storage_fatfs();
+    const alfp_storage_t* st = &k_timed_storage;
     st->mkdir(st->ctx, "samples");
-    if (APP_SPLIT_TELEMETRY)
-    {
-        st->mkdir(st->ctx, TEL_DIR);
-    }
+    st->mkdir(st->ctx, TEL_DIR); /* also used without APP_SPLIT_TELEMETRY when a capture has no image */
     sip_reset(&g_images);
     st->list(st->ctx, "samples", count_samples_cb, NULL);
     unsigned n_img = 0;
@@ -542,8 +756,8 @@ static void comms_task(void* arg)
     }
     {
         char line[LOG_LINE_MAX];
-        int len = snprintf(line, sizeof(line), "sd: mounted, %u sample images in %u groups:", n_img,
-                           (unsigned)g_images.n);
+        int len
+            = snprintf(line, sizeof(line), "sd: mounted, %u sample images in %u groups:", n_img, (unsigned)g_images.n);
         for (uint32_t i = 0; i < g_images.n && len > 0 && (size_t)len < sizeof(line); i++)
         {
             len += snprintf(line + len, sizeof(line) - (size_t)len, " %s %u", g_images.p[i].prefix,
@@ -554,6 +768,16 @@ static void comms_task(void* arg)
     st->list(st->ctx, TEST_PAYLOADS_DIR, count_payloads_cb, NULL);
     printf("sd: %u test payload file(s) in %s/\n", g_n_payloads, TEST_PAYLOADS_DIR);
     restore_capture_id(st);
+    if (NODE_ID == BRIDGE_ID)
+    {
+        /* inbox/ is where firmware older than the rcv/<xx>/ layout kept every file in one folder.
+         * Nothing reads or writes it any more; say how much is left there (safe to delete). */
+        uint32_t t_list = rtos_now_ms();
+        uint32_t n_flat = 0;
+        st->list(st->ctx, "inbox", count_cb, &n_flat);
+        printf("sd: old inbox/ holds %lu files (no longer used, can be deleted), listed in %lu ms\n",
+               (unsigned long)n_flat, (unsigned long)rtos_elapsed_ms(t_list));
+    }
 
     if (!radios_init(NODE_ID))
     {
@@ -567,15 +791,16 @@ static void comms_task(void* arg)
         .bridge_id = BRIDGE_ID,
         .storage = st,
         .platform = &k_plat,
-        .inbox_dir = "inbox",
+        .inbox_dir = "rcv", /* rcv/<xx>/, see alfp.h; an old flat inbox/ is left alone, never read */
         .tmp_dir = "rx",
         .on_tx_done = on_tx_done,
         .on_rx_done = on_rx_done,
     };
     alfp_init(&g_alfp, &cfg);
+    uplink_queue_init(&g_uplink, st);
     alfp_outbox_init(&g_outbox, &g_alfp, g_radios, 2, BRIDGE_ID, BRIDGE_FRESH_MS, "outbox");
     alfp_outbox_set_size_threshold(&g_outbox, APP_RADIO_SIZE_THRESHOLD);
-    printf("node %u ready (%s), outbox has %u queued, radio size threshold %u B\n", NODE_ID,
+    printf("node %u ready (%s), outbox has %u queued, radio size threshold %u B\n", (unsigned)NODE_ID,
            NODE_ID == BRIDGE_ID ? "bridge" : "field node", alfp_outbox_count(&g_outbox),
            (unsigned)APP_RADIO_SIZE_THRESHOLD);
 
@@ -603,6 +828,12 @@ static void comms_task(void* arg)
             alfp_outbox_pump(&g_outbox); /* radios and the outbox keep running while held */
             step_done(STEP_OUTBOX, &t);
         }
+        else
+        {
+            uplink_pump();
+            step_done(STEP_UPLINK, &t);
+        }
+        g_task_core[TASK_COMMS] = (uint8_t)rtos_core_id();
 
         uint32_t bits = 0;
         if (rtos_flags_wait_any(g_flags, EVT_COMMS_MASK, &bits, RTOS_NO_WAIT))
@@ -633,7 +864,8 @@ static void comms_task(void* arg)
             {
                 topo = !topo;
                 radios_set_wifi_topology_filter(topo);
-                printf("wifi topology filter %s\n", topo ? "ON (demo layout, forces multi-hop)" : "OFF (hear everyone)");
+                printf("wifi topology filter %s\n",
+                       topo ? "ON (demo layout, forces multi-hop)" : "OFF (hear everyone)");
             }
         }
 
@@ -655,9 +887,28 @@ static void rtos_wait_ms(uint32_t ms)
     rtos_delay_ms(ms);
 }
 
-/* DHT22.c times the sensor's bits by counting loop iterations and must not be interrupted for the
- * ~5 ms of the read. Brief 3.8 Gap 14: kept as the priority boost (not interrupt masking), as in
- * main.c, translated to the kernel's priority call. */
+/* DHT22.c times the sensor's bits by counting loop iterations and must not be interrupted during
+ * the ~5 ms bit-timing part of the read. Post-Tri1 decision: interrupt masking instead of the
+ * priority boost. On the dual-core build sensors is alone on core 1, so a priority boost protected
+ * nothing (no other task there) while interrupts could still land; masking core 1's interrupts
+ * delays nothing else: the radio UART/SPI interrupts and the kernel tick all run on core 0
+ * (docs/curveball_findings.md: core 0 is the sole timekeeper). DHT22.c calls these only around the
+ * bit-timing loop, never around its 20 ms start pulse, and that loop runs from RAM (sources.mk).
+ * SMP=0 (everything on one core): masking 5 ms there would stall the ESP-01 UART, so that build
+ * keeps the priority boost, like the FreeRTOS build. */
+#if defined(CNF_SMP) && CNF_SMP
+static uint32_t s_dht_irq_state;
+void DHT_timing_enter(void)
+{
+    s_dht_irq_state = save_and_disable_interrupts();
+}
+void DHT_timing_exit(void)
+{
+    restore_interrupts(s_dht_irq_state);
+}
+#define DHT_BEGIN_HOOK NULL
+#define DHT_END_HOOK NULL
+#else
 static unsigned s_saved_prio;
 static void dht_begin(void)
 {
@@ -668,6 +919,9 @@ static void dht_end(void)
 {
     rtos_priority_self_set(s_saved_prio);
 }
+#define DHT_BEGIN_HOOK dht_begin
+#define DHT_END_HOOK dht_end
+#endif
 
 static void print_env(void)
 {
@@ -687,8 +941,9 @@ static void print_env(void)
 static void sensors_task(void* arg)
 {
     (void)arg;
-    printf("sensors: core %u\n", rtos_core_id());
-    const sensing_hooks_t hooks = {rtos_wait_ms, dht_begin, dht_end};
+    g_task_core[TASK_SENSORS] = (uint8_t)rtos_core_id();
+    printf("sensors: core %u\n", g_task_core[TASK_SENSORS]);
+    const sensing_hooks_t hooks = { rtos_wait_ms, DHT_BEGIN_HOOK, DHT_END_HOOK };
     sensing_init(&hooks);
     gpio_init(BOARD_BUTTON_GPIO);
     gpio_set_dir(BOARD_BUTTON_GPIO, GPIO_IN);
@@ -702,6 +957,7 @@ static void sensors_task(void* arg)
     uint32_t last_env_print = 0;
     for (;;)
     {
+        g_task_core[TASK_SENSORS] = (uint8_t)rtos_core_id();
         uint32_t now = p_now(NULL);
         sensing_env_poll(now);
         bool want_env = rtos_flags_wait_any(g_flags, EVT_WANT_ENV, &bits, RTOS_NO_WAIT);
@@ -719,7 +975,8 @@ static void sensors_task(void* arg)
 
         if (dual || forced)
         {
-            uint8_t flags = (uint8_t)((sensing_pir() ? CM_TRIG_PIR : 0) | (sensing_sound_trigger() ? CM_TRIG_SOUND : 0));
+            uint8_t flags
+                = (uint8_t)((sensing_pir() ? CM_TRIG_PIR : 0) | (sensing_sound_trigger() ? CM_TRIG_SOUND : 0));
             if (NODE_ID == BRIDGE_ID)
             {
                 printf("\n[ALERT] trigger on the bridge: the bridge only receives, no capture is sent\n");
@@ -747,9 +1004,11 @@ static void sensors_task(void* arg)
 
 static void print_help(void)
 {
-    printf("keys: c capture now | e sensor readings | s stats | d toggle 30%% loss | t toggle WiFi topology "
-           "filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 "
-           "captures fast | z T8: stall the console 5 s | B reboot to BOOTSEL (reflash) | h help\n");
+    printf(
+        "keys: c capture now | e sensor readings | s stats | d toggle 30%% loss | t toggle WiFi topology "
+        "filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 "
+        "captures fast | z T8: stall the console 5 s | k measure the 1 ms tick (1 s) | B reboot to BOOTSEL (reflash) "
+        "| h help\n");
 }
 
 /* T6 helper (brief Section 8): fires 5 capture requests back to back from the console task, so
@@ -764,6 +1023,40 @@ static void t6_fire_captures(void)
         bool ok = app_request_capture(&m);
         printf("[T6] capture request %d: %s\n", i + 1, ok ? "queued" : "refused");
     }
+}
+
+/* 'k': is the kernel tick really 1 ms? 1000 rtos_delay_ms(1) calls, each timed with the RP2040's
+ * free-running 1 MHz hardware timer (independent of the kernel), plus the kernel clock against that
+ * timer since boot. A 1 ms tick gives intervals of 1-2 ms (a delay of 1 tick ends at the next tick
+ * or the one after) and a mean near 1 ms; a 10 ms tick would show ~10 ms. Blocks this task for
+ * about 1 s; comms and sensors keep running. */
+static void measure_tick(void)
+{
+    uint32_t min_us = UINT32_MAX, max_us = 0;
+    uint64_t sum_us = 0;
+    rtos_delay_ms(1); /* start on a tick edge */
+    uint32_t k0 = rtos_now_ms();
+    uint64_t prev = time_us_64();
+    uint64_t hw0 = prev;
+    unsigned within_2ms = 0;
+    for (int i = 0; i < 1000; i++)
+    {
+        rtos_delay_ms(1);
+        uint64_t nowus = time_us_64();
+        uint32_t d = (uint32_t)(nowus - prev);
+        prev = nowus;
+        sum_us += d;
+        within_2ms += d <= 2100u;
+        min_us = d < min_us ? d : min_us;
+        max_us = d > max_us ? d : max_us;
+    }
+    /* tk_get_tim() is calendar time, not time since boot: compare elapsed against elapsed */
+    uint32_t k_ms = rtos_elapsed_ms(k0);
+    uint32_t hw_ms = (uint32_t)((time_us_64() - hw0) / 1000u);
+    printf("tick: 1000 x delay(1 ms): mean %lu us, min %lu us, max %lu us, %u of 1000 <= 2.1 ms | kernel clock "
+           "advanced %lu ms while the hw timer advanced %lu ms\n",
+           (unsigned long)(sum_us / 1000u), (unsigned long)min_us, (unsigned long)max_us, within_2ms,
+           (unsigned long)k_ms, (unsigned long)hw_ms);
 }
 
 /* One log line to the host. Waits (up to 500 ms, like the FreeRTOS build's USB stdio) for room in
@@ -802,61 +1095,66 @@ static void usb_owner_task(void* arg)
     {
         rtos_delay_ms(10);
     }
-    printf("usb_owner: core %u\n", rtos_core_id());
+    g_task_core[TASK_USB_OWNER] = (uint8_t)rtos_core_id();
+    printf("usb_owner: core %u\n", g_task_core[TASK_USB_OWNER]);
     print_help();
 
     uint32_t stall_until_ms = 0;
     char line[LOG_LINE_MAX];
     for (;;)
     {
+        g_task_core[TASK_USB_OWNER] = (uint8_t)rtos_core_id();
         int ch;
         while ((ch = rtos_console_getchar()) >= 0)
         {
             switch (ch)
             {
-            case 'c':
-                rtos_flags_set(g_flags, EVT_FORCE_CAPTURE);
-                break;
-            case 'e':
-                rtos_flags_set(g_flags, EVT_WANT_ENV);
-                break;
-            case 't':
-                rtos_flags_set(g_flags, EVT_TOGGLE_TOPO);
-                break;
-            case 'H':
-                rtos_flags_set(g_flags, EVT_TOGGLE_HOLD);
-                break;
-            case 'h':
-            case '?':
-                print_help();
-                break;
-            case 's':
-                rtos_flags_set(g_flags, EVT_WANT_STATS);
-                break;
-            case 'd':
-                rtos_flags_set(g_flags, EVT_TOGGLE_DROP);
-                break;
-            case 'p':
-                rtos_flags_set(g_flags, EVT_TEST_PAYLOAD);
-                break;
-            case 'x':
-                t6_fire_captures();
-                break;
-            case 'z':
-                /* T8: stop draining for 5 s, as if the terminal had stopped reading. comms and
-                 * sensors keep running; their lines wait, then drop and are counted. */
-                stall_until_ms = rtos_now_ms() + 5000u;
-                break;
-            case 'B':
-            {
-                static const char msg[] = "rebooting to BOOTSEL (RPI-RP2 drive) for reflashing\r\n";
-                tm_usb_console_put((const uint8_t*)msg, (int32_t)(sizeof(msg) - 1u));
-                rtos_delay_ms(200);
-                smartrelay_reboot_to_bootsel();
-                break;
-            }
-            default:
-                break;
+                case 'c':
+                    rtos_flags_set(g_flags, EVT_FORCE_CAPTURE);
+                    break;
+                case 'e':
+                    rtos_flags_set(g_flags, EVT_WANT_ENV);
+                    break;
+                case 't':
+                    rtos_flags_set(g_flags, EVT_TOGGLE_TOPO);
+                    break;
+                case 'H':
+                    rtos_flags_set(g_flags, EVT_TOGGLE_HOLD);
+                    break;
+                case 'h':
+                case '?':
+                    print_help();
+                    break;
+                case 's':
+                    rtos_flags_set(g_flags, EVT_WANT_STATS);
+                    break;
+                case 'd':
+                    rtos_flags_set(g_flags, EVT_TOGGLE_DROP);
+                    break;
+                case 'p':
+                    rtos_flags_set(g_flags, EVT_TEST_PAYLOAD);
+                    break;
+                case 'x':
+                    t6_fire_captures();
+                    break;
+                case 'k':
+                    measure_tick();
+                    break;
+                case 'z':
+                    /* T8: stop draining for 5 s, as if the terminal had stopped reading. comms and
+                     * sensors keep running; their lines wait, then drop and are counted. */
+                    stall_until_ms = rtos_now_ms() + 5000u;
+                    break;
+                case 'B':
+                {
+                    static const char msg[] = "rebooting to BOOTSEL (RPI-RP2 drive) for reflashing\r\n";
+                    tm_usb_console_put((const uint8_t*)msg, (int32_t)(sizeof(msg) - 1u));
+                    rtos_delay_ms(200);
+                    smartrelay_reboot_to_bootsel();
+                    break;
+                }
+                default:
+                    break;
             }
         }
 
@@ -891,7 +1189,7 @@ void app_main_smp(void)
     log_write_line(selftest_line);
 
     board_spi1_idle(); /* LoRa CS and SD CS high before anything touches SPI1 */
-    printf("\nCSC09 trail mesh, node %u, ALFP v%u (uT-Kernel 3 SMP build, %s)\n", NODE_ID, ALFP_VERSION,
+    printf("\nCSC09 trail mesh, node %u, ALFP v%u (uT-Kernel 3 SMP build, %s)\n", (unsigned)NODE_ID, ALFP_VERSION,
 #if defined(CNF_SMP) && CNF_SMP /* build_make/pico_rp2040.mk adds -DCNF_SMP=1 for SMP=1 */
            "dual core"
 #else
@@ -911,8 +1209,8 @@ void app_main_smp(void)
     rtos_msgq_selftest(g_capture_q, sizeof(capture_meta_t), CAPTURE_Q_DEPTH, selftest_line, sizeof(selftest_line));
     log_write_line(selftest_line);
 
-    g_owner_task_id = rtos_task_create("usb_owner", usb_owner_task, NULL, RTOS_PRIO_USB_OWNER, STACK_USB_OWNER,
-                                       RTOS_CORE_0);
+    g_owner_task_id
+        = rtos_task_create("usb_owner", usb_owner_task, NULL, RTOS_PRIO_USB_OWNER, STACK_USB_OWNER, RTOS_CORE_0);
     g_comms_task_id = rtos_task_create("comms", comms_task, NULL, RTOS_PRIO_COMMS, STACK_COMMS, RTOS_CORE_0);
     g_sensors_task_id = rtos_task_create("sensors", sensors_task, NULL, RTOS_PRIO_SENSORS, STACK_SENSORS, RTOS_CORE_1);
     if (g_owner_task_id <= 0 || g_comms_task_id <= 0 || g_sensors_task_id <= 0)

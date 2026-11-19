@@ -9,6 +9,11 @@
 
 static uint32_t expectPulse(bool level);
 
+/* Default: nothing (the FreeRTOS build and the bench test programs). A firmware that needs the
+ * bit-timing part protected defines its own non-weak versions. */
+__attribute__((weak)) void DHT_timing_enter(void) {}
+__attribute__((weak)) void DHT_timing_exit(void) {}
+
 void DHT_init() {
     gpio_init(DHT_PIN);
     gpio_set_dir(DHT_PIN, GPIO_IN);
@@ -29,21 +34,26 @@ bool DHT_read(float *temperature, float *humidity) {
     gpio_set_dir(DHT_PIN, GPIO_OUT);
     gpio_put(DHT_PIN, 0);
     sleep_ms(20);
+    /* ~5 ms from releasing the line to the 40th bit: every bit is decoded by counting loop
+     * iterations, so nothing may interrupt this part (see DHT_timing_enter in DHT22.h). */
+    DHT_timing_enter();
     gpio_put(DHT_PIN, 1);
     sleep_us(40);
     gpio_set_dir(DHT_PIN, GPIO_IN);
 
-    if (expectPulse(0) == UINT32_MAX || expectPulse(1) == UINT32_MAX) {
-        return false;
-    }
+    bool ok = expectPulse(0) != UINT32_MAX && expectPulse(1) != UINT32_MAX;
 
-    for (int i = 0; i < 80; i += 2) {
+    for (int i = 0; ok && i < 80; i += 2) {
         pulses[i] = expectPulse(0);
         pulses[i + 1] = expectPulse(1);
 
         if (pulses[i] == UINT32_MAX || pulses[i + 1] == UINT32_MAX) {
-            return false;
+            ok = false;
         }
+    }
+    DHT_timing_exit();
+    if (!ok) {
+        return false;
     }
 
     uint8_t bits[5] = {0};

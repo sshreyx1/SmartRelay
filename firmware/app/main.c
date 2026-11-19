@@ -74,13 +74,13 @@ static alfp_ctx_t g_alfp;
 static alfp_outbox_t g_outbox;
 static QueueHandle_t g_capture_q;
 static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
-static uint32_t g_capture_id; /* last id used; restored from the SD card at boot */
+static uint32_t g_capture_id;           /* last id used; restored from the SD card at boot */
 static char g_payload_names[TEST_PAYLOADS_MAX][32];
 static uint8_t g_n_payloads, g_next_payload;
-static sip_table_t g_images;  /* samples/<prefix>_NN.jpg found at boot */
+static sip_table_t g_images; /* samples/<prefix>_NN.jpg found at boot */
 static volatile bool g_want_stats, g_toggle_drop, g_force_capture, g_want_env, g_toggle_topo;
 static volatile bool g_want_test_payload; /* console 'p' (test A.3): send the next size-ladder file */
-static volatile bool g_toggle_hold; /* console 'H' (test T6): comms stops taking captures off g_capture_q */
+static volatile bool g_toggle_hold;       /* console 'H' (test T6): comms stops taking captures off g_capture_q */
 static volatile bool g_comms_ready;
 
 /* ---- platform --------------------------------------------------------------------------- */
@@ -103,7 +103,7 @@ static void p_log(void* c, const char* m)
     printf("%s\n", m);
 }
 
-static const alfp_platform_t k_plat = {NULL, p_now, p_rand, p_log};
+static const alfp_platform_t k_plat = { NULL, p_now, p_rand, p_log };
 
 /* ---- callbacks ---------------------------------------------------------------------------- */
 
@@ -130,12 +130,23 @@ static void uplink_out(const char* s, void* user)
     fputs(s, stdout);
 }
 
+/* Bridge -> laptop: finished files wait here and go out UPLINK_LINES_PER_PASS lines per comms
+ * pass (uplink.h). Streaming the whole file from inside on_rx_done (the old way) stopped both
+ * radios for seconds and held back the sender's ACK; see firmware_smp/app/main_smp.c. */
+static uplink_queue_t g_uplink;
+#define UPLINK_LINES_PER_PASS 8u
+static uint32_t g_longest_comms_loop_ms;
+
 static void on_rx_done(alfp_ctx_t* ctx, const alfp_rx_report_t* r)
 {
     printf("rx from node %u: %s, %lu bytes via %s, %u dup\n", r->src, r->path, (unsigned long)r->file_size, r->radio,
            r->duplicates);
-    uplink_send_file(ctx->cfg.storage, r, uplink_out, NULL);
-    fflush(stdout);
+    if (!uplink_queue_add(&g_uplink, r))
+    {
+        printf("uplink: queue full (%u files), sending %s inline\n", (unsigned)UPLINK_QUEUE_DEPTH, r->path);
+        uplink_send_file(ctx->cfg.storage, r, uplink_out, NULL);
+        fflush(stdout);
+    }
 }
 
 /* ---- capture requests (any task) --------------------------------------------------------- */
@@ -154,6 +165,10 @@ static void count_samples_cb(const char* name, void* user)
 static void count_payloads_cb(const char* name, void* user)
 {
     (void)user;
+    if (name[0] == '.')
+    {
+        return; /* F1: macOS "._*" AppleDouble files and other hidden files are not payloads */
+    }
     size_t nl = strlen(name);
     if (g_n_payloads < TEST_PAYLOADS_MAX && nl < sizeof(g_payload_names[0]))
     {
@@ -197,7 +212,7 @@ static uint32_t read_u32_file(const alfp_storage_t* st, const char* path)
     {
         return 0;
     }
-    char txt[16] = {0};
+    char txt[16] = { 0 };
     int n = st->read_at(st->ctx, h, 0, (uint8_t*)txt, sizeof(txt) - 1);
     st->close(st->ctx, h);
     unsigned long v = 0;
@@ -309,34 +324,35 @@ static void handle_capture(const capture_meta_t* in)
     capture_id_format(id, sizeof(id), NODE_ID, m.capture_id);
 
     /* the image follows the sound: label -> its group -> generic img_NN (legacy: always img_NN, round robin) */
+    /* Follow-up F6: sip_pick() now falls back to any group, so it fails only on a card with no
+     * <prefix>_NN.jpg at all; even then the telemetry below is still sent. */
     char name[ALFP_MAX_META - CAPTURE_META_LEN + 1];
     int nn = sip_pick(&g_images, SOUND_LEGACY_MODE ? SC_UNKNOWN : m.sound_class, name, sizeof(name));
-    if (nn < 0)
+    char path[ALFP_PATH_MAX] = "";
+    if (nn >= 0)
     {
-        printf("capture %s: no samples/*_NN.jpg on the SD card\n", id);
-        return;
+        m.image_index = (uint8_t)nn;
+        snprintf(path, sizeof(path), "samples/%s", name);
     }
-    m.image_index = (uint8_t)nn;
-    char path[ALFP_PATH_MAX];
-    snprintf(path, sizeof(path), "samples/%s", name);
+    const char* shown = nn >= 0 ? path : "no image (samples/ has no <prefix>_NN.jpg), telemetry only";
     if (m.sound_class == CM_UNKNOWN_U8)
     {
-        printf("capture %s: heard unknown (recording failed) -> %s\n", id, path);
+        printf("capture %s: heard unknown (recording failed) -> %s\n", id, shown);
     }
     else if (m.sound_conf == CM_UNKNOWN_U8) /* legacy thresholds give no confidence */
     {
-        printf("capture %s: heard %s -> %s\n", id, sound_class_name(m.sound_class), path);
+        printf("capture %s: heard %s -> %s\n", id, sound_class_name(m.sound_class), shown);
     }
     else
     {
-        printf("capture %s: heard %s (%u%%) -> %s\n", id, sound_class_name(m.sound_class), m.sound_conf, path);
+        printf("capture %s: heard %s (%u%%) -> %s\n", id, sound_class_name(m.sound_class), m.sound_conf, shown);
     }
 
     /* meta = the 27-byte record + the image's file name (the optional-name tail, <= 64 bytes in all) */
     uint8_t mb[ALFP_MAX_META];
     uint8_t meta_len = capture_meta_pack(&m, mb);
 
-    if (APP_SPLIT_TELEMETRY)
+    if (APP_SPLIT_TELEMETRY || nn < 0)
     {
         /* Telemetry: a tiny transfer tagged with APP_TELEMETRY_MARKER instead of an image name,
          * small enough that the size rule always sends it over LoRa. The "file" is just a temp
@@ -363,9 +379,13 @@ static void handle_capture(const capture_meta_t* in)
         }
         else
         {
-            printf("capture %s: telemetry SD write failed, image still sent\n", id);
+            printf("capture %s: telemetry SD write failed%s\n", id, nn >= 0 ? ", image still sent" : "");
             st->remove(st->ctx, tel_path);
         }
+    }
+    if (nn < 0)
+    {
+        return;
     }
 
     /* Image: meta + the image's file name (the optional-name tail), exactly as before this round. */
@@ -388,7 +408,7 @@ static void print_stats(void)
 {
     const alfp_stats_t* s = &g_alfp.stats;
     printf("node %u | alfp in %lu badcrc %lu | tx ok %lu fail %lu | rx ok %lu crcfail %lu expired %lu | outbox %u\n",
-           NODE_ID, (unsigned long)s->pkts_in, (unsigned long)s->pkts_bad_crc, (unsigned long)s->tx_ok,
+           (unsigned)NODE_ID, (unsigned long)s->pkts_in, (unsigned long)s->pkts_bad_crc, (unsigned long)s->tx_ok,
            (unsigned long)s->tx_failed, (unsigned long)s->rx_ok, (unsigned long)s->rx_crc_fail,
            (unsigned long)s->rx_expired, alfp_outbox_count(&g_outbox));
     for (int i = 0; i < 2; i++)
@@ -416,6 +436,15 @@ static void print_stats(void)
     }
     printf("  comms stack free: %lu words, heap free %lu bytes\n", (unsigned long)uxTaskGetStackHighWaterMark(NULL),
            (unsigned long)xPortGetFreeHeapSize());
+    printf("  longest comms loop %lu ms | outbox dropped (full) %lu", (unsigned long)g_longest_comms_loop_ms,
+           (unsigned long)g_outbox.dropped_full);
+    if (NODE_ID == BRIDGE_ID)
+    {
+        printf(" | uplink sent %lu bad %lu waiting %u (max %u) inline %lu", (unsigned long)g_uplink.sent_ok,
+               (unsigned long)g_uplink.sent_bad, uplink_queue_waiting(&g_uplink), (unsigned)g_uplink.max_waiting,
+               (unsigned long)g_uplink.queue_full);
+    }
+    printf("\n");
 }
 
 static void comms_task(void* arg)
@@ -430,10 +459,7 @@ static void comms_task(void* arg)
     }
     const alfp_storage_t* st = storage_fatfs();
     st->mkdir(st->ctx, "samples");
-    if (APP_SPLIT_TELEMETRY)
-    {
-        st->mkdir(st->ctx, TEL_DIR);
-    }
+    st->mkdir(st->ctx, TEL_DIR); /* also used without APP_SPLIT_TELEMETRY when a capture has no image */
     sip_reset(&g_images);
     st->list(st->ctx, "samples", count_samples_cb, NULL);
     unsigned n_img = 0;
@@ -463,15 +489,16 @@ static void comms_task(void* arg)
         .bridge_id = BRIDGE_ID,
         .storage = st,
         .platform = &k_plat,
-        .inbox_dir = "inbox",
+        .inbox_dir = "rcv", /* rcv/<xx>/, see alfp.h; an old flat inbox/ is left alone, never read */
         .tmp_dir = "rx",
         .on_tx_done = on_tx_done,
         .on_rx_done = on_rx_done,
     };
     alfp_init(&g_alfp, &cfg);
+    uplink_queue_init(&g_uplink, st);
     alfp_outbox_init(&g_outbox, &g_alfp, g_radios, 2, BRIDGE_ID, BRIDGE_FRESH_MS, "outbox");
     alfp_outbox_set_size_threshold(&g_outbox, APP_RADIO_SIZE_THRESHOLD);
-    printf("node %u ready (%s), outbox has %u queued, radio size threshold %u B\n", NODE_ID,
+    printf("node %u ready (%s), outbox has %u queued, radio size threshold %u B\n", (unsigned)NODE_ID,
            NODE_ID == BRIDGE_ID ? "bridge" : "field node", alfp_outbox_count(&g_outbox),
            (unsigned)APP_RADIO_SIZE_THRESHOLD);
 
@@ -479,6 +506,7 @@ static void comms_task(void* arg)
     bool dropping = false, topo = true, hold = false;
     for (;;)
     {
+        uint32_t loop_start = p_now(NULL);
         g_radios[0]->poll();
         g_radios[1]->poll();
         alfp_service(&g_alfp, g_radios, 2);
@@ -490,6 +518,16 @@ static void comms_task(void* arg)
                 handle_capture(&req);
             }
             alfp_outbox_pump(&g_outbox); /* radios and the outbox keep running while held */
+        }
+        else if (uplink_queue_waiting(&g_uplink) != 0u)
+        {
+            (void)uplink_queue_service(&g_uplink, UPLINK_LINES_PER_PASS, uplink_out, NULL);
+            fflush(stdout);
+        }
+        uint32_t loop_ms = p_now(NULL) - loop_start;
+        if (loop_ms > g_longest_comms_loop_ms)
+        {
+            g_longest_comms_loop_ms = loop_ms;
         }
         if (g_want_stats)
         {
@@ -569,7 +607,7 @@ static void print_env(void)
 static void sensors_task(void* arg)
 {
     (void)arg;
-    const sensing_hooks_t hooks = {rtos_wait_ms, dht_begin, dht_end};
+    const sensing_hooks_t hooks = { rtos_wait_ms, dht_begin, dht_end };
     sensing_init(&hooks);
     gpio_init(BOARD_BUTTON_GPIO);
     gpio_set_dir(BOARD_BUTTON_GPIO, GPIO_IN);
@@ -602,7 +640,8 @@ static void sensors_task(void* arg)
 
         if (dual || forced)
         {
-            uint8_t flags = (uint8_t)((sensing_pir() ? CM_TRIG_PIR : 0) | (sensing_sound_trigger() ? CM_TRIG_SOUND : 0));
+            uint8_t flags
+                = (uint8_t)((sensing_pir() ? CM_TRIG_PIR : 0) | (sensing_sound_trigger() ? CM_TRIG_SOUND : 0));
             if (NODE_ID == BRIDGE_ID)
             {
                 printf("\n[ALERT] trigger on the bridge: the bridge only receives, no capture is sent\n");
@@ -679,7 +718,7 @@ int main(void)
     board_spi1_idle(); /* LoRa CS and SD CS high before anything touches SPI1 */
     stdio_init_all();
     sleep_ms(1500); /* give the USB serial a moment so the first lines are not lost */
-    printf("\nCSC09 trail mesh, node %u, ALFP v%u\n", NODE_ID, ALFP_VERSION);
+    printf("\nCSC09 trail mesh, node %u, ALFP v%u\n", (unsigned)NODE_ID, ALFP_VERSION);
     if (SOUND_LEGACY_MODE)
     {
         printf("sound: LEGACY mode (mic.c thresholds, img_NN.jpg round robin), not the on-node classifier\n");

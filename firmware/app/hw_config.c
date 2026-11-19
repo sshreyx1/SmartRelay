@@ -3,7 +3,7 @@
  *
  * The card is in the Maker Pi Pico's built-in slot: SPI1, GP10 SCK, GP11 MOSI, GP12 MISO, GP15 CS.
  * The LoRa module shares GP10/11/12 and has its own CS on GP13 (see board.h). Both run at
- * SPI1_BAUD_HZ (1 MHz by default); baud_rate below is kept equal to it so both chips always see the
+ * SPI1_BAUD_HZ (4 MHz by default, was 1 MHz); baud_rate below is kept equal to it so both chips always see the
  * same clock, whichever of them set the bus up last. Pins can be overridden with -DSD_SCK=... etc.
  */
 #include "hw_config.h"

@@ -15,6 +15,12 @@ extern "C"
 void DHT_init();
 bool DHT_read(float *temperature, float *humidity);
 
+/* Called around the ~5 ms bit-timing part of DHT_read() (not the 20 ms start pulse). Weak no-ops
+ * in DHT22.c; the dual-core firmware (firmware_smp/app/main_smp.c) masks interrupts on the
+ * sensors core here, as agreed after Tri 1. Must not block or call the RTOS. */
+void DHT_timing_enter(void);
+void DHT_timing_exit(void);
+
 #ifdef __cplusplus
 }
 #endif

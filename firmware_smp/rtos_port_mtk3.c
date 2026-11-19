@@ -123,13 +123,13 @@ static void task_trampoline(INT stacd, void* exinf)
     }
 }
 
-rtos_id_t rtos_task_create(const char* name, rtos_task_fn fn, void* arg, unsigned priority,
-                            unsigned stack_bytes, rtos_core_t core)
+rtos_id_t rtos_task_create(const char* name, rtos_task_fn fn, void* arg, unsigned priority, unsigned stack_bytes,
+                           rtos_core_t core)
 {
-    (void)name; /* T_CTSK has an optional dsname field; skipped, not load-bearing here */
+    (void)name;                             /* T_CTSK has an optional dsname field; skipped, not load-bearing here */
     stack_bytes = (stack_bytes + 7u) & ~7u; /* keeps every carved stack 8-byte aligned */
-    if (s_task_count >= RTOS_MAX_TASKS || stack_bytes > RTOS_MAX_STACK_BYTES ||
-        stack_bytes > RTOS_STACK_POOL_BYTES - s_stack_pool_used)
+    if (s_task_count >= RTOS_MAX_TASKS || stack_bytes > RTOS_MAX_STACK_BYTES
+        || stack_bytes > RTOS_STACK_POOL_BYTES - s_stack_pool_used)
     {
         return -1;
     }
@@ -284,22 +284,49 @@ bool rtos_msgq_selftest(rtos_id_t q, uint32_t msg_size, uint32_t count, char* lo
     bool ok = (sent == count) && !extra_accepted && (drained == count);
     if (log_line && log_line_max >= 64)
     {
-        tm_sprintf((UB*)log_line, (UB*)"msgq selftest: wanted %u, sent %u, extra accepted %d, drained %u - %s",
-                   count, sent, (int)extra_accepted, drained, ok ? "ok" : "FAILED");
+        tm_sprintf((UB*)log_line, (UB*)"msgq selftest: wanted %u, sent %u, extra accepted %d, drained %u - %s", count,
+                   sent, (int)extra_accepted, drained, ok ? "ok" : "FAILED");
     }
     return ok;
 }
 
+static volatile uint32_t s_msgq_errors;
+static volatile int32_t s_msgq_last_error;
+
+/* E_TMOUT is the normal "queue full" answer for TMO_POL / a timed wait; anything else negative is a
+ * real fault (bad id, bad size, ...) and is counted separately (follow-up F8). */
+static bool msgq_send_result(ER er)
+{
+    if (er >= E_OK)
+    {
+        return true;
+    }
+    if (er != E_TMOUT)
+    {
+        s_msgq_last_error = (int32_t)er;
+        rtos_atomic_add_u32(&s_msgq_errors, 1);
+    }
+    return false;
+}
+
+uint32_t rtos_msgq_error_count(void)
+{
+    return s_msgq_errors;
+}
+
+int32_t rtos_msgq_last_error(void)
+{
+    return s_msgq_last_error;
+}
+
 bool rtos_msgq_send_nowait(rtos_id_t q, const void* msg, uint32_t msg_size)
 {
-    ER er = tk_snd_mbf((ID)q, msg, (INT)msg_size, TMO_POL);
-    return er >= E_OK;
+    return msgq_send_result(tk_snd_mbf((ID)q, msg, (INT)msg_size, TMO_POL));
 }
 
 bool rtos_msgq_send_wait(rtos_id_t q, const void* msg, uint32_t msg_size, int32_t timeout_ms)
 {
-    ER er = tk_snd_mbf((ID)q, msg, (INT)msg_size, (TMO)timeout_ms);
-    return er >= E_OK;
+    return msgq_send_result(tk_snd_mbf((ID)q, msg, (INT)msg_size, (TMO)timeout_ms));
 }
 
 bool rtos_msgq_recv(rtos_id_t q, void* msg, uint32_t msg_size, int32_t timeout_ms)
@@ -336,6 +363,16 @@ unsigned rtos_priority_self_get(void)
 void rtos_priority_self_set(unsigned prio)
 {
     tk_chg_pri(TSK_SELF, (PRI)prio);
+}
+
+unsigned rtos_task_priority(rtos_id_t task)
+{
+    T_RTSK rtsk;
+    if (task <= 0 || tk_ref_tsk((ID)task, &rtsk) < E_OK)
+    {
+        return 0;
+    }
+    return (unsigned)rtsk.tskpri;
 }
 
 unsigned rtos_core_id(void)

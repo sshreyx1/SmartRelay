@@ -39,7 +39,9 @@
 #define BOARD_MIC_ADC 0   /* GP26 = ADC input 0 */
 
 #ifndef SPI1_BAUD_HZ
-#define SPI1_BAUD_HZ 1000000u /* shared bus speed, the speed Mridula tested the LoRa module at */
+#define SPI1_BAUD_HZ                                                                                                   \
+    4000000u /* shared bus speed; 1 MHz (what Mridula first tested) made every SD                                      \
+              * directory lookup ~4x slower, see docs/verify/RESULTS.md */
 #endif
 
 /* Call first thing in main(): both chip selects high, so neither chip listens while the other

@@ -19,6 +19,9 @@ static rtos_id_t s_log_q = -1;
  * buffer overflow risk once the kernel is told bufsz is the larger value). */
 static uint8_t s_log_buf[RTOS_MSGQ_BYTES(LOG_LINE_MAX, LOG_RING_DEPTH)];
 static volatile uint32_t s_dropped;
+/* Lines in the ring now: +1 per line queued, -1 per line drained. The kernel message buffer has no
+ * count call; this lets the bridge's uplink send only what fits (log_free_slots). */
+static volatile uint32_t s_queued;
 static uint32_t s_wait_ms = 500u;
 static volatile int32_t s_drainer;
 
@@ -55,7 +58,11 @@ static void queue_line(const char* msg, bool may_wait)
 {
     bool ok = may_wait ? rtos_msgq_send_wait(s_log_q, msg, LOG_LINE_MAX, (int32_t)s_wait_ms)
                        : rtos_msgq_send_nowait(s_log_q, msg, LOG_LINE_MAX);
-    if (!ok)
+    if (ok)
+    {
+        rtos_atomic_add_u32(&s_queued, 1);
+    }
+    else
     {
         /* log_write_line runs on comms (core 0), sensors (core 1), and
          * usb_owner (core 0) - round 2 review fix A8. */
@@ -137,5 +144,18 @@ uint32_t log_dropped_count(void)
 
 bool log_drain_one(char out[LOG_LINE_MAX], int32_t timeout_ms)
 {
-    return rtos_msgq_recv(s_log_q, out, LOG_LINE_MAX, timeout_ms);
+    bool ok = rtos_msgq_recv(s_log_q, out, LOG_LINE_MAX, timeout_ms);
+    if (ok)
+    {
+        rtos_atomic_add_u32(&s_queued, (uint32_t)-1);
+    }
+    return ok;
+}
+
+uint32_t log_free_slots(void)
+{
+    /* the drain can run between a send and its +1, so s_queued may briefly read one low or wrap
+     * below zero; clamp rather than trust it exactly */
+    uint32_t q = s_queued;
+    return q < LOG_RING_DEPTH ? LOG_RING_DEPTH - q : 0u;
 }

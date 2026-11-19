@@ -46,6 +46,10 @@ void log_set_drainer(int32_t task_id);
 
 uint32_t log_dropped_count(void);
 
+/* Lines the ring can take right now without waiting (approximate by at most one line while
+ * another task is mid-send). */
+uint32_t log_free_slots(void);
+
 /* USB-owner task only: blocks up to timeout_ms for the next line. */
 bool log_drain_one(char out[LOG_LINE_MAX], int32_t timeout_ms);
 

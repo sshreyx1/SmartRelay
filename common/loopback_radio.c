@@ -99,7 +99,7 @@ static int l_recv(int me, uint8_t* src, uint8_t* buf, uint16_t cap)
     {
         return MESH_RECV_NONE;
     }
-    item_t* it = &e->q[e->head];
+    const item_t* it = &e->q[e->head];
     e->head = (uint8_t)((e->head + 1) % Q);
     e->n--;
     if (it->len > cap)
@@ -128,17 +128,40 @@ static bool l_busy(int me)
     return (int32_t)(L.e[me].busy_until - L.now()) > 0;
 }
 
-#define END(N, I)                                                                                       \
-    static bool N##_send(uint8_t d, const uint8_t* p, uint16_t l) { return l_send(I, d, p, l); }        \
-    static int N##_recv(uint8_t* s, uint8_t* b, uint16_t c) { return l_recv(I, s, b, c); }              \
-    static void N##_poll(void) {}                                                                       \
-    static uint16_t N##_maxp(void) { return L.maxp; }                                                   \
-    static bool N##_heard(uint8_t n, uint32_t* ms) { return l_heard(I, n, ms); }                        \
-    static bool N##_busy(void) { return l_busy(I); }                                                    \
-    static void N##_stats(mesh_stats_t* o) { *o = L.e[I].st; }                                          \
-    static void N##_drop(float r) { L.e[I].drop = r; }                                                  \
-    const mesh_radio_t loopback_##N = {"lora",       N##_send,  N##_recv,  N##_poll, N##_maxp,          \
-                                       N##_heard,    N##_busy,  N##_stats, N##_drop};
+#define END(N, I)                                                                                                      \
+    static bool N##_send(uint8_t d, const uint8_t* p, uint16_t l)                                                      \
+    {                                                                                                                  \
+        return l_send(I, d, p, l);                                                                                     \
+    }                                                                                                                  \
+    static int N##_recv(uint8_t* s, uint8_t* b, uint16_t c)                                                            \
+    {                                                                                                                  \
+        return l_recv(I, s, b, c);                                                                                     \
+    }                                                                                                                  \
+    static void N##_poll(void)                                                                                         \
+    {                                                                                                                  \
+    }                                                                                                                  \
+    static uint16_t N##_maxp(void)                                                                                     \
+    {                                                                                                                  \
+        return L.maxp;                                                                                                 \
+    }                                                                                                                  \
+    static bool N##_heard(uint8_t n, uint32_t* ms)                                                                     \
+    {                                                                                                                  \
+        return l_heard(I, n, ms);                                                                                      \
+    }                                                                                                                  \
+    static bool N##_busy(void)                                                                                         \
+    {                                                                                                                  \
+        return l_busy(I);                                                                                              \
+    }                                                                                                                  \
+    static void N##_stats(mesh_stats_t* o)                                                                             \
+    {                                                                                                                  \
+        *o = L.e[I].st;                                                                                                \
+    }                                                                                                                  \
+    static void N##_drop(float r)                                                                                      \
+    {                                                                                                                  \
+        L.e[I].drop = r;                                                                                               \
+    }                                                                                                                  \
+    const mesh_radio_t loopback_##N                                                                                    \
+        = { "lora", N##_send, N##_recv, N##_poll, N##_maxp, N##_heard, N##_busy, N##_stats, N##_drop };
 
 END(a, 0)
 END(b, 1)
