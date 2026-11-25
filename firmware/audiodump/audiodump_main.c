@@ -245,5 +245,9 @@ int main(void)
         {
             line[len++] = (char)ch;
         }
+        else
+        {
+            /* line buffer full: drop characters until the newline */
+        }
     }
 }

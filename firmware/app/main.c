@@ -752,6 +752,10 @@ static void comms_task(void* arg)
             (void)uplink_queue_service(&g_uplink, UPLINK_LINES_PER_PASS, uplink_out, NULL);
             fflush(stdout);
         }
+        else
+        {
+            /* bridge with nothing queued for the laptop: nothing to do this pass */
+        }
         if (APP_RELAY_LOG && (int32_t)(p_now(NULL) - next_relay_log) >= 0)
         {
             next_relay_log += 1000u;
@@ -941,6 +945,10 @@ static void console_task(void* arg)
         else if (ch == 'p')
         {
             g_want_test_payload = true;
+        }
+        else
+        {
+            /* no key, or a key with no command: ignore */
         }
         vTaskDelay(pdMS_TO_TICKS(50));
     }

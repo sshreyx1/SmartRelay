@@ -71,63 +71,82 @@ static inline bool sound_class_valid(uint8_t id)
     }
 }
 
+/* The SC_CASE helpers below set a result and break instead of returning, so no macro contains a
+ * transfer of control (BARR-C 6.3.b.iv) and each function has one exit point. */
+
 /* "DOG"; "UNKNOWN" for 0xFF; "INVALID" for an id not in the table */
 static inline const char* sound_class_name(uint8_t id)
 {
+    const char* p_result;
     switch (id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \
-        return #name;
+        p_result = #name;                                                                                              \
+        break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
         default:
-            return id == SC_UNKNOWN ? "UNKNOWN" : "INVALID";
+            p_result = (SC_UNKNOWN == id) ? "UNKNOWN" : "INVALID";
+            break;
     }
+    return p_result;
 }
 
 /* group id (0-6) of a label; SC_UNKNOWN for unknown / invalid ids */
 static inline uint8_t sound_class_group(uint8_t id)
 {
+    uint8_t result;
     switch (id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \
-        return group;
+        result = group;                                                                                                \
+        break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
         default:
-            return SC_UNKNOWN;
+            result = SC_UNKNOWN;
+            break;
     }
+    return result;
 }
 
 static inline uint8_t sound_class_kind(uint8_t id)
 {
+    uint8_t result;
     switch (id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \
-        return kind;
+        result = kind;                                                                                                 \
+        break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
         default:
-            return SC_UNKNOWN;
+            result = SC_UNKNOWN;
+            break;
     }
+    return result;
 }
 
 /* image prefix ("dog"); NULL for unknown / invalid ids */
 static inline const char* sound_class_prefix(uint8_t id)
 {
+    const char* p_result;
     switch (id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \
-        return prefix;
+        p_result = prefix;                                                                                             \
+        break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
         default:
-            return 0;
+            p_result = 0;
+            break;
     }
+    return p_result;
 }
 
 #endif

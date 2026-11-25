@@ -433,6 +433,10 @@ int main(void)
                 printf("  sent %u data packets (round %u, %u of them resends)\n", g_alfp.tx.rep.data_sent,
                        g_alfp.tx.round, g_alfp.tx.rep.data_resent);
             }
+            else
+            {
+                /* sender idle, or nothing new sent since the last print */
+            }
         }
 
         int c = getchar_timeout_us(0);
@@ -473,6 +477,10 @@ int main(void)
             uint32_t g = g_prof[0].gap_ms == 150u ? 500u : 150u;
             g_prof[0].gap_ms = g_prof[0].gap_max_ms = g;
             printf("gap between packets: %lu ms (applies to the next photo)\n", (unsigned long)g);
+        }
+        else
+        {
+            /* no key, or a key with no command: ignore */
         }
         sleep_ms(1);
     }

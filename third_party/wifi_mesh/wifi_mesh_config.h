@@ -11,6 +11,12 @@
  * Each node works out its own ID by looking up its WST's MAC here,
  * so the same firmware runs on every node.
  * Index = node ID (1-5 = A-E). Index 0 is unused.                        */
+/* DEVIATION (BARR-C 4.2.c.ii, storage allocated in a header file): this table
+ * and the neighbour table below are small static const lookup tables (42 bytes)
+ * that each includer gets its own copy of. They are kept here so the demo layout
+ * is edited in one place; moving them to a .c would change the FreeRTOS, SMP and
+ * host build file lists.
+ * Approved by: ____________________ (project manager), date: __________ */
 static const uint8_t WIFI_MESH_MACS[6][6] = {
     {0, 0, 0, 0, 0, 0},                       /* 0: unused          */
     {0xAC, 0x0B, 0xFB, 0xC7, 0x7F, 0xE9},     /* 1: A  <- WST-1     */

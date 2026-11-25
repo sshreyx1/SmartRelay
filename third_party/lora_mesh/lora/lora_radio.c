@@ -17,15 +17,6 @@
     ( LR11XX_SYSTEM_IRQ_TX_DONE | LR11XX_SYSTEM_IRQ_RX_DONE | LR11XX_SYSTEM_IRQ_TIMEOUT |     \
       LR11XX_SYSTEM_IRQ_HEADER_ERROR | LR11XX_SYSTEM_IRQ_CRC_ERROR )
 
-#define CHECK( rc )                           \
-    do                                        \
-    {                                         \
-        if( ( rc ) != LR11XX_STATUS_OK )      \
-        {                                     \
-            return false;                     \
-        }                                     \
-    } while( 0 )
-
 static lr1121_t radio;
 
 static lr11xx_radio_mod_params_lora_t mod_params = {
@@ -55,8 +46,14 @@ static uint32_t now_ms( void )
 static bool start_rx( void )
 {
     pkt_params.pld_len_in_bytes = LORA_MAX_PACKET_LEN;
-    CHECK( lr11xx_radio_set_lora_pkt_params( &radio, &pkt_params ) );
-    CHECK( lr11xx_radio_set_rx_with_timeout_in_rtc_step( &radio, RX_CONTINUOUS ) );
+    if( lr11xx_radio_set_lora_pkt_params( &radio, &pkt_params ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_radio_set_rx_with_timeout_in_rtc_step( &radio, RX_CONTINUOUS ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
     return true;
 }
 
@@ -65,27 +62,67 @@ static bool system_init( void )
     lr11xx_system_reset( &radio );
     lr11xx_hal_wakeup( &radio );
 
-    CHECK( lr11xx_system_enable_spi_crc( &radio, false ) );
-    CHECK( lr11xx_system_set_standby( &radio, LR11XX_SYSTEM_STANDBY_CFG_XOSC ) );
-    CHECK( lr11xx_system_calibrate_image( &radio, 0xE1, 0xE9 ) );  // 902-928 MHz
-    CHECK( lr11xx_system_set_reg_mode( &radio, smtc_shield_lr11xx_common_get_reg_mode( ) ) );
-    CHECK( lr11xx_system_set_dio_as_rf_switch( &radio, smtc_shield_lr11xx_common_get_rf_switch_cfg( ) ) );
-    CHECK( lr11xx_system_set_tcxo_mode( &radio, LR11XX_SYSTEM_TCXO_CTRL_3_0V, 300 ) );
-    CHECK( lr11xx_system_cfg_lfclk( &radio, LR11XX_SYSTEM_LFCLK_XTAL, true ) );
-    CHECK( lr11xx_system_clear_errors( &radio ) );
-    CHECK( lr11xx_system_calibrate( &radio, 0x3F ) );
+    if( lr11xx_system_enable_spi_crc( &radio, false ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_set_standby( &radio, LR11XX_SYSTEM_STANDBY_CFG_XOSC ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_calibrate_image( &radio, 0xE1, 0xE9 ) != LR11XX_STATUS_OK )  // 902-928 MHz
+    {
+        return false;
+    }
+    if( lr11xx_system_set_reg_mode( &radio, smtc_shield_lr11xx_common_get_reg_mode( ) ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_set_dio_as_rf_switch( &radio, smtc_shield_lr11xx_common_get_rf_switch_cfg( ) ) !=
+        LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_set_tcxo_mode( &radio, LR11XX_SYSTEM_TCXO_CTRL_3_0V, 300 ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_cfg_lfclk( &radio, LR11XX_SYSTEM_LFCLK_XTAL, true ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_clear_errors( &radio ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_calibrate( &radio, 0x3F ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
 
     uint16_t errors = 0;
-    CHECK( lr11xx_system_get_errors( &radio, &errors ) );
+    if( lr11xx_system_get_errors( &radio, &errors ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
     if( errors & LR11XX_SYSTEM_ERRORS_IMG_CALIB_MASK )
     {
         printf( "lora_radio: image calibration error\n" );
     }
-    CHECK( lr11xx_system_clear_errors( &radio ) );
-    CHECK( lr11xx_system_clear_irq_status( &radio, LR11XX_SYSTEM_IRQ_ALL_MASK ) );
+    if( lr11xx_system_clear_errors( &radio ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_clear_irq_status( &radio, LR11XX_SYSTEM_IRQ_ALL_MASK ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
 
     lr11xx_system_version_t ver;
-    CHECK( lr11xx_system_get_version( &radio, &ver ) );
+    if( lr11xx_system_get_version( &radio, &ver ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
     if( ver.type != LR11XX_SYSTEM_VERSION_TYPE_LR1121 )
     {
         printf( "lora_radio: unexpected chip type 0x%02X (SPI wiring?)\n", ver.type );
@@ -104,31 +141,71 @@ static bool modem_init( void )
         return false;
     }
 
-    CHECK( lr11xx_radio_set_pkt_type( &radio, LR11XX_RADIO_PKT_TYPE_LORA ) );
+    if( lr11xx_radio_set_pkt_type( &radio, LR11XX_RADIO_PKT_TYPE_LORA ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
     lr11xx_radio_pkt_type_t pkt_type;
-    CHECK( lr11xx_radio_get_pkt_type( &radio, &pkt_type ) );
+    if( lr11xx_radio_get_pkt_type( &radio, &pkt_type ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
     if( pkt_type != LR11XX_RADIO_PKT_TYPE_LORA )
     {
         printf( "lora_radio: packet type read-back failed (SPI wiring?)\n" );
         return false;
     }
 
-    CHECK( lr11xx_radio_set_rf_freq( &radio, LORA_FREQ_HZ ) );
-    CHECK( lr11xx_radio_set_rssi_calibration( &radio, smtc_shield_lr11xx_get_rssi_calibration_table( LORA_FREQ_HZ ) ) );
-    CHECK( lr11xx_radio_set_pa_cfg( &radio, &pa->pa_config ) );
-    CHECK( lr11xx_radio_set_tx_params( &radio, pa->power, LR11XX_RADIO_RAMP_48_US ) );
+    if( lr11xx_radio_set_rf_freq( &radio, LORA_FREQ_HZ ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_radio_set_rssi_calibration( &radio, smtc_shield_lr11xx_get_rssi_calibration_table( LORA_FREQ_HZ ) ) !=
+        LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_radio_set_pa_cfg( &radio, &pa->pa_config ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_radio_set_tx_params( &radio, pa->power, LR11XX_RADIO_RAMP_48_US ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
     // Stay on the TCXO between TX and RX for fast turnaround (power is from USB anyway)
-    CHECK( lr11xx_radio_set_rx_tx_fallback_mode( &radio, LR11XX_RADIO_FALLBACK_STDBY_XOSC ) );
-    CHECK( lr11xx_radio_cfg_rx_boosted( &radio, false ) );
+    if( lr11xx_radio_set_rx_tx_fallback_mode( &radio, LR11XX_RADIO_FALLBACK_STDBY_XOSC ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_radio_cfg_rx_boosted( &radio, false ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
 
     mod_params.ldro = smtc_shield_lr11xx_common_compute_lora_ldro( LORA_SF, LORA_BW );
-    CHECK( lr11xx_radio_set_lora_mod_params( &radio, &mod_params ) );
-    CHECK( lr11xx_radio_set_lora_pkt_params( &radio, &pkt_params ) );
-    CHECK( lr11xx_radio_set_lora_sync_word( &radio, LORA_SYNC_WORD ) );
+    if( lr11xx_radio_set_lora_mod_params( &radio, &mod_params ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_radio_set_lora_pkt_params( &radio, &pkt_params ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_radio_set_lora_sync_word( &radio, LORA_SYNC_WORD ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
 
     // Route our IRQs to DIO9 (the RADIO_IRQ pin)
-    CHECK( lr11xx_system_set_dio_irq_params( &radio, LORA_IRQ_MASK, 0 ) );
-    CHECK( lr11xx_system_clear_irq_status( &radio, LR11XX_SYSTEM_IRQ_ALL_MASK ) );
+    if( lr11xx_system_set_dio_irq_params( &radio, LORA_IRQ_MASK, 0 ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
+    if( lr11xx_system_clear_irq_status( &radio, LR11XX_SYSTEM_IRQ_ALL_MASK ) != LR11XX_STATUS_OK )
+    {
+        return false;
+    }
     return true;
 }
 

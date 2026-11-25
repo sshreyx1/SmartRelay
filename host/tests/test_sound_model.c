@@ -7,6 +7,9 @@
 
 #include "sound_classes.h"
 #include "sound_classify.h"
+/* DEVIATION (BARR-C 4.2.c.ii, storage allocated in a header file): sound_model_vectors.h is
+ * GENERATED test data (ml/export_c.py --vectors) and this host test is its only includer.
+ * Approved by: ____________________ (project manager), date: __________ */
 #include "sound_model_vectors.h"
 
 int main(void)

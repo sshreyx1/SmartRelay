@@ -60,6 +60,10 @@ void wst_link_init(void)
     if (bind(sock, (struct sockaddr*)&a, sizeof(a)) != 0)
     {
         perror("bind");
+        /* DEVIATION (BARR-C 8.5.b, exit()): host integration-test stand-in for wst_link.c, never
+         * in firmware. wst_link_init() returns void (the real API), so a test node that cannot
+         * bind its UDP port has to stop here (and the integration test then fails).
+         * Approved by: ____________________ (project manager), date: __________ */
         exit(5);
     }
     fcntl(sock, F_SETFL, O_NONBLOCK);

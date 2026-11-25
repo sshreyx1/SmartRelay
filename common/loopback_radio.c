@@ -128,6 +128,10 @@ static bool l_busy(int me)
     return (int32_t)(L.e[me].busy_until - L.now()) > 0;
 }
 
+/* DEVIATION (BARR-C 6.3.b.iv, return inside a macro): END() generates the complete callback
+ * functions for one loopback endpoint, so the returns are the generated functions' own and never
+ * jump out of the code that uses the macro. The only alternative is hand-copying each function.
+ * Approved by: ____________________ (project manager), date: __________ */
 #define END(N, I)                                                                                                      \
     static bool N##_send(uint8_t d, const uint8_t* p, uint16_t l)                                                      \
     {                                                                                                                  \

@@ -36,14 +36,14 @@ void sound_fft256(int16_t* re, int16_t* im)
             for (uint32_t i = k; i < SOUND_FFT_N; i += half << 1)
             {
                 const uint32_t j = i + half;
-                /* Q15 complex multiply with rounding; the shift is arithmetic on every target we build for */
-                const int32_t tr = (wr * re[j] - wi * im[j] + (1 << 14)) >> 15;
-                const int32_t ti = (wr * im[j] + wi * re[j] + (1 << 14)) >> 15;
+                /* Q15 complex multiply with rounding; sound_asr32() is a well-defined arithmetic shift */
+                const int32_t tr = sound_asr32(wr * re[j] - wi * im[j] + SOUND_Q15_HALF, 15u);
+                const int32_t ti = sound_asr32(wr * im[j] + wi * re[j] + SOUND_Q15_HALF, 15u);
                 const int32_t ar = re[i], ai = im[i];
-                re[i] = (int16_t)((ar + tr) >> 1);
-                im[i] = (int16_t)((ai + ti) >> 1);
-                re[j] = (int16_t)((ar - tr) >> 1);
-                im[j] = (int16_t)((ai - ti) >> 1);
+                re[i] = (int16_t)sound_asr32(ar + tr, 1u);
+                im[i] = (int16_t)sound_asr32(ai + ti, 1u);
+                re[j] = (int16_t)sound_asr32(ar - tr, 1u);
+                im[j] = (int16_t)sound_asr32(ai - ti, 1u);
             }
         }
     }

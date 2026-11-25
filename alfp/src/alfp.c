@@ -350,6 +350,10 @@ static void pace_update(alfp_ctx_t* c, uint16_t missing)
     {
         t->gap_ms = t->gap_ms - t->gap_ms / 4u < lo ? lo : t->gap_ms - t->gap_ms / 4u;
     }
+    else
+    {
+        /* 5-25% loss: keep the current gap. */
+    }
     pace_for(c, t->radio)->gap_ms = t->gap_ms;
 }
 
@@ -425,6 +429,10 @@ static void tx_step(alfp_ctx_t* c)
 
         case TX_SENDING:
             break;
+
+        default:
+            /* t->state only ever holds the TX_* states above; carry on sending. */
+            break;
     }
 
     /* Pacing: wait until the radio has finished, then the profile's gap. */
@@ -494,6 +502,10 @@ static void tx_step(alfp_ctx_t* c)
             else if (t->copies > 1)
             {
                 t->copy_left = (uint8_t)(t->copies - 1u);
+            }
+            else
+            {
+                /* single copy per fragment: copy_left stays 0 */
             }
             if (!t->copy_left)
             {
@@ -923,6 +935,10 @@ static void rx_on_data(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, co
         c->stats.pkts_bad_other++;
         return;
     }
+    else
+    {
+        /* fragment length is valid: store it below */
+    }
     r->last_ms = now(c);
     if (bget(r->have, dd->seq))
     {
@@ -1194,6 +1210,10 @@ static void rx_step(alfp_ctx_t* c)
                 }
                 break;
             }
+
+            default:
+                /* r->state only ever holds the RX_* states above; nothing to do. */
+                break;
         }
     }
 }

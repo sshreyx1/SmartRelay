@@ -119,6 +119,10 @@ int main(int argc, char** argv)
                    SF_N_FEATURES, SF_VERSION);
             return 0;
         }
+        else
+        {
+            /* not an option: a file name, read in the loop below */
+        }
     }
     if (header)
     {

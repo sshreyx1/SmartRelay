@@ -66,7 +66,8 @@ static void process_frame(sf_t* s)
     uint32_t g = 0;
     if (peak)
     {
-        while (((int64_t)peak << (g + 1)) < ((int64_t)1 << 29))
+        /* peak >= 0 (a maximum of absolute values), so the unsigned shift is exact */
+        while (((uint64_t)peak << (g + 1u)) < ((uint64_t)1u << 29))
         {
             g++;
         }
@@ -74,7 +75,7 @@ static void process_frame(sf_t* s)
     for (uint32_t n = 0; n < SF_FRAME; n++)
     {
         const int32_t w = ((int32_t)s->frame[n] - mean) * sound_hann_q15[n];
-        s->re[n] = (int16_t)((w * (int32_t)(1u << g) + (1 << 14)) >> 15);
+        s->re[n] = (int16_t)sound_asr32(w * (int32_t)(1u << g) + SOUND_Q15_HALF, 15u);
         s->im[n] = 0;
     }
     sound_fft256(s->re, s->im);

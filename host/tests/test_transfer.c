@@ -97,6 +97,10 @@ static unsigned count_in(const char* p, const char* suffix, int depth)
             snprintf(sub, sizeof(sub), "%s/%s", p, e->d_name);
             c += count_in(sub, suffix, depth - 1);
         }
+        else
+        {
+            /* not a match and no depth left: skip it */
+        }
     }
     closedir(d);
     return c;

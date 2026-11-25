@@ -396,6 +396,10 @@ void lora_mesh_poll( void )
             {
                 stats.relayed++;
             }
+            else
+            {
+                // IN_FLIGHT_NONE: a TX_DONE with nothing in flight, nothing to count
+            }
             in_flight = IN_FLIGHT_NONE;
             break;
         case LORA_EVT_TX_FAIL:

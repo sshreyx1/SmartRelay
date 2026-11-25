@@ -16,6 +16,32 @@
 
 #include "sound_tables.h"
 
+/* Rounding constant for a Q15 product: 0.5 in Q15 (2^14). Spelled out so no shift touches a
+ * signed value (BARR-C 5.3.b). */
+#define SOUND_Q15_HALF ((int32_t)16384)
+
+/*
+ * sound_asr32 - arithmetic shift right of a signed value: floor(value / 2^shift), shift 0..31.
+ *
+ * NOTE: ">>" on a negative signed integer is implementation-defined in C99 (BARR-C 5.3.b bans
+ * bitwise operators on signed data). This gives the same result as gcc/clang's arithmetic shift
+ * on every input, using only well-defined operations: for value < 0, -(value + 1) is in
+ * 0..INT32_MAX, so it converts to uint32_t and back without loss.
+ */
+static inline int32_t sound_asr32(int32_t value, uint32_t shift)
+{
+    int32_t result;
+    if (value < 0)
+    {
+        result = -(int32_t)((uint32_t)(-(value + 1)) >> shift) - 1;
+    }
+    else
+    {
+        result = (int32_t)((uint32_t)value >> shift);
+    }
+    return result;
+}
+
 /* re/im: SOUND_FFT_N values each, transformed in place (output in natural order). */
 void sound_fft256(int16_t* re, int16_t* im);
 

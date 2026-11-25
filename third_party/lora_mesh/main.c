@@ -118,7 +118,7 @@ int main( void )
     uint32_t next_stats   = now_ms( ) + STATS_INTERVAL_MS;
     uint8_t  buf[256];
 
-    while( true )
+    for( ;; )
     {
         mesh->poll( );
 

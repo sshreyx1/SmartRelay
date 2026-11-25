@@ -143,6 +143,9 @@ static result_t run(const params_t* p)
         if (alfp_send_file(&N.node[nodes].alfp, radio, 1, "img.jpg", NULL, 0) != ALFP_OK)
         {
             fprintf(stderr, "send_file failed\n");
+            /* DEVIATION (BARR-C 8.5.b, exit()): laptop-only experiment tool, never linked into
+             * firmware; a failed setup must stop the run rather than write bogus CSV rows.
+             * Approved by: ____________________ (project manager), date: __________ */
             exit(1);
         }
         uint32_t air0 = sim_airtime_used(p->radio);
@@ -227,6 +230,8 @@ static FILE* csv(const char* dir, const char* name, const char* header)
     if (!f)
     {
         perror(p);
+        /* DEVIATION (BARR-C 8.5.b, exit()): laptop-only tool, see send_file failure above.
+         * Approved by: ____________________ (project manager), date: __________ */
         exit(1);
     }
     fprintf(f, "%s\n", header);
@@ -304,6 +309,10 @@ static void suite(const char* dir, int trials)
             {
                 p.taildup = 0;
                 label = "v2_fast_polls";
+            }
+            else
+            {
+                /* the final design: keep the defaults set above */
             }
             result_t r = run(&p);
             row(f, label, loss_axis[i], &p, &r);

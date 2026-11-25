@@ -310,6 +310,10 @@ void alfp_outbox_pump(alfp_outbox_t* ob)
     {
         drop_job(ob, s.min); /* can never succeed */
     }
+    else
+    {
+        /* transient error (e.g. busy): keep the job and retry on a later pump */
+    }
 }
 
 void alfp_outbox_set_size_threshold(alfp_outbox_t* ob, uint32_t threshold)

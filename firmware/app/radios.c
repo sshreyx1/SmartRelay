@@ -127,6 +127,10 @@ static void check_wst(uint8_t node_id)
                "or swap the ESP-01, otherwise WiFi routing is wrong.\n",
                node_id, owner, owner);
     }
+    else
+    {
+        /* the ESP-01 belongs to this node: nothing to report */
+    }
 }
 #endif
 
@@ -146,6 +150,10 @@ bool radios_init(uint8_t node_id)
         /* The bridge floods an empty broadcast every 3 s. Field nodes see it through
          * last_heard(), which is how alfp_select_radio() knows LoRa can reach the bridge. */
         lora_mesh_set_heartbeat(3000);
+    }
+    else
+    {
+        /* field node: LoRa is up, no heartbeat to send */
     }
 #else
     printf("radios: LoRa mesh not linked (offline stub)\n");

@@ -152,6 +152,9 @@ const char* alfp_tx_result_str(alfp_tx_result_t r)
             return "refused";
         case ALFP_TX_IO_ERROR:
             return "io_error";
+        default:
+            /* not a valid alfp_tx_result_t: fall through to "?" below */
+            break;
     }
     return "?";
 }

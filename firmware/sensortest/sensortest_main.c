@@ -93,6 +93,10 @@ int main(void)
         {
             record(1);
         }
+        else
+        {
+            /* no key, or a key with no command: ignore */
+        }
         sleep_ms(10);
     }
 }

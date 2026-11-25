@@ -462,6 +462,10 @@ static void mesh_poll(uint8_t n, int kind)
         f = &r->txq[r->txq_head];
         own = true;
     }
+    else
+    {
+        /* nothing to relay and nothing of our own queued: f stays NULL */
+    }
     if (!f)
     {
         return;
@@ -561,6 +565,10 @@ static bool m_tx_busy(int kind)
     return r->txq_n > 0 || r->on;
 }
 
+/* DEVIATION (BARR-C 6.3.b.iv, return inside a macro): DEFINE_RADIO() generates the complete
+ * mesh_radio_t callback functions for one simulated radio (host simulator only), so the returns
+ * are the generated functions' own and never jump out of the code that uses the macro.
+ * Approved by: ____________________ (project manager), date: __________ */
 #define DEFINE_RADIO(NAME, KIND, STR)                                                                   \
     static bool NAME##_send(uint8_t d, const uint8_t* p, uint16_t l) { return m_send(KIND, d, p, l); } \
     static int NAME##_recv(uint8_t* s, uint8_t* b, uint16_t c) { return m_recv(KIND, s, b, c); }       \

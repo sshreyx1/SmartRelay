@@ -51,7 +51,9 @@ uint8_t wst_crc8(const uint8_t *d, uint32_t n, uint8_t c) {
 static volatile uint8_t  rxbuf[RXBUF_SIZE];
 static volatile uint16_t rx_head, rx_tail;
 
-static wst_link_stats_t stats;
+/* volatile (BARR-C 1.8.c): the UART RX ISR below writes uart_overflow,
+ * rx_isr_core and rx_high_watermark, and task code reads the whole struct. */
+static volatile wst_link_stats_t stats;
 
 /* CURVEBALL 3.4: on an SMP build the ISR and wst_link_poll() both run on
  * core 0 (comms_task owns the UART and enables this IRQ from there, so the
@@ -61,10 +63,12 @@ static wst_link_stats_t stats;
  * gives T2 something to check against. */
 static volatile bool s_rx_isr_core_logged;
 
-static void on_uart_rx(void) {
+static void wst_uart_rx_isr(void) {
     if (!s_rx_isr_core_logged) {
         s_rx_isr_core_logged = true;
-        stats.rx_isr_core = (uint8_t)get_core_num();
+        /* same register get_core_num() reads, but through the SDK's volatile io_ro_32 field so
+         * it is always one 32-bit load; cast is safe, CPUID is 0 or 1 */
+        stats.rx_isr_core = (uint8_t)sio_hw->cpuid;
     }
     while (uart_is_readable(WST_UART)) {
         uint8_t b = (uint8_t)uart_getc(WST_UART);
@@ -136,6 +140,9 @@ static void frame_done(void) {
         memcpy(my_mac, p_mac, 6);
         have_mac = true;
         break;
+    default:
+        /* parse_byte() only accepts the three types above; nothing to do. */
+        break;
     }
 }
 
@@ -176,11 +183,16 @@ static void parse_byte(uint8_t b) {
             c = wst_crc8(&p_status, 1, c);
         } else if (p_type == T_HELLO) {
             c = wst_crc8(p_mac, 6, c);
+        } else {
+            /* P_TYPE never lets another type reach P_CRC; CRC covers the type byte only. */
         }
         if (c == b) frame_done(); else stats.rx_crc_err++;
         p_state = P_SOF;
         break;
     }
+    default:
+        /* p_state only ever holds the P_* states above; nothing to do. */
+        break;
     }
 }
 
@@ -193,7 +205,7 @@ void wst_link_init(void) {
     uart_set_hw_flow(WST_UART, false, false);
     uart_set_fifo_enabled(WST_UART, true);
 
-    irq_set_exclusive_handler(WST_UART_IRQ, on_uart_rx);
+    irq_set_exclusive_handler(WST_UART_IRQ, wst_uart_rx_isr);
     irq_set_enabled(WST_UART_IRQ, true);
     uart_set_irq_enables(WST_UART, true, false);   /* RX interrupt only */
 
