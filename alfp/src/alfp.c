@@ -663,6 +663,20 @@ static void done_add(alfp_ctx_t* c, uint8_t src, uint16_t sid, uint8_t status)
     d->status = status;
 }
 
+/* Every refusal is logged with its reason, so a refusing bridge says why instead of only the sender
+ * seeing "refused". */
+static void log_refusal(alfp_ctx_t* c, uint8_t src, uint16_t sid, uint8_t status, const char* why)
+{
+    const alfp_platform_t* p = c->cfg.platform;
+    if (p != NULL && p->log != NULL)
+    {
+        char line[128];
+        snprintf(line, sizeof(line), "alfp: refused node %u sid %05u, status %u: %s", (unsigned)src, (unsigned)sid,
+                 (unsigned)status, why);
+        p->log(p->ctx, line);
+    }
+}
+
 /* Best-effort reply outside any session (unknown session, remembered result). */
 static void reply_ack(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t dst, uint16_t sid, uint8_t status)
 {
@@ -716,6 +730,7 @@ static alfp_rx_t* rx_open(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src,
         {
             *refuse = ALFP_ACK_BUSY;
             c->stats.rx_refused_busy++;
+            log_refusal(c, src, sid, ALFP_ACK_BUSY, "all receive sessions busy");
             return NULL;
         }
         rx_free(c, slot, true);
@@ -732,6 +747,9 @@ static alfp_rx_t* rx_open(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src,
     slot->fh = st(c)->open_write(st(c)->ctx, slot->tmp_path);
     if (slot->fh < 0)
     {
+        char why[ALFP_PATH_MAX + 24];
+        snprintf(why, sizeof(why), "cannot create %s", slot->tmp_path);
+        log_refusal(c, src, sid, ALFP_ACK_STORAGE, why);
         slot->tmp_path[0] = 0;
         *refuse = ALFP_ACK_STORAGE;
         return NULL;
@@ -783,6 +801,10 @@ static void rx_on_manifest(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src
     const alfp_done_t* d = done_find(c, src, p->sid);
     if (d)
     {
+        if (d->status != ALFP_ACK_OK)
+        {
+            log_refusal(c, src, p->sid, d->status, "same session refused earlier (remembered result)");
+        }
         reply_ack(c, radio, src, p->sid, d->status);
         return;
     }
@@ -791,6 +813,7 @@ static void rx_on_manifest(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src
     {
         if (m->frag_count > ALFP_MAX_FRAGS)
         {
+            log_refusal(c, src, p->sid, ALFP_ACK_TOO_BIG, "too many fragments");
             reply_ack(c, radio, src, p->sid, ALFP_ACK_TOO_BIG);
             return;
         }
@@ -1016,6 +1039,12 @@ static void rx_finish_ok(alfp_ctx_t* c, alfp_rx_t* r)
         }
     }
     uint8_t status = ok ? ALFP_ACK_OK : ALFP_ACK_STORAGE;
+    if (!ok)
+    {
+        char why[ALFP_PATH_MAX + 24];
+        snprintf(why, sizeof(why), "cannot rename to %s", final_path);
+        log_refusal(c, r->src, r->sid, status, why);
+    }
     done_add(c, r->src, r->sid, status);
     r->tmp_path[0] = 0;
 

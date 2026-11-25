@@ -76,6 +76,8 @@ static const mesh_radio_t wifi_mesh
 #include "pico/stdlib.h"
 
 static bool s_lora_ok, s_wifi_ok, s_wst_seen;
+static int s_wst_owner = -1; /* radios_wst_owner() */
+static uint8_t s_wst_mac[6];
 
 #ifdef HAVE_WIFI_MESH
 /* The ESP-01 (WST) in this Pico's socket must be the one wifi_mesh_config.h lists for this node,
@@ -107,6 +109,11 @@ static void check_wst(uint8_t node_id)
         {
             owner = n;
         }
+    }
+    s_wst_owner = owner;
+    for (int i = 0; i < 6; i++)
+    {
+        s_wst_mac[i] = mac[i];
     }
     printf("wifi: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X = WST-%d\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
            owner);
@@ -189,4 +196,16 @@ const mesh_radio_t* radio_lora(void)
 const mesh_radio_t* radio_wifi(void)
 {
     return &wifi_mesh;
+}
+
+int radios_wst_owner(uint8_t mac[6])
+{
+    if (mac != NULL && s_wst_owner >= 0)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            mac[i] = s_wst_mac[i];
+        }
+    }
+    return s_wst_owner;
 }

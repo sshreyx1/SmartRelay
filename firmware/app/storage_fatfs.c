@@ -19,6 +19,25 @@ static FIL g_fil[MAX_OPEN];
 static bool g_used[MAX_OPEN];
 static bool g_mounted;
 
+/* Diagnostics for 's' (storage_fatfs_status): the last FatFs error of any call except a missing
+ * file on open-for-read (an expected answer, e.g. "does this name exist yet?"). */
+static FRESULT g_last_err = FR_OK;
+static const char* g_last_err_op = "";
+static char g_last_err_path[64];
+static uint32_t g_err_count;
+
+static void note_err(const char* op, FRESULT r, const char* path)
+{
+    if (r == FR_OK)
+    {
+        return;
+    }
+    g_last_err = r;
+    g_last_err_op = op;
+    snprintf(g_last_err_path, sizeof(g_last_err_path), "%s", path ? path : "");
+    g_err_count++;
+}
+
 static int take(void)
 {
     for (int i = 0; i < MAX_OPEN; i++)
@@ -42,10 +61,16 @@ static int f_openmode(const char* path, BYTE mode)
     int h = take();
     if (h < 0)
     {
+        note_err("open (no free handle)", FR_TOO_MANY_OPEN_FILES, path);
         return -1;
     }
-    if (f_open(&g_fil[h], path, mode) != FR_OK)
+    FRESULT r = f_open(&g_fil[h], path, mode);
+    if (r != FR_OK)
     {
+        if (!(mode == FA_READ && (r == FR_NO_FILE || r == FR_NO_PATH)))
+        {
+            note_err(mode == FA_READ ? "open_r" : "open_w", r, path);
+        }
         g_used[h] = false;
         return -1;
     }
@@ -69,8 +94,14 @@ static int s_read_at(void* c, int h, uint32_t off, uint8_t* buf, uint16_t len)
     (void)c;
     FIL* f = fil(h);
     UINT got = 0;
-    if (!f || f_lseek(f, off) != FR_OK || f_read(f, buf, len, &got) != FR_OK)
+    FRESULT r = f ? f_lseek(f, off) : FR_INVALID_OBJECT;
+    if (r == FR_OK)
     {
+        r = f_read(f, buf, len, &got);
+    }
+    if (r != FR_OK)
+    {
+        note_err("read", r, "");
         return -1;
     }
     return (int)got;
@@ -83,8 +114,14 @@ static int s_write_at(void* c, int h, uint32_t off, const uint8_t* buf, uint16_t
     UINT put = 0;
     /* f_lseek past the end of a file opened for writing extends it, which is exactly what
      * out-of-order fragments need. */
-    if (!f || f_lseek(f, off) != FR_OK || f_write(f, buf, len, &put) != FR_OK)
+    FRESULT r = f ? f_lseek(f, off) : FR_INVALID_OBJECT;
+    if (r == FR_OK)
     {
+        r = f_write(f, buf, len, &put);
+    }
+    if (r != FR_OK)
+    {
+        note_err("write", r, "");
         return -1;
     }
     return (int)put;
@@ -106,6 +143,7 @@ static int s_close(void* c, int h)
         return -1;
     }
     FRESULT r = f_close(f);
+    note_err("close", r, "");
     g_used[h] = false;
     return r == FR_OK ? 0 : -1;
 }
@@ -120,7 +158,9 @@ static int s_rename(void* c, const char* from, const char* to)
 {
     (void)c;
     f_unlink(to); /* FatFs refuses to rename onto an existing file */
-    return f_rename(from, to) == FR_OK ? 0 : -1;
+    FRESULT r = f_rename(from, to);
+    note_err("rename", r, to);
+    return r == FR_OK ? 0 : -1;
 }
 
 static int s_list(void* c, const char* dir, void (*fn)(const char*, void*), void* user)
@@ -147,6 +187,10 @@ static int s_mkdir(void* c, const char* dir)
 {
     (void)c;
     FRESULT r = f_mkdir(dir);
+    if (r != FR_EXIST)
+    {
+        note_err("mkdir", r, dir);
+    }
     return (r == FR_OK || r == FR_EXIST) ? 0 : -1;
 }
 
@@ -163,6 +207,24 @@ bool storage_fatfs_mount(void)
         g_mounted = true;
     }
     return true;
+}
+
+void storage_fatfs_status(char* out, size_t cap)
+{
+    int used = 0;
+    for (int i = 0; i < MAX_OPEN; i++)
+    {
+        used += g_used[i] ? 1 : 0;
+    }
+    if (g_err_count == 0)
+    {
+        snprintf(out, cap, "sd handles in use %d/%d | no SD errors", used, MAX_OPEN);
+    }
+    else
+    {
+        snprintf(out, cap, "sd handles in use %d/%d | %lu SD errors, last: %s FR=%d on %s", used, MAX_OPEN,
+                 (unsigned long)g_err_count, g_last_err_op, (int)g_last_err, g_last_err_path);
+    }
 }
 
 const alfp_storage_t* storage_fatfs(void)

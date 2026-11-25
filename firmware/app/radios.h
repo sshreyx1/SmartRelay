@@ -28,4 +28,9 @@ void radios_set_wifi_topology_filter(bool on);
 const mesh_radio_t* radio_lora(void);
 const mesh_radio_t* radio_wifi(void);
 
+/* Which ESP-01 (WST) is in this Pico's socket, as found by radios_init(): 1-5 = WST-n from
+ * wifi_mesh_config.h, 0 = answered but not in the table, -1 = no answer (or WiFi not built).
+ * mac (may be NULL) gets its MAC when the result is >= 0. Read-only after radios_init(). */
+int radios_wst_owner(uint8_t mac[6]);
+
 #endif

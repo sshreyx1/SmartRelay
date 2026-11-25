@@ -331,6 +331,12 @@ static const alfp_platform_t k_plat = { NULL, p_now, p_rand, p_log };
 static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
 {
     (void)ctx;
+    if (r->result == ALFP_TX_REFUSED)
+    {
+        static const char* const k_ack[] = { "OK", "CRC_FAIL", "BUSY", "STORAGE (bridge SD)", "TOO_BIG" };
+        printf("tx %s: bridge refused it with status %u = %s\n", r->path, r->ack_status,
+               r->ack_status < 5u ? k_ack[r->ack_status] : "?");
+    }
     printf("tx %s: %s via %s, %u frags, %u rounds, %u resent, %.1f s\n", r->path, alfp_tx_result_str(r->result),
            r->radio, r->frag_count, r->rounds, r->data_resent, (r->finished_ms - r->started_ms) / 1000.0);
     if (r->result == ALFP_TX_DONE && strncmp(r->path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u) == 0)
@@ -718,6 +724,11 @@ static void print_stats(void)
                (unsigned long)g_uplink.queue_full);
     }
     printf("\n");
+    {
+        char sdst[160];
+        storage_fatfs_status(sdst, sizeof(sdst));
+        printf("  %s\n", sdst);
+    }
     printf("  slowest SD call (ms):");
     for (int i = 0; i < SD_OPS; i++)
     {
@@ -1004,11 +1015,11 @@ static void sensors_task(void* arg)
 
 static void print_help(void)
 {
-    printf(
-        "keys: c capture now | e sensor readings | s stats | d toggle 30%% loss | t toggle WiFi topology "
-        "filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 "
-        "captures fast | z T8: stall the console 5 s | k measure the 1 ms tick (1 s) | B reboot to BOOTSEL (reflash) "
-        "| h help\n");
+    printf("keys: c capture now | e sensor readings | s stats | d toggle 30%% loss | t toggle WiFi topology "
+           "filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 "
+           "captures fast | z T8: stall the console 5 s | k measure the 1 ms tick (1 s) | w which ESP-01 (WST) | B "
+           "reboot to BOOTSEL (reflash) "
+           "| h help\n");
 }
 
 /* T6 helper (brief Section 8): fires 5 capture requests back to back from the console task, so
@@ -1059,6 +1070,29 @@ static void measure_tick(void)
            (unsigned long)k_ms, (unsigned long)hw_ms);
 }
 
+/* 'w': which ESP-01 is in this board's socket, and whether it matches this image (radios_init()
+ * reads its MAC once at boot; read-only afterwards, so the console may read it). */
+static void print_wst(void)
+{
+    uint8_t mac[6] = { 0 };
+    int owner = radios_wst_owner(mac);
+    if (owner < 0)
+    {
+        printf("wst: no ESP-01 answered at boot | firmware node %u\n", (unsigned)NODE_ID);
+    }
+    else if (owner == 0)
+    {
+        printf("wst: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X is not in wifi_mesh_config.h | firmware node %u\n",
+               mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (unsigned)NODE_ID);
+    }
+    else
+    {
+        printf("wst: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X = WST-%d | firmware node %u | %s\n", mac[0], mac[1],
+               mac[2], mac[3], mac[4], mac[5], owner, (unsigned)NODE_ID,
+               owner == (int)NODE_ID ? "MATCH" : "MISMATCH: flash csc09_smp_node_<WST number>.uf2");
+    }
+}
+
 /* One log line to the host. Waits (up to 500 ms, like the FreeRTOS build's USB stdio) for room in
  * the kernel's USB transmit ring while a host has the port open; with no host, the line is
  * discarded at once, as USB stdio does, so nothing upstream ever backs up. */
@@ -1090,8 +1124,9 @@ static void usb_owner_task(void* arg)
     (void)arg;
     log_set_drainer(rtos_self_id());
     /* Hold the start-up lines (they wait in the log ring) until a host opens the port, for up to
-     * 3 s -- the FreeRTOS build sleeps 1.5 s before its first line for the same reason. */
-    for (int i = 0; i < 300 && tm_usb_state() < USB_STATE_OPEN; i++)
+     * 10 s (was 3 s: macOS can take longer than that to bring the port up after a plug-in, and the
+     * boot log, with the WST line, was lost). The ring holds 64 lines, enough for the boot log. */
+    for (int i = 0; i < 1000 && tm_usb_state() < USB_STATE_OPEN; i++)
     {
         rtos_delay_ms(10);
     }
@@ -1139,6 +1174,9 @@ static void usb_owner_task(void* arg)
                     break;
                 case 'k':
                     measure_tick();
+                    break;
+                case 'w':
+                    print_wst();
                     break;
                 case 'z':
                     /* T8: stop draining for 5 s, as if the terminal had stopped reading. comms and
