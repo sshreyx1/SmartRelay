@@ -79,6 +79,11 @@
 #ifndef APP_RXF_EVERY
 #define APP_RXF_EVERY 1
 #endif
+/* TRANSFER_VISIBILITY.md 3.5: every node prints, once a second and only when it relayed something,
+ * how many packets it relayed and whose they were. For whoever stands at that node; 0 = off. */
+#ifndef APP_RELAY_LOG
+#define APP_RELAY_LOG 1
+#endif
 
 #define TEST_PAYLOADS_DIR "test_payloads" /* Task A.3: tools/make_test_payloads.py's size ladder */
 #define TEST_PAYLOADS_MAX 16
@@ -136,6 +141,72 @@ static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
         storage_fatfs()->remove(storage_fatfs()->ctx, r->path);
     }
     alfp_outbox_on_tx_done(&g_outbox, r);
+}
+
+/* ---- sender's own serial (TRANSFER_VISIBILITY.md 3.5): only the person at this node sees these ---- */
+
+static void on_tx_start(alfp_ctx_t* ctx, const alfp_tx_t* tx)
+{
+    (void)ctx;
+    capture_meta_t m;
+    if (capture_meta_unpack(tx->meta, tx->meta_len, &m) != 0)
+    {
+        printf("tx start: %s %lu B via %s, %u frags x %u B, sid %u\n", tx->path, (unsigned long)tx->file_size,
+               tx->radio->name, tx->frag_count, tx->frag_size, tx->sid);
+        return;
+    }
+    uint8_t rec = capture_meta_record_len(tx->meta, tx->meta_len);
+    size_t ml = strlen(APP_TELEMETRY_MARKER);
+    bool tel = tx->meta_len == rec + ml && memcmp(tx->meta + rec, APP_TELEMETRY_MARKER, ml) == 0;
+    char id[CAPTURE_ID_STR_MAX];
+    capture_id_format(id, sizeof(id), m.node_id, m.capture_id);
+    char waited[32] = "";
+    if (m.queued_ms != CM_MISSING_U32)
+    {
+        snprintf(waited, sizeof(waited), ", waited %.1f s", m.queued_ms / 1000.0);
+    }
+    printf("tx start: capture %s %s %lu B via %s, %u frags x %u B, sid %u%s\n", id, tel ? "telemetry" : "image",
+           (unsigned long)tx->file_size, tx->radio->name, tx->frag_count, tx->frag_size, tx->sid, waited);
+}
+
+static void on_tx_nack(alfp_ctx_t* ctx, uint16_t sid, uint8_t round, uint16_t missing)
+{
+    (void)ctx;
+    if (missing != 0u)
+    {
+        printf("tx: bridge missing %u fragment%s (round %u, sid %u), resending\n", missing, missing == 1u ? "" : "s",
+               round, sid);
+    }
+}
+
+/* Once a second: "relay wifi: 26 pkts in last 1 s (from node 5: 26)", per radio, only if any. */
+static void relay_log(void)
+{
+    static uint16_t last[2][6];
+    static bool primed;
+    for (int i = 0; i < 2; i++)
+    {
+        char from[96] = "";
+        size_t o = 0;
+        unsigned total = 0;
+        for (uint8_t src = 1; src <= 5; src++)
+        {
+            uint16_t now = radios_relayed_from(g_radios[i], src);
+            unsigned d = (uint16_t)(now - last[i][src]); /* wraps cleanly at 65536 */
+            last[i][src] = now;
+            if (primed && d != 0u && o < sizeof(from))
+            {
+                int n = snprintf(from + o, sizeof(from) - o, "%snode %u: %u", total ? ", " : "", src, d);
+                o += n > 0 ? (size_t)n : 0u;
+                total += d;
+            }
+        }
+        if (total != 0u)
+        {
+            printf("relay %s: %u pkts in last 1 s (from %s)\n", g_radios[i]->name, total, from);
+        }
+    }
+    primed = true;
 }
 
 static void uplink_out(const char* s, void* user)
@@ -636,6 +707,11 @@ static void comms_task(void* arg)
         .on_tx_done = on_tx_done,
         .on_rx_done = on_rx_done,
     };
+    if (NODE_ID != BRIDGE_ID)
+    {
+        cfg.on_tx_start = on_tx_start;
+        cfg.on_tx_nack = on_tx_nack;
+    }
     if (APP_TRANSFER_EVENTS && NODE_ID == BRIDGE_ID)
     {
         cfg.on_rx_start = ev_rx_start;
@@ -655,6 +731,7 @@ static void comms_task(void* arg)
 
     g_comms_ready = true;
     bool dropping = false, topo = true, hold = false;
+    uint32_t next_relay_log = p_now(NULL) + 1000u;
     for (;;)
     {
         uint32_t loop_start = p_now(NULL);
@@ -674,6 +751,11 @@ static void comms_task(void* arg)
         {
             (void)uplink_queue_service(&g_uplink, UPLINK_LINES_PER_PASS, uplink_out, NULL);
             fflush(stdout);
+        }
+        if (APP_RELAY_LOG && (int32_t)(p_now(NULL) - next_relay_log) >= 0)
+        {
+            next_relay_log += 1000u;
+            relay_log();
         }
         uint32_t loop_ms = p_now(NULL) - loop_start;
         if (loop_ms > g_longest_comms_loop_ms)
