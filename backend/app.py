@@ -49,6 +49,7 @@ from pydantic import BaseModel
 
 from live_bridge import CompletedTransfer, LiveBridge, autodetect_port
 from storage import Store
+from transfers import TransferTracker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
 log = logging.getLogger("smartrelay.api")
@@ -142,6 +143,8 @@ def on_transfer(xfer: CompletedTransfer) -> None:
               "[DEMO] " if xfer.is_demo else "", xfer.src, xfer.session_id, xfer.size, xfer.radio,
               "" if has_image else " (telemetry only)")
     hub.broadcast_soon("capture", row)
+    # the transfer that carried it: upload finished, laptop CRC ok, linked to this capture row
+    tracker.on_file_saved(xfer.hdr, xfer.is_demo, row_id)
 
 
 def on_line(line: str) -> None:
@@ -149,12 +152,38 @@ def on_line(line: str) -> None:
     hub.broadcast_soon("log", {"line": line})
 
 
-bridge = LiveBridge(on_transfer=on_transfer, on_line=on_line)
+def on_bridge_status(connected: bool, port: Optional[str]) -> None:
+    log.info("bridge serial %s (%s)", "connected" if connected else "LOST", port)
+    hub.broadcast_soon("bridge_status", bridge_status())
+
+
+def bridge_status() -> Dict[str, Any]:
+    return {"connected": bridge.connected, "port": bridge.port or BRIDGE_PORT, "since": bridge.since}
+
+
+# TRANSFER_VISIBILITY.md 4: the bridge's @EVT lines -> transfers / fragments tables + live WS events
+tracker = TransferTracker(store, emit=hub.broadcast_soon, log_line=on_line)
+
+bridge = LiveBridge(on_transfer=on_transfer, on_line=on_line, on_event=tracker.on_event,
+                    on_upload=tracker.on_upload, on_status=on_bridge_status)
+
+SWEEP_EVERY_S = 15.0
+
+
+async def sweep_transfers() -> None:
+    """Marks transfers that went quiet for 3 minutes as failed / timeout (and tells the dashboards)."""
+    while True:
+        await asyncio.sleep(SWEEP_EVERY_S)
+        try:
+            await asyncio.to_thread(tracker.sweep)
+        except Exception:
+            log.exception("transfer sweep failed")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     hub.bind_loop(asyncio.get_running_loop())
+    sweeper = asyncio.create_task(sweep_transfers())
     if BRIDGE_PORT:
         log.info("bridge: connecting to %s automatically", BRIDGE_PORT)
         bridge.start_serial_background(BRIDGE_PORT)
@@ -166,6 +195,7 @@ async def lifespan(app: FastAPI):
             "use simulator/demo_feed.py manually if you just want to look at the UI."
         )
     yield
+    sweeper.cancel()
     bridge.stop()
     store.close()
 
@@ -184,6 +214,7 @@ async def api_health() -> Dict[str, Any]:
         "ok": True,
         "bridge_port": BRIDGE_PORT,
         "bridge_connected": bridge.connected,
+        "bridge": bridge_status(),
         "dashboards_connected": len(hub.clients),
         "stats": store.stats(),
     }
@@ -223,7 +254,31 @@ async def api_capture(capture_row_id: int) -> Dict[str, Any]:
     row = store.get_capture(capture_row_id)
     if not row:
         raise HTTPException(status_code=404, detail="capture not found")
-    return with_image_url(row)
+    row = with_image_url(row)
+    # both transfers of this capture (telemetry + image), each with its own timing and checks
+    row["transfers"] = [tracker.transfer_view(t["id"]) for t in store.transfers_for_capture(capture_row_id)]
+    return row
+
+
+@app.get("/api/transfers")
+async def api_transfers(limit: int = Query(20, le=500), node_id: Optional[int] = None, radio: Optional[str] = None,
+                        status: Optional[str] = None, mode: str = Query("both", pattern="^(real|sim|both)$")
+                        ) -> Dict[str, Any]:
+    rows = store.list_transfers(limit=limit, node_id=node_id, radio=radio, status=status, mode=mode)
+    return {"transfers": [tracker.transfer_view(r["id"]) for r in rows]}
+
+
+@app.get("/api/transfers/in_flight")
+async def api_transfers_in_flight() -> Dict[str, Any]:
+    return {"transfers": tracker.in_flight()}
+
+
+@app.get("/api/transfers/{transfer_id}")
+async def api_transfer(transfer_id: int) -> Dict[str, Any]:
+    view = tracker.transfer_view(transfer_id, with_fragments=True)
+    if view is None:
+        raise HTTPException(status_code=404, detail="transfer not found")
+    return view
 
 
 @app.get("/api/species")
@@ -274,6 +329,8 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 "captures": [with_image_url(r) for r in store.recent_captures(limit=30)],
                 "log": store.recent_log(limit=50),
                 "stats": store.stats(),
+                "in_flight": tracker.in_flight(),
+                "bridge": bridge_status(),
             },
             "ts": time.time(),
         }))

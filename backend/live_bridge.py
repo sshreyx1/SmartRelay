@@ -10,6 +10,14 @@ documented in common/uplink.h:
     ...
     @ALFP END crc=1a2b3c4d
 
+Transfer events (TRANSFER_VISIBILITY.md 3.3) are one line each, interleaved with everything else:
+
+    @EVT RXS src=5 sid=42 radio=wifi t=1234567
+    @EVT RXF src=5 sid=42 seq=17 r=0 h=2 v=3 d=0 t=1234890      (RXM, NACK, RXOK, RXFAIL likewise)
+
+They go to on_event(kind, fields, is_demo) and are NOT passed to on_line (they would flood the log).
+BridgeClock turns their bridge-ms "t" into laptop time.
+
 This module adds nothing to the protocol decode itself -- it just wraps
 tools/bridge_receiver.py's Receiver with a callback so the backend can store
 each verified transfer and push it to connected dashboards the moment it
@@ -53,6 +61,57 @@ class CompletedTransfer:
     data: bytes
     received_at: float = field(default_factory=time.time)
     is_demo: bool = False
+    hdr: dict = field(default_factory=dict)  # the raw @ALFP FILE fields (first= done= nacks= dups= ...)
+
+
+def parse_event(line: str):
+    """'@EVT RXF src=5 sid=42 seq=17 ...' -> ('RXF', {'src': 5, 'sid': 42, 'seq': 17, ...}).
+    Values that are plain decimal numbers become ints; everything else (radio, why, meta hex, crc)
+    stays a string. Returns None for a line that is not a well-formed event."""
+    parts = line.split()
+    if len(parts) < 2 or parts[0] != "@EVT":
+        return None
+    fields = {}
+    for part in parts[2:]:
+        if "=" not in part:
+            continue
+        k, v = part.split("=", 1)
+        fields[k] = int(v) if v.isdigit() and k not in ("crc", "meta") else v
+    return parts[1], fields
+
+
+class BridgeClock:
+    """Maps the bridge's ms-since-boot onto laptop time (TRANSFER_VISIBILITY.md 4.2).
+
+    Every event line gives one sample: offset = laptop_time - t/1000. USB delay only ever makes that
+    larger, so the smallest offset seen since the bridge's last boot is the best estimate. If t goes
+    backwards the bridge rebooted (its clock restarted): the estimate starts over."""
+
+    REBOOT_SLACK_MS = 2000  # a line a little older than the newest one is reordering, not a reboot
+
+    def __init__(self) -> None:
+        self.offset: Optional[float] = None
+        self.last_t: Optional[int] = None
+        self.reboots = 0
+
+    def update(self, t_ms: int, laptop_now: float) -> bool:
+        """Feed one sample. Returns True if this sample showed a bridge reboot."""
+        rebooted = self.last_t is not None and t_ms + self.REBOOT_SLACK_MS < self.last_t
+        if rebooted:
+            self.offset = None
+            self.last_t = None
+            self.reboots += 1
+        if self.last_t is None or t_ms > self.last_t:
+            self.last_t = t_ms
+        sample = laptop_now - t_ms / 1000.0
+        if self.offset is None or sample < self.offset:
+            self.offset = sample
+        return rebooted
+
+    def to_laptop(self, t_ms: Optional[int]) -> Optional[float]:
+        if t_ms is None or self.offset is None:
+            return None
+        return t_ms / 1000.0 + self.offset
 
 
 class LiveBridge:
@@ -61,27 +120,46 @@ class LiveBridge:
     does, plus a callback instead of (only) writing to disk."""
 
     def __init__(self, on_transfer: Callable[[CompletedTransfer], None],
-                 on_line: Optional[Callable[[str], None]] = None):
+                 on_line: Optional[Callable[[str], None]] = None,
+                 on_event: Optional[Callable[[str, dict, bool], None]] = None,
+                 on_upload: Optional[Callable[[str, dict, bool], None]] = None,
+                 on_status: Optional[Callable[[bool, Optional[str]], None]] = None):
+        """on_event(kind, fields, is_demo): one @EVT line (fields["t"] is bridge ms).
+        on_upload(stage, hdr, is_demo): "start" at @ALFP FILE, "rejected" when the laptop's CRC
+        re-check fails, "aborted" on @ALFP ABORT. (A file that passes goes to on_transfer.)
+        on_status(connected, port): the serial link to the bridge came up or went down."""
         self._on_transfer = on_transfer
         self._on_line = on_line
+        self._on_event = on_event
+        self._on_upload = on_upload
+        self._on_status = on_status
         self._cur: Optional[dict] = None
         self._serial_thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
         self.port: Optional[str] = None
         self.connected = False
+        self.since: Optional[float] = None  # when `connected` last changed
 
     # -- feeding ----------------------------------------------------------
 
     def feed_line(self, line: str, is_demo: bool = False) -> None:
         line = line.rstrip("\r\n")
-        if line.startswith("@ALFP FILE"):
+        if line.startswith("@EVT "):
+            ev = parse_event(line)
+            if ev is not None and self._on_event:
+                self._on_event(ev[0], ev[1], is_demo)
+        elif line.startswith("@ALFP FILE"):
             self._cur = {"hdr": parse_header(line), "data": bytearray(), "is_demo": is_demo}
+            if self._on_upload:
+                self._on_upload("start", self._cur["hdr"], is_demo)
         elif line.startswith("@D ") and self._cur is not None:
             self._cur["data"] += base64.b64decode(line[3:])
         elif line.startswith("@ALFP END") and self._cur is not None:
             self._finish()
         elif line.startswith("@ALFP ABORT"):
             log.warning("bridge aborted a transfer: %s", line)
+            if self._cur is not None and self._on_upload:
+                self._on_upload("aborted", self._cur["hdr"], self._cur.get("is_demo", False))
             self._cur = None
         else:
             if self._on_line:
@@ -101,6 +179,8 @@ class LiveBridge:
         if got != want or not size_ok:
             log.warning("REJECTED transfer src=%s sid=%s: crc %08x != %08x or size mismatch",
                         hdr.get("src"), hdr.get("sid"), got, want)
+            if self._on_upload:
+                self._on_upload("rejected", hdr, is_demo)
             return
         meta = decode_meta(bytes.fromhex(hdr.get("meta", "")))
         xfer = CompletedTransfer(
@@ -113,6 +193,7 @@ class LiveBridge:
             meta=meta if isinstance(meta, dict) else {},
             data=data,
             is_demo=is_demo,
+            hdr=hdr,
         )
         self._on_transfer(xfer)
 
@@ -132,6 +213,9 @@ class LiveBridge:
             try:
                 with serial.Serial(port, baud, timeout=1) as s:
                     self.connected = True
+                    self.since = time.time()
+                    if self._on_status:
+                        self._on_status(True, port)
                     backoff = 1.0
                     log.info("connected to bridge on %s", port)
                     while not self._stop.is_set():
@@ -139,7 +223,12 @@ class LiveBridge:
                         if raw:
                             self.feed_line(raw.decode("ascii", errors="replace"))
             except Exception as exc:
+                if self.connected:
+                    self.since = time.time()
+                    if self._on_status:
+                        self._on_status(False, port)
                 self.connected = False
+                self._cur = None  # a file cut off by the disconnect can never finish
                 log.warning("serial connection to %s lost/unavailable (%s), retrying in %.0fs",
                             port, exc, backoff)
                 time.sleep(backoff)
