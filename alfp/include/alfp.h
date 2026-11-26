@@ -129,7 +129,7 @@ typedef enum
     TX_WAITING,
 } alfp_tx_state_t;
 
-typedef struct
+typedef struct alfp_tx_s
 {
     alfp_tx_state_t state;
     const mesh_radio_t* radio;
@@ -235,6 +235,28 @@ typedef struct
     /* Experiments only: behave like a naive protocol that resends the WHOLE file after any loss.
      * Used to measure what selective retransmission saves. Never set in firmware. */
     bool baseline_resend_all;
+
+    /* ---- Optional progress callbacks (NULL = off). They only report; they must not block and must
+     * not call back into ALFP. Strings passed in are only valid during the call. ---------------- */
+    /* bridge: first packet of a new receive session (manifest or data, whichever came first) */
+    void (*on_rx_start)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* radio);
+    /* bridge: manifest adopted -> layout known (may come after some fragments) */
+    void (*on_rx_manifest)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
+                           uint32_t file_size, uint32_t file_crc32, const uint8_t* meta, uint8_t meta_len);
+    /* bridge: a DATA fragment arrived. round = NACKs this session had sent before it arrived
+     * (0 = first try). dup = the bridge already had it. */
+    void (*on_rx_frag)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool dup);
+    /* bridge: a NACK was actually handed to the radio. round = NACKs sent so far, this one included;
+     * missing = fragments the bridge still lacks (0 if the layout is not known yet). */
+    void (*on_rx_nack)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing);
+    /* bridge: a session ended without a file ("expired", "evicted", "storage"), was refused before
+     * one opened ("busy", "storage", "too_big"), or its file CRC-32 failed ("crc": the data is
+     * thrown away and the sender resends everything in the SAME session, so this one is not final) */
+    void (*on_rx_fail)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* why);
+    /* sender: hashing finished, the first packet is about to go out */
+    void (*on_tx_start)(alfp_ctx_t* ctx, const alfp_tx_t* tx);
+    /* sender: a NACK asked for `missing` fragments after `round` */
+    void (*on_tx_nack)(alfp_ctx_t* ctx, uint16_t sid, uint8_t round, uint16_t missing);
 } alfp_cfg_t;
 
 struct alfp_ctx_s

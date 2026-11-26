@@ -625,6 +625,190 @@ static void test_metadata_delivered(void)
     net_close(&N);
 }
 
+/* ---- progress callbacks (TRANSFER_VISIBILITY.md 3.2) ------------------------------------- */
+
+typedef struct
+{
+    char kind; /* S start, M manifest, F frag, N nack, X fail, T tx start, K tx nack */
+    uint16_t sid, seq, n;
+    uint8_t round;
+    bool dup;
+} ev_t;
+
+static ev_t g_ev[512];
+static unsigned g_nev;
+
+static void ev_push(char kind, uint16_t sid, uint16_t seq, uint16_t n, uint8_t round, bool dup)
+{
+    if (g_nev < sizeof(g_ev) / sizeof(g_ev[0]))
+    {
+        g_ev[g_nev++] = (ev_t){kind, sid, seq, n, round, dup};
+    }
+}
+
+static void cb_rx_start(alfp_ctx_t* c, uint8_t src, uint16_t sid, const char* radio)
+{
+    (void)c;
+    CHECK(src == 2 && strcmp(radio, "wifi") == 0);
+    ev_push('S', sid, 0, 0, 0, false);
+}
+
+static void cb_rx_manifest(alfp_ctx_t* c, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
+                           uint32_t file_size, uint32_t file_crc32, const uint8_t* meta, uint8_t meta_len)
+{
+    (void)c;
+    (void)src;
+    (void)frag_size;
+    (void)file_crc32;
+    (void)meta;
+    CHECK(file_size == 6000 && meta_len == 0);
+    ev_push('M', sid, 0, frag_count, 0, false);
+}
+
+static void cb_rx_frag(alfp_ctx_t* c, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool dup)
+{
+    (void)c;
+    (void)src;
+    ev_push('F', sid, seq, 0, round, dup);
+}
+
+static void cb_rx_nack(alfp_ctx_t* c, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing)
+{
+    (void)c;
+    (void)src;
+    ev_push('N', sid, 0, missing, round, false);
+}
+
+static void cb_rx_fail(alfp_ctx_t* c, uint8_t src, uint16_t sid, const char* why)
+{
+    (void)c;
+    (void)src;
+    (void)why;
+    ev_push('X', sid, 0, 0, 0, false);
+}
+
+static void cb_tx_start(alfp_ctx_t* c, const alfp_tx_t* tx)
+{
+    (void)c;
+    ev_push('T', tx->sid, 0, tx->frag_count, 0, false);
+}
+
+static void cb_tx_nack(alfp_ctx_t* c, uint16_t sid, uint8_t round, uint16_t missing)
+{
+    (void)c;
+    ev_push('K', sid, 0, missing, round, false);
+}
+
+static bool bridge_heard_10_frags(net_t* n)
+{
+    (void)n;
+    unsigned f = 0;
+    for (unsigned i = 0; i < g_nev; i++)
+    {
+        f += g_ev[i].kind == 'F';
+    }
+    return f >= 10;
+}
+
+/* The bridge goes deaf for exactly two DATA packets in the middle of the transfer. The callbacks
+ * must report: start -> manifest -> first-try fragments (round 0) -> NACK -> the two resent
+ * fragments (round 1; tail_dup sends each twice, so the second copy is a duplicate) -> done. */
+static void test_progress_callbacks(void)
+{
+    setup(0, 2, 2, false, 160);
+    g_nev = 0;
+    alfp_cfg_t* b = &N.node[BRIDGE].alfp.cfg;
+    b->on_rx_start = cb_rx_start;
+    b->on_rx_manifest = cb_rx_manifest;
+    b->on_rx_frag = cb_rx_frag;
+    b->on_rx_nack = cb_rx_nack;
+    b->on_rx_fail = cb_rx_fail;
+    N.node[2].alfp.cfg.on_tx_start = cb_tx_start;
+    N.node[2].alfp.cfg.on_tx_nack = cb_tx_nack;
+
+    CHECK(start_send(2, &sim_wifi, "img/ev.jpg", 6000, 90));
+    CHECK(net_run_until(&N, bridge_heard_10_frags, 60000));
+    sim_set_drop_rate(BRIDGE, SIM_WIFI, 1.0f);
+    uint16_t sent0 = N.node[2].alfp.tx.rep.data_sent;
+    for (int i = 0; i < 5000 && N.node[2].alfp.tx.rep.data_sent < sent0 + 2u; i++)
+    {
+        net_run_ms(&N, 1);
+    }
+    /* until the second one has really left the sender's radio (a third may be lost too) */
+    for (int i = 0; i < 5000; i++)
+    {
+        sim_set_current(2);
+        if (N.node[2].alfp.tx.rep.data_sent >= sent0 + 3u || !sim_wifi.tx_busy())
+        {
+            break;
+        }
+        net_run_ms(&N, 1);
+    }
+    net_run_ms(&N, 2);
+    sim_set_drop_rate(BRIDGE, SIM_WIFI, 0.0f);
+    CHECK(net_run_until(&N, sender2_done, 60000));
+    CHECK(N.node[2].tx_reports[0].result == ALFP_TX_DONE);
+    CHECK(received_equals(2, "img/ev.jpg", 0));
+
+    /* order and content */
+    CHECK(g_nev > 0 && g_ev[0].kind == 'T');
+    int first_s = -1, first_m = -1, first_n = -1, n_fail = 0;
+    unsigned frags_r0 = 0, frags_r1 = 0, dups_r1 = 0, tx_nacks = 0, n_nacks = 0;
+    for (unsigned i = 0; i < g_nev; i++)
+    {
+        const ev_t* e = &g_ev[i];
+        if (e->kind == 'S' && first_s < 0)
+        {
+            first_s = (int)i;
+        }
+        if (e->kind == 'M' && first_m < 0)
+        {
+            first_m = (int)i;
+        }
+        if (e->kind == 'N')
+        {
+            n_nacks++;
+            if (first_n < 0)
+            {
+                first_n = (int)i;
+                CHECK(e->round == 1 && e->n >= 2 && e->n <= 4);
+                if (!(e->n >= 2 && e->n <= 4))
+                {
+                    printf("    first NACK asked for %u\n", e->n);
+                }
+            }
+        }
+        if (e->kind == 'F')
+        {
+            CHECK(first_s >= 0); /* never a fragment before the session start */
+            if (e->round == 0)
+            {
+                CHECK(first_n < 0); /* round 0 only before the first NACK */
+                CHECK(!e->dup);
+                frags_r0++;
+            }
+            else
+            {
+                CHECK(first_n >= 0 && e->round >= 1);
+                frags_r1++;
+                dups_r1 += e->dup;
+            }
+        }
+        tx_nacks += e->kind == 'K';
+        n_fail += e->kind == 'X';
+    }
+    CHECK(first_s >= 0 && first_m > first_s);
+    CHECK(first_n > first_m);
+    CHECK(n_nacks >= 1 && tx_nacks >= 1);
+    CHECK(frags_r1 >= 2);
+    CHECK(dups_r1 >= 1);
+    CHECK(n_fail == 0);
+    CHECK(frags_r0 + frags_r1 - dups_r1 == N.node[2].tx_reports[0].frag_count);
+    printf("    events: %u, first-try frags %u, resent %u (%u dup), NACKs %u\n", g_nev, frags_r0, frags_r1, dups_r1,
+           n_nacks);
+    net_close(&N);
+}
+
 int main(void)
 {
     RUN(test_lora_clean_link_one_round);
@@ -646,5 +830,6 @@ int main(void)
     RUN(test_outbox_survives_reboot);
     RUN(test_metadata_delivered);
     RUN(test_bridge_reboot_parts_and_names);
+    RUN(test_progress_callbacks);
     return SUMMARY();
 }

@@ -47,6 +47,15 @@ static const alfp_storage_t* st(alfp_ctx_t* c)
     return c->cfg.storage;
 }
 
+/* Optional progress callbacks (alfp_cfg_t.on_rx_fail ...): report only, never change state. */
+static void ev_rx_fail(alfp_ctx_t* c, uint8_t src, uint16_t sid, const char* why)
+{
+    if (c->cfg.on_rx_fail)
+    {
+        c->cfg.on_rx_fail(c, src, sid, why);
+    }
+}
+
 static void bset(uint8_t* bm, uint16_t i)
 {
     bm[i >> 3] = (uint8_t)(bm[i >> 3] | (1u << (i & 7u)));
@@ -390,6 +399,10 @@ static void tx_step(alfp_ctx_t* c)
                 t->round = 1;
                 t->state = TX_SENDING;
                 t->next_tx_ms = tnow;
+                if (c->cfg.on_tx_start)
+                {
+                    c->cfg.on_tx_start(c, t);
+                }
             }
             return;
         }
@@ -557,6 +570,10 @@ static void tx_on_nack(alfp_ctx_t* c, const alfp_pkt_t* p)
     /* Progress check: a round that recovered nothing counts towards giving up. */
     uint16_t missing = 0;
     alfp_nack_for_each(n, t->frag_count, count_seq, &missing);
+    if (c->cfg.on_tx_nack)
+    {
+        c->cfg.on_tx_nack(c, t->sid, t->round, missing);
+    }
     if (t->round > 1 && missing >= t->last_missing)
     {
         if (++t->stalled >= t->prof->max_stalled)
@@ -731,10 +748,12 @@ static alfp_rx_t* rx_open(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src,
             *refuse = ALFP_ACK_BUSY;
             c->stats.rx_refused_busy++;
             log_refusal(c, src, sid, ALFP_ACK_BUSY, "all receive sessions busy");
+            ev_rx_fail(c, src, sid, "busy");
             return NULL;
         }
         rx_free(c, slot, true);
         c->stats.rx_expired++;
+        ev_rx_fail(c, slot->src, slot->sid, "evicted");
     }
 
     memset(slot, 0, sizeof(*slot));
@@ -752,6 +771,7 @@ static alfp_rx_t* rx_open(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src,
         log_refusal(c, src, sid, ALFP_ACK_STORAGE, why);
         slot->tmp_path[0] = 0;
         *refuse = ALFP_ACK_STORAGE;
+        ev_rx_fail(c, src, sid, "storage");
         return NULL;
     }
     slot->state = RX_ACTIVE;
@@ -760,6 +780,10 @@ static alfp_rx_t* rx_open(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src,
     slot->rep.sid = sid;
     slot->rep.radio = radio->name;
     slot->rep.first_ms = slot->last_ms;
+    if (c->cfg.on_rx_start)
+    {
+        c->cfg.on_rx_start(c, src, sid, radio->name);
+    }
     return slot;
 }
 
@@ -781,7 +805,7 @@ static void rx_maybe_complete(alfp_ctx_t* c, alfp_rx_t* r)
     }
 }
 
-static void rx_adopt_manifest(alfp_rx_t* r, const alfp_manifest_t* m)
+static void rx_adopt_manifest(alfp_ctx_t* c, alfp_rx_t* r, const alfp_manifest_t* m)
 {
     if (r->n_have && (m->frag_size != r->frag_size || m->frag_count != r->frag_count))
     {
@@ -793,6 +817,11 @@ static void rx_adopt_manifest(alfp_rx_t* r, const alfp_manifest_t* m)
     r->frag_size = m->frag_size;
     r->frag_count = m->frag_count;
     r->have_manifest = true;
+    if (c->cfg.on_rx_manifest)
+    {
+        c->cfg.on_rx_manifest(c, r->src, r->sid, r->frag_count, r->frag_size, r->m.file_size, r->m.file_crc32,
+                              r->meta, r->m.meta_len);
+    }
 }
 
 static void rx_on_manifest(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, const alfp_pkt_t* p)
@@ -814,6 +843,7 @@ static void rx_on_manifest(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src
         if (m->frag_count > ALFP_MAX_FRAGS)
         {
             log_refusal(c, src, p->sid, ALFP_ACK_TOO_BIG, "too many fragments");
+            ev_rx_fail(c, src, p->sid, "too_big");
             reply_ack(c, radio, src, p->sid, ALFP_ACK_TOO_BIG);
             return;
         }
@@ -828,7 +858,7 @@ static void rx_on_manifest(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src
     r->last_ms = now(c);
     if (!r->have_manifest)
     {
-        rx_adopt_manifest(r, m);
+        rx_adopt_manifest(c, r, m);
         rx_maybe_complete(c, r);
     }
 }
@@ -898,6 +928,10 @@ static void rx_on_data(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, co
     {
         c->stats.data_dup++;
         r->rep.duplicates++;
+        if (c->cfg.on_rx_frag)
+        {
+            c->cfg.on_rx_frag(c, src, p->sid, dd->seq, (uint8_t)r->rep.nacks_sent, true);
+        }
         return;
     }
     int w = st(c)->write_at(st(c)->ctx, r->fh, (uint32_t)dd->seq * r->frag_size, dd->payload, dd->len);
@@ -908,6 +942,10 @@ static void rx_on_data(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, co
     }
     bset(r->have, dd->seq);
     r->n_have++;
+    if (c->cfg.on_rx_frag)
+    {
+        c->cfg.on_rx_frag(c, src, p->sid, dd->seq, (uint8_t)r->rep.nacks_sent, false);
+    }
     rx_maybe_complete(c, r);
 }
 
@@ -925,6 +963,10 @@ static void rx_try_send_nack(alfp_ctx_t* c, alfp_rx_t* r)
     {
         r->pending_nack = false;
         r->rep.nacks_sent++;
+        if (c->cfg.on_rx_nack)
+        {
+            c->cfg.on_rx_nack(c, r->src, r->sid, (uint8_t)r->rep.nacks_sent, (uint16_t)(r->frag_count - r->n_have));
+        }
     }
     else
     {
@@ -1041,9 +1083,10 @@ static void rx_finish_ok(alfp_ctx_t* c, alfp_rx_t* r)
     uint8_t status = ok ? ALFP_ACK_OK : ALFP_ACK_STORAGE;
     if (!ok)
     {
-        char why[ALFP_PATH_MAX + 24];
+        char why[ALFP_PATH_MAX + 32]; /* "cannot rename to " + final_path (ALFP_PATH_MAX + 8) */
         snprintf(why, sizeof(why), "cannot rename to %s", final_path);
         log_refusal(c, r->src, r->sid, status, why);
+        ev_rx_fail(c, r->src, r->sid, "storage");
     }
     done_add(c, r->src, r->sid, status);
     r->tmp_path[0] = 0;
@@ -1108,6 +1151,7 @@ static void rx_step(alfp_ctx_t* c)
                 {
                     c->stats.rx_expired++;
                     rx_free(c, r, true);
+                    ev_rx_fail(c, r->src, r->sid, "expired");
                 }
                 break;
 
@@ -1137,6 +1181,7 @@ static void rx_step(alfp_ctx_t* c)
                     {
                         c->stats.rx_crc_fail++;
                         logf_(c, "alfp: file CRC-32 mismatch, requesting full resend");
+                        ev_rx_fail(c, r->src, r->sid, "crc");
                         rx_reset_data(r);
                         r->state = RX_ACTIVE;
                         uint8_t pkt[ALFP_ACK_LEN];
