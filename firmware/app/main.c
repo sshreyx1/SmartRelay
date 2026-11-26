@@ -25,6 +25,7 @@
  *   rx/ n3_00042.part        bridge: partial transfers
  *   inbox/n3_00042.bin/.meta bridge: finished, verified files (+ metadata)
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -66,6 +67,18 @@
  * real image name: no image this firmware ever picks ends without an extension. Kept in sync by
  * hand with tools/bridge_receiver.py's TELEMETRY_MARKER and backend/app.py's own copy. */
 #define APP_TELEMETRY_MARKER "TELEMETRY"
+
+/* TRANSFER_VISIBILITY.md 3.3: the bridge prints one "@EVT ..." line per receive event (session
+ * start, manifest, every fragment, NACK, done, failure) so the dashboard on the bridge's laptop can
+ * show a transfer while it is still arriving. 0 = off. */
+#ifndef APP_TRANSFER_EVENTS
+#define APP_TRANSFER_EVENTS 1
+#endif
+/* Print every Nth first-try fragment as an RXF line (resends and duplicates are always printed).
+ * 1 = every fragment (~40 lines for a 9 KB image). Raise it if "longest comms loop" grows. */
+#ifndef APP_RXF_EVERY
+#define APP_RXF_EVERY 1
+#endif
 
 #define TEST_PAYLOADS_DIR "test_payloads" /* Task A.3: tools/make_test_payloads.py's size ladder */
 #define TEST_PAYLOADS_MAX 16
@@ -137,8 +150,83 @@ static uplink_queue_t g_uplink;
 #define UPLINK_LINES_PER_PASS 8u
 static uint32_t g_longest_comms_loop_ms;
 
+/* ---- transfer events (bridge -> laptop, TRANSFER_VISIBILITY.md 3.3) --------------------------- */
+
+/* Route of the packet alfp_handle_packet() is working on right now (set by comms_service()). */
+static uint8_t g_pkt_hops, g_pkt_prev;
+
+/* One whole line in one write, through the same stdout the uplink uses, so an event line can sit
+ * between two "@D" lines but can never end up inside one. */
+static void evt_line(const char* fmt, ...)
+{
+    char line[300];
+    va_list ap;
+    va_start(ap, fmt);
+    int n = vsnprintf(line, sizeof(line) - 1u, fmt, ap);
+    va_end(ap);
+    if (n < 0)
+    {
+        return;
+    }
+    size_t len = (size_t)n < sizeof(line) - 2u ? (size_t)n : sizeof(line) - 2u;
+    line[len++] = '\n';
+    line[len] = 0;
+    fputs(line, stdout);
+    fflush(stdout);
+}
+
+static void ev_rx_start(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* radio)
+{
+    (void)ctx;
+    evt_line("@EVT RXS src=%u sid=%u radio=%s t=%lu", src, sid, radio, (unsigned long)p_now(NULL));
+}
+
+static void ev_rx_manifest(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
+                           uint32_t file_size, uint32_t file_crc32, const uint8_t* meta, uint8_t meta_len)
+{
+    (void)ctx;
+    char hex[2 * ALFP_MAX_META + 1];
+    unsigned n = meta_len < ALFP_MAX_META ? meta_len : ALFP_MAX_META;
+    for (unsigned i = 0; i < n; i++)
+    {
+        snprintf(hex + 2 * i, 3, "%02x", meta[i]);
+    }
+    hex[2 * n] = 0;
+    evt_line("@EVT RXM src=%u sid=%u frags=%u fsz=%u size=%lu crc=%08lx meta=%s t=%lu", src, sid, frag_count,
+             frag_size, (unsigned long)file_size, (unsigned long)file_crc32, hex, (unsigned long)p_now(NULL));
+}
+
+static void ev_rx_frag(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool dup)
+{
+    (void)ctx;
+    if (APP_RXF_EVERY > 1 && round == 0 && !dup && seq % APP_RXF_EVERY != 0)
+    {
+        return;
+    }
+    evt_line("@EVT RXF src=%u sid=%u seq=%u r=%u h=%u v=%u d=%u t=%lu", src, sid, seq, round, g_pkt_hops, g_pkt_prev,
+             dup ? 1u : 0u, (unsigned long)p_now(NULL));
+}
+
+static void ev_rx_nack(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing)
+{
+    (void)ctx;
+    evt_line("@EVT NACK src=%u sid=%u r=%u miss=%u t=%lu", src, sid, round, missing, (unsigned long)p_now(NULL));
+}
+
+static void ev_rx_fail(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* why)
+{
+    (void)ctx;
+    evt_line("@EVT RXFAIL src=%u sid=%u why=%s t=%lu", src, sid, why, (unsigned long)p_now(NULL));
+}
+
 static void on_rx_done(alfp_ctx_t* ctx, const alfp_rx_report_t* r)
 {
+    if (APP_TRANSFER_EVENTS)
+    {
+        evt_line("@EVT RXOK src=%u sid=%u first=%lu done=%lu nacks=%u dups=%u frags=%u t=%lu", r->src, r->sid,
+                 (unsigned long)r->first_ms, (unsigned long)r->done_ms, r->nacks_sent, r->duplicates, r->frag_count,
+                 (unsigned long)p_now(NULL));
+    }
     printf("rx from node %u: %s, %lu bytes via %s, %u dup\n", r->src, r->path, (unsigned long)r->file_size, r->radio,
            r->duplicates);
     if (!uplink_queue_add(&g_uplink, r))
@@ -404,6 +492,39 @@ static void handle_capture(const capture_meta_t* in)
 
 /* ---- tasks -------------------------------------------------------------------------------- */
 
+/* alfp_service() with the route of each packet noted first (TRANSFER_VISIBILITY.md 3.3): same bound
+ * (16 packets per radio per pass) and the same copy-out, since ALFP reuses its packet buffer for
+ * replies. The receive callbacks read g_pkt_hops / g_pkt_prev for the packet being handled. */
+static void comms_service(void)
+{
+    static uint8_t in[ALFP_MAX_PKT];
+    for (int i = 0; i < 2; i++)
+    {
+        const mesh_radio_t* r = g_radios[i];
+        for (int k = 0; k < 16; k++)
+        {
+            uint8_t src;
+            int n = r->recv(&src, in, sizeof(in));
+            if (n == MESH_RECV_NONE)
+            {
+                break;
+            }
+            if (n < 0)
+            {
+                g_alfp.stats.pkts_bad_other++;
+                continue;
+            }
+            if (!radios_last_recv_info(r, &g_pkt_hops, &g_pkt_prev))
+            {
+                g_pkt_hops = 0;
+                g_pkt_prev = 0;
+            }
+            alfp_handle_packet(&g_alfp, r, src, in, (uint16_t)n);
+        }
+    }
+    alfp_step(&g_alfp);
+}
+
 static void print_stats(void)
 {
     const alfp_stats_t* s = &g_alfp.stats;
@@ -494,6 +615,14 @@ static void comms_task(void* arg)
         .on_tx_done = on_tx_done,
         .on_rx_done = on_rx_done,
     };
+    if (APP_TRANSFER_EVENTS && NODE_ID == BRIDGE_ID)
+    {
+        cfg.on_rx_start = ev_rx_start;
+        cfg.on_rx_manifest = ev_rx_manifest;
+        cfg.on_rx_frag = ev_rx_frag;
+        cfg.on_rx_nack = ev_rx_nack;
+        cfg.on_rx_fail = ev_rx_fail;
+    }
     alfp_init(&g_alfp, &cfg);
     uplink_queue_init(&g_uplink, st);
     alfp_outbox_init(&g_outbox, &g_alfp, g_radios, 2, BRIDGE_ID, BRIDGE_FRESH_MS, "outbox");
@@ -509,7 +638,7 @@ static void comms_task(void* arg)
         uint32_t loop_start = p_now(NULL);
         g_radios[0]->poll();
         g_radios[1]->poll();
-        alfp_service(&g_alfp, g_radios, 2);
+        comms_service();
         if (NODE_ID != BRIDGE_ID)
         {
             capture_meta_t req;

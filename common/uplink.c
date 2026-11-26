@@ -49,6 +49,10 @@ static void copy_report(uplink_job_t* j, const alfp_rx_report_t* r)
     j->file_size = r->file_size;
     j->frag_count = r->frag_count;
     j->file_crc32 = r->file_crc32;
+    j->first_ms = r->first_ms;
+    j->done_ms = r->done_ms;
+    j->nacks = r->nacks_sent;
+    j->dups = r->duplicates;
     j->meta_len = r->meta_len < ALFP_MAX_META ? r->meta_len : (uint8_t)ALFP_MAX_META;
     if (r->meta != NULL && j->meta_len != 0u)
     {
@@ -56,23 +60,26 @@ static void copy_report(uplink_job_t* j, const alfp_rx_report_t* r)
     }
 }
 
-/* "@ALFP FILE ... meta=" + hex + "\n", written as three pieces exactly like the original code. */
+/* "@ALFP FILE ... meta=<hex>\n" as ONE write, so a log line printed between two writes can never land
+ * inside it. meta= stays last (its hex runs to the end of the line). */
 static void write_header(const uplink_job_t* j, uplink_write_fn out, void* user)
 {
-    char line[LINE_MAX_CHARS];
-    char meta_hex[2 * ALFP_MAX_META + 1];
-    for (unsigned i = 0; i < j->meta_len; i++)
+    char line[200 + 2 * ALFP_MAX_META];
+    int n = snprintf(line, sizeof(line),
+                     "@ALFP FILE v1 src=%u sid=%05u size=%lu crc=%08lx radio=%s frags=%u first=%lu done=%lu nacks=%u "
+                     "dups=%u meta=",
+                     (unsigned)j->src, (unsigned)j->sid, (unsigned long)j->file_size, (unsigned long)j->file_crc32,
+                     j->radio, (unsigned)j->frag_count, (unsigned long)j->first_ms, (unsigned long)j->done_ms,
+                     (unsigned)j->nacks, (unsigned)j->dups);
+    size_t o = (n > 0 && (size_t)n < sizeof(line)) ? (size_t)n : 0u;
+    for (unsigned i = 0; i < j->meta_len && o + 3u < sizeof(line); i++)
     {
-        snprintf(meta_hex + 2 * i, 3, "%02x", j->meta[i]);
+        snprintf(line + o, 3, "%02x", j->meta[i]);
+        o += 2u;
     }
-    meta_hex[2 * j->meta_len] = 0;
-    snprintf(line, sizeof(line),
-             "@ALFP FILE v1 src=%u sid=%05u size=%lu crc=%08lx radio=%s frags=%u meta=", (unsigned)j->src,
-             (unsigned)j->sid, (unsigned long)j->file_size, (unsigned long)j->file_crc32, j->radio,
-             (unsigned)j->frag_count);
+    line[o++] = '\n';
+    line[o] = 0;
     out(line, user);
-    out(meta_hex, user);
-    out("\n", user);
 }
 
 /* Read the next chunk of the file into q->buf. The file stays open from the first chunk to the

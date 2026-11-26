@@ -4,7 +4,9 @@
  * When the bridge has reassembled and verified a file, it streams it to the laptop as text so it
  * survives any serial terminal and can be mixed with ordinary log lines:
  *
- *   @ALFP FILE v1 src=3 sid=00042 size=8000 crc=1a2b3c4d radio=lora frags=34 meta=01030000...
+ *   @ALFP FILE v1 src=3 sid=00042 size=8000 crc=1a2b3c4d radio=lora frags=34 first=1234567 done=1241670
+ *         nacks=1 dups=2 meta=01030000...       (one line; first/done/nacks/dups added later, key=value,
+ *                                                so older parsers just ignore them)
  *   @D <base64, 64 chars per line>
  *   ...
  *   @ALFP END crc=1a2b3c4d
@@ -57,6 +59,9 @@ typedef struct
     uint32_t file_crc32;
     uint8_t meta[ALFP_MAX_META];
     uint8_t meta_len;
+    /* radio-side timing and repair counts, bridge clock (ms since boot) */
+    uint32_t first_ms, done_ms;
+    uint16_t nacks, dups;
 } uplink_job_t;
 
 typedef struct
