@@ -625,6 +625,55 @@ static void test_metadata_delivered(void)
     net_close(&N);
 }
 
+/* The outbox's prepare_meta hook runs just before alfp_send_file(): what it writes (here queued_ms
+ * of a v2 record) is what the bridge receives, while the job on the SD card keeps the original. */
+static unsigned g_stamped;
+
+static void stamp_meta(uint8_t* meta, uint8_t len, void* user)
+{
+    (void)user;
+    if (len >= CAPTURE_META_LEN_V2 && meta[0] == 2u)
+    {
+        cm_put32(meta + CAPTURE_META_QUEUED_OFF, 2600u);
+        g_stamped++;
+    }
+}
+
+static void test_outbox_prepare_meta(void)
+{
+    setup(0, 2, 2, true, 170);
+    capture_meta_t m, back;
+    capture_meta_clear(&m);
+    m.node_id = 2;
+    m.capture_id = 77;
+    uint8_t mb[CAPTURE_META_LEN + 6];
+    uint8_t ml = capture_meta_pack(&m, mb);
+    memcpy(mb + ml, "x.jpg", 5);
+    ml = (uint8_t)(ml + 5u);
+    g_stamped = 0;
+    N.node[2].outbox.prepare_meta = stamp_meta;
+    net_make_file(&N, 2, "img/q.jpg", 2000, 71);
+    sim_set_current(2);
+    CHECK(alfp_outbox_add(&N.node[2].outbox, "img/q.jpg", mb, ml));
+    CHECK(net_run_until(&N, sender2_done, 60000));
+    CHECK(g_stamped == 1);
+    char p[600];
+    snprintf(p, sizeof(p), "%s/node1/%s", N.root, N.node[BRIDGE].rx_paths[0]);
+    strcpy(strrchr(p, '.'), ".met");
+    FILE* f = fopen(p, "rb");
+    CHECK(f != NULL);
+    if (f)
+    {
+        uint8_t in[64];
+        size_t n = fread(in, 1, sizeof(in), f);
+        fclose(f);
+        CHECK(n == ml && capture_meta_unpack(in, (uint8_t)n, &back) == 0);
+        CHECK(back.capture_id == 77 && back.queued_ms == 2600u);
+        CHECK(capture_meta_record_len(in, (uint8_t)n) == CAPTURE_META_LEN_V2 && memcmp(in + 31, "x.jpg", 5) == 0);
+    }
+    net_close(&N);
+}
+
 /* ---- progress callbacks (TRANSFER_VISIBILITY.md 3.2) ------------------------------------- */
 
 typedef struct
@@ -831,5 +880,6 @@ int main(void)
     RUN(test_metadata_delivered);
     RUN(test_bridge_reboot_parts_and_names);
     RUN(test_progress_callbacks);
+    RUN(test_outbox_prepare_meta);
     return SUMMARY();
 }

@@ -267,6 +267,27 @@ static void test_capture_meta(void)
     CHECK(back.capture_id == 123456 && back.uptime_ms == 987654321u && back.temp_c_x10 == -45);
     CHECK(back.light_raw == CM_MISSING_U16 && back.sound_rms == CM_MISSING_U16 && back.image_index == 7);
     CHECK(CAPTURE_META_LEN <= 64);
+
+    /* version 2: 31 bytes, queued_ms packed as missing, then stamped by the sender at send time */
+    CHECK(CAPTURE_META_LEN == CAPTURE_META_LEN_V2 && buf[0] == 2u);
+    CHECK(back.queued_ms == CM_MISSING_U32);
+    CHECK(capture_meta_record_len(buf, CAPTURE_META_LEN) == CAPTURE_META_LEN_V2);
+    cm_put32(buf + CAPTURE_META_QUEUED_OFF, 2600u);
+    CHECK(capture_meta_unpack(buf, CAPTURE_META_LEN, &back) == 0 && back.queued_ms == 2600u);
+    CHECK(capture_meta_unpack(buf, CAPTURE_META_LEN_V2 - 1u, &back) == -1); /* a v2 record cut short */
+
+    /* version 1: the first 27 bytes with version 1 (nodes built before queued_ms) still unpack,
+     * queued_ms missing, and the name tail starts at 27 */
+    uint8_t v1[CAPTURE_META_LEN_V1 + 4];
+    memcpy(v1, buf, CAPTURE_META_LEN_V1);
+    v1[0] = 1u;
+    memcpy(v1 + CAPTURE_META_LEN_V1, "a.jp", 4);
+    capture_meta_t old;
+    CHECK(capture_meta_unpack(v1, sizeof(v1), &old) == 0);
+    CHECK(old.capture_id == 123456 && old.image_index == 7 && old.queued_ms == CM_MISSING_U32);
+    CHECK(capture_meta_record_len(v1, sizeof(v1)) == CAPTURE_META_LEN_V1);
+    v1[0] = 3u; /* unknown version */
+    CHECK(capture_meta_unpack(v1, sizeof(v1), &old) == -1 && capture_meta_record_len(v1, sizeof(v1)) == 0u);
 }
 
 int main(void)

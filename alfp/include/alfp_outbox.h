@@ -38,6 +38,11 @@ typedef struct
      * alfp_select_radio() (preference order only). Non-zero = alfp_select_radio_for_size() with
      * this byte threshold. Set with alfp_outbox_set_size_threshold(); never written directly. */
     uint32_t size_threshold;
+    /* Optional (NULL = off), set after alfp_outbox_init(): called with the job's metadata (a copy
+     * loaded from the SD card) right before alfp_send_file(), once per attempt, so the caller can
+     * stamp send-time values into it. The outbox never looks inside the metadata. */
+    void (*prepare_meta)(uint8_t* meta, uint8_t len, void* user);
+    void* prepare_user;
     /* state */
     uint32_t next_seq;
     uint16_t count;

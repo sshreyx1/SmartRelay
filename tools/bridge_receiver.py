@@ -44,13 +44,25 @@ UNKNOWN_U8 = 0xFF
 TELEMETRY_MARKER = "TELEMETRY"
 
 
+META_LEN_V1 = 27
+META_LEN_V2 = 31
+MISSING_U32 = 0xFFFFFFFF
+
+
 def decode_meta(raw: bytes) -> dict:
-    """Decode the 27-byte capture record. Missing readings become None, never a fake number.
-    sound_class is the label id the NODE decided (common/sound_classes.h); this only looks up its
-    name and group, it never classifies anything itself."""
-    if len(raw) < 27 or raw[0] != 1:
+    """Decode the capture record: version 1 (27 bytes) or version 2 (31 bytes, + queued_ms). Missing
+    readings become None, never a fake number. sound_class is the label id the NODE decided
+    (common/sound_classes.h); this only looks up its name and group, it never classifies anything."""
+    if len(raw) >= META_LEN_V2 and raw[0] == 2:
+        rec_len = META_LEN_V2
+        (queued,) = struct.unpack("<I", raw[27:31])
+        queued_ms = None if queued == MISSING_U32 else queued
+    elif len(raw) >= META_LEN_V1 and raw[0] == 1:
+        rec_len = META_LEN_V1
+        queued_ms = None
+    else:
         return {"raw_hex": raw.hex()}
-    extra = raw[27:]
+    extra = raw[rec_len:]
     (ver, node, cap_id, uptime, trig, temp, hum, light, wlabel, wconf, trust, sclass, sconf, rms, zcr,
      img) = struct.unpack("<BBIIBhHHBBBBBHHB", raw[:27])
 
@@ -83,7 +95,9 @@ def decode_meta(raw: bytes) -> dict:
         "sound_rms": u16(rms),
         "sound_zcr": u16(zcr),
         "image_index": img,
-        # optional: bytes after the 27-byte record carry the file name (the image the node picked
+        # v2: ms from the trigger to the moment the node started sending (None: v1 or not measured)
+        "queued_ms": queued_ms,
+        # optional: bytes after the 27/31-byte record carry the file name (the image the node picked
         # from its sound label, e.g. dog_01.jpg; the LoRa photo test's original name)
         "original_name": extra.decode("utf-8", "replace") if extra else None,
         "display_id": capture_id.display_id(node, cap_id),

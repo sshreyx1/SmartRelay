@@ -287,14 +287,15 @@ static void on_rx_done(alfp_ctx_t* ctx, const alfp_rx_report_t* r)
     const alfp_storage_t* st = ctx->cfg.storage;
     /* Give the file back its original name: inbox/n2_00042_photo1.jpg */
     char name[40] = "photo.bin";
-    if (r->meta_len > CAPTURE_META_LEN)
+    uint8_t rec = capture_meta_record_len(r->meta, r->meta_len); /* 27 (v1) or 31 (v2) */
+    if (rec != 0u && r->meta_len > rec)
     {
-        size_t n = r->meta_len - CAPTURE_META_LEN;
+        size_t n = r->meta_len - rec;
         if (n >= sizeof(name))
         {
             n = sizeof(name) - 1;
         }
-        memcpy(name, r->meta + CAPTURE_META_LEN, n);
+        memcpy(name, r->meta + rec, n);
         name[n] = 0;
     }
     char final_path[ALFP_PATH_MAX + 48];

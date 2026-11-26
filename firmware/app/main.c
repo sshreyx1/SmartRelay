@@ -60,7 +60,7 @@
 #ifndef APP_SPLIT_TELEMETRY
 #define APP_SPLIT_TELEMETRY 1
 #endif
-/* Explicit marker in the telemetry job's filename-tail (the bytes after the 27-byte meta record,
+/* Explicit marker in the telemetry job's filename-tail (the bytes after the 31-byte v2 meta record,
  * see common/capture_meta.h), so the backend/tools/bridge_receiver.py side can tell "no image in
  * this transfer" apart from the pre-existing, still-valid case of a transfer with a real image
  * and simply no name tail at all (some callers never appended one before this round). Never a
@@ -88,6 +88,7 @@ static alfp_outbox_t g_outbox;
 static QueueHandle_t g_capture_q;
 static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
 static uint32_t g_capture_id;           /* last id used; restored from the SD card at boot */
+static uint32_t g_boot_first_id;        /* first capture id issued in this boot (ids only grow) */
 static char g_payload_names[TEST_PAYLOADS_MAX][32];
 static uint8_t g_n_payloads, g_next_payload;
 static sip_table_t g_images; /* samples/<prefix>_NN.jpg found at boot */
@@ -383,6 +384,25 @@ static uint32_t highest_id_on_card(const alfp_storage_t* st)
     return s_highest_seen;
 }
 
+/* Outbox hook (TRANSFER_VISIBILITY.md 3.4): just before a job is sent, write how long it waited
+ * since its trigger into the v2 record's queued_ms. Only for captures made in THIS boot: uptime_ms
+ * of a job queued before a reboot is from the old boot, so its wait cannot be measured and stays
+ * missing (0xFFFFFFFF) instead of a made-up number. */
+static void stamp_queued_ms(uint8_t* meta, uint8_t len, void* user)
+{
+    (void)user;
+    capture_meta_t m;
+    if (len < CAPTURE_META_LEN_V2 || meta[0] != 2u || capture_meta_unpack(meta, len, &m) != 0)
+    {
+        return;
+    }
+    uint32_t now = p_now(NULL);
+    if (m.node_id == NODE_ID && m.capture_id >= g_boot_first_id && g_boot_first_id != 0u && now >= m.uptime_ms)
+    {
+        cm_put32(meta + CAPTURE_META_QUEUED_OFF, now - m.uptime_ms);
+    }
+}
+
 static void restore_capture_id(const alfp_storage_t* st)
 {
     st->mkdir(st->ctx, "meta");
@@ -391,6 +411,7 @@ static void restore_capture_id(const alfp_storage_t* st)
     next = tmp > next ? tmp : next;
     uint32_t seen = highest_id_on_card(st);
     g_capture_id = next > seen + 1u ? next - 1u : seen;
+    g_boot_first_id = g_capture_id + 1u;
     char id[CAPTURE_ID_STR_MAX];
     capture_id_format(id, sizeof(id), NODE_ID, g_capture_id + 1u);
     printf("capture id: next is %s (saved next %lu, highest on card %lu)\n", id, (unsigned long)next,
@@ -436,7 +457,7 @@ static void handle_capture(const capture_meta_t* in)
         printf("capture %s: heard %s (%u%%) -> %s\n", id, sound_class_name(m.sound_class), m.sound_conf, shown);
     }
 
-    /* meta = the 27-byte record + the image's file name (the optional-name tail, <= 64 bytes in all) */
+    /* meta = the 31-byte v2 record + the image's file name (the optional-name tail, <= 64 bytes in all) */
     uint8_t mb[ALFP_MAX_META];
     uint8_t meta_len = capture_meta_pack(&m, mb);
 
@@ -627,6 +648,7 @@ static void comms_task(void* arg)
     uplink_queue_init(&g_uplink, st);
     alfp_outbox_init(&g_outbox, &g_alfp, g_radios, 2, BRIDGE_ID, BRIDGE_FRESH_MS, "outbox");
     alfp_outbox_set_size_threshold(&g_outbox, APP_RADIO_SIZE_THRESHOLD);
+    g_outbox.prepare_meta = stamp_queued_ms;
     printf("node %u ready (%s), outbox has %u queued, radio size threshold %u B\n", (unsigned)NODE_ID,
            NODE_ID == BRIDGE_ID ? "bridge" : "field node", alfp_outbox_count(&g_outbox),
            (unsigned)APP_RADIO_SIZE_THRESHOLD);

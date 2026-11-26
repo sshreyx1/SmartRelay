@@ -297,6 +297,10 @@ void alfp_outbox_pump(alfp_outbox_t* ob)
         }
         log_size_choice(ob, path, size_bytes, radio, reason);
     }
+    if (ob->prepare_meta != NULL && ml != 0u)
+    {
+        ob->prepare_meta(meta, ml, ob->prepare_user);
+    }
     alfp_err_t e = alfp_send_file(ob->alfp, radio, ob->bridge_id, path, meta, ml);
     if (e == ALFP_OK)
     {
