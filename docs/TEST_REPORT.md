@@ -113,3 +113,64 @@ missing a function this code needs -- see the script's own comment on `CC`.
    than a `LiveBridge`/FastAPI-level test. `store` is a module-level object constructed on import
    with real side effects (opens/creates `backend/smartrelay.db`), which made an isolated
    `on_transfer()`-level test more invasive to add safely than the time budget allowed.
+
+---
+
+# Transfer visibility (branch `feature/transfer-visibility`, TRANSFER_VISIBILITY.md)
+
+Goal: while node 5 sends a capture to node 1 through node 3 or 4, the bridge's laptop dashboard
+shows it arriving (session start, fragments, the relay that delivered each one, hops, NACK rounds,
+duplicates, radio time, time queued on node 5, upload time, three CRC checks). Everything the
+dashboard shows travels through node 1's USB serial as `@EVT` lines.
+
+## Automated results (2026-11-26, before any hardware run)
+
+| Check | Result |
+|---|---|
+| `tools/run_all_tests.sh` (WSL) | no stage failed: style PASS (clang-format/cppcheck/clang-tidy not installed, so SKIPPED inside it), host tests PASS, host integration PASS (real `lora_mesh.c` and `wifi_mesh.c` E->C->A, 20% loss, byte-identical); backend and ml SKIPPED there (no pytest in WSL) |
+| host `ctest` (14 tests incl. both integrations; `transfer` adds `test_progress_callbacks`, `test_outbox_prepare_meta`; `units` adds meta v1/v2) | 14/14 passed |
+| `backend/tests` (pytest on Windows Python 3.14, incl. new `test_events.py`, 15 tests) | 28 passed |
+| `ml/tests` | not run: `ml/requirements.txt` pins need Python 3.11/3.12 (only 3.14 here); nothing under `ml/` changed |
+| backend smoke on a copy: demo ingest -> WS `transfer_start/progress/done` + `capture`, `/api/transfers*`, capture `transfers[]` | pass |
+| `simulator/demo_feed.py --scenario normal / lora / loss / bridge-down` against a running backend | pass (40 frags via 3+4; LoRa v=0 shown unknown; 3 lost -> 1 NACK, rounds 2, 3 dups; queued 112-114 s) |
+| firmware build `csc09_node_1..5.uf2` (+ selftest, phototest) | builds, no new warnings |
+| `firmware_smp` build (nodes 1, 5) from an exported copy | builds, behaviour unchanged |
+
+Not measured yet (needs the boards): `longest comms loop` on the bridge before/after the `RXF` lines
+(section 3.3 says to add `APP_RXF_EVERY=N` if it grows noticeably).
+
+## Hardware acceptance (section 7) -- TO DO, fill in after the run
+
+Flash all five nodes from this branch (`build-fw/csc09_node_N.uf2`), WiFi topology filter ON (`t`).
+Bridge laptop: backend + `npm run dev`. Press `c` on node 5.
+
+| # | Step | Expected | Result | Evidence |
+|---|---|---|---|---|
+| 1 | `s` on node 1 before and after the run | `longest comms loop` not noticeably higher | | |
+| 2 | `c` on node 5 | within ~1 s of node 5's `tx start`, dashboard shows "Arriving now · Node 5", fragments counting | | |
+| 3 | same transfer | route counts for C and D, hops = 2 | | |
+| 4 | on verify | capture detail: radio time, queued_ms, upload time, three CRCs | | |
+| 5 | `d` (30% loss) on node 1, `c` on node 5 | NACK events, amber resent fragments, rounds >= 2, file verifies | | |
+| 6 | small file over LoRa | hops shown, relay "unknown" | | |
+| 7 | unplug node 1's USB mid-transfer, plug back | `bridge_status` shown; transfer completes or is marked timeout; nothing invented | | |
+| 8 | relays | node 3 / node 4 print `relay wifi: N pkts in last 1 s (from node 5: N)` | | |
+
+Serial logs of node 1, node 3 and node 5 go to `docs/verify/evidence/`.
+
+## Notes and deviations from the spec text
+
+- `CAPTURE_META_LEN` now means the packed (v2, 31-byte) length and `CAPTURE_META_LEN_V1` (27) was
+  added next to `CAPTURE_META_LEN_V2`. Keeping it at 27 would have left every existing
+  `uint8_t mb[CAPTURE_META_LEN]` buffer 4 bytes short of what `capture_meta_pack()` writes.
+- `queued_ms` is stamped only for captures made in the current boot (capture ids persist and only
+  grow): a job queued before a reboot has an `uptime_ms` from the old boot, so its wait is left
+  missing instead of being invented.
+- Real fragment sizes are WiFi 236 B and LoRa 241 B (mesh payload minus the 9-byte ALFP DATA
+  overhead); the spec's `fsz=238` was only an example. The simulator uses the real values.
+- `on_rx_fail` also reports refusals before a session exists (`busy`, `storage`, `too_big`) and the
+  file CRC-32 mismatch (`crc`). `crc` is not final (the bridge asks for the whole file again in the
+  same session): the backend logs it and keeps the transfer in progress.
+- `@ALFP FILE` is now written as one line in one call (was three pieces), so an `@EVT` line can
+  never land inside it. The new `first= done= nacks= dups=` fields come before `meta=`.
+- The SDK's `pioasm` does not compile with WSL's GCC 15 (missing `<cstdint>`); it was built once
+  outside the repo with `-include cstdint` and passed as `pioasm_DIR`. The SDK was not changed.
