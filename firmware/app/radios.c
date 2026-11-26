@@ -198,6 +198,45 @@ const mesh_radio_t* radio_wifi(void)
     return &wifi_mesh;
 }
 
+bool radios_last_recv_info(const mesh_radio_t* r, uint8_t* hops, uint8_t* prev)
+{
+    *hops = 0;
+    *prev = 0;
+#ifdef HAVE_LORA_MESH
+    if (s_lora_ok && r == &lora_mesh)
+    {
+        return lora_mesh_last_recv_info(hops, prev);
+    }
+#endif
+#ifdef HAVE_WIFI_MESH
+    if (r == &wifi_mesh)
+    {
+        return wifi_mesh_last_recv_info(hops, prev);
+    }
+#endif
+    (void)r;
+    return false;
+}
+
+uint16_t radios_relayed_from(const mesh_radio_t* r, uint8_t src)
+{
+#ifdef HAVE_LORA_MESH
+    if (s_lora_ok && r == &lora_mesh)
+    {
+        return lora_mesh_relayed_from(src);
+    }
+#endif
+#ifdef HAVE_WIFI_MESH
+    if (r == &wifi_mesh)
+    {
+        return wifi_mesh_relayed_from(src);
+    }
+#endif
+    (void)r;
+    (void)src;
+    return 0;
+}
+
 int radios_wst_owner(uint8_t mac[6])
 {
     if (mac != NULL && s_wst_owner >= 0)

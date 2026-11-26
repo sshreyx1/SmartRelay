@@ -50,6 +50,8 @@ typedef struct {
 typedef struct {
     uint8_t src;
     uint8_t len;                    /* payload only                     */
+    uint8_t hops;                   /* links travelled, 1 = direct      */
+    uint8_t prev;                   /* node we heard it from, 0 = ?     */
     uint8_t data[WIFI_MESH_MAX_PAYLOAD];
 } in_pkt_t;
 
@@ -77,6 +79,11 @@ typedef struct {
     mesh_stats_t st;
     uint32_t filtered;
     uint32_t malformed;
+
+    /* route of the packet recv() returned last (wifi_mesh_last_recv_info) */
+    bool     last_valid;
+    uint8_t  last_hops, last_prev;
+    uint16_t relayed_from[6];   /* relays queued, per original source */
 } wm_state_t;
 
 static wm_state_t wm_default;
@@ -176,6 +183,9 @@ static void handle_packet(const wst_rx_pkt_t *rx) {
             in_pkt_t *q = &S->recvq[(S->rcv_head + S->rcv_count) % WIFI_MESH_RECV_QUEUE];
             q->src = src;
             q->len = plen;
+            q->hops = hops <= WIFI_MESH_HOP_LIMIT          /* 0 = out of range */
+                    ? (uint8_t)(WIFI_MESH_HOP_LIMIT - hops + 1) : 0;
+            q->prev = (uint8_t)node_from_mac(rx->mac);
             memcpy(q->data, &rx->data[MESH_HEADER_LEN], plen);
             S->rcv_count++;
             S->st.delivered++;
@@ -190,6 +200,7 @@ static void handle_packet(const wst_rx_pkt_t *rx) {
     memcpy(r->bytes, rx->data, rx->len);
     r->bytes[H_HOPS] = hops - 1;
     r->len = rx->len;
+    S->relayed_from[src]++;
     uint32_t span = WIFI_MESH_RELAY_DELAY_MAX - WIFI_MESH_RELAY_DELAY_MIN + 1;
     r->due = now + WIFI_MESH_RELAY_DELAY_MIN + wm_rand() % span;
 }
@@ -235,6 +246,9 @@ static int wm_recv(uint8_t *src, uint8_t *buf, uint16_t buf_size) {
     S->rcv_head = (S->rcv_head + 1) % WIFI_MESH_RECV_QUEUE;
     S->rcv_count--;
     if (buf_size < q->len) return MESH_RECV_BUF_TOO_SMALL;
+    S->last_valid = true;
+    S->last_hops  = q->hops;
+    S->last_prev  = q->prev;
     if (src) *src = q->src;
     memcpy(buf, q->data, q->len);
     return q->len;
@@ -323,3 +337,13 @@ bool wifi_mesh_init(uint8_t node_id) {
 uint8_t  wifi_mesh_node_id(void)               { return S->up ? S->me : 0; }
 void     wifi_mesh_set_topology_filter(bool on) { S->filter_on = on; }
 uint32_t wifi_mesh_filtered_count(void)         { return S->filtered; }
+
+bool wifi_mesh_last_recv_info(uint8_t *hops, uint8_t *prev_hop) {
+    if (hops)     *hops     = S->last_valid ? S->last_hops : 0;
+    if (prev_hop) *prev_hop = S->last_valid ? S->last_prev : 0;
+    return S->last_valid;
+}
+
+uint16_t wifi_mesh_relayed_from(uint8_t src) {
+    return src <= 5 ? S->relayed_from[src] : 0;
+}

@@ -28,7 +28,8 @@ typedef struct
 typedef struct
 {
     uint8_t  src;
-    uint8_t  len;  // payload length
+    uint8_t  len;   // payload length
+    uint8_t  hops;  // links travelled, 1 = heard straight from src
     uint8_t  data[MAX_PAYLOAD];
 } delivery_t;
 
@@ -72,6 +73,11 @@ static int8_t last_rssi_dbm;
 static int8_t last_snr_db;
 
 static uint8_t rx_buf[LORA_MAX_PACKET_LEN];
+
+// Route of the packet recv() returned last (lora_mesh_last_recv_info), and relays per source
+static bool     last_recv_valid;
+static uint8_t  last_recv_hops;
+static uint16_t relayed_from[6];
 
 static uint32_t now_ms( void )
 {
@@ -153,7 +159,7 @@ static bool enqueue_own( uint8_t dst, const uint8_t* payload, uint16_t len )
     return true;
 }
 
-static void enqueue_relay( const uint8_t* pkt, uint8_t len, uint32_t now )
+static bool enqueue_relay( const uint8_t* pkt, uint8_t len, uint32_t now )
 {
     for( int i = 0; i < LORA_MESH_RELAYQ_LEN; i++ )
     {
@@ -167,13 +173,14 @@ static void enqueue_relay( const uint8_t* pkt, uint8_t len, uint32_t now )
                 LORA_MESH_RELAY_DELAY_MAX_MS - LORA_MESH_RELAY_DELAY_MIN_MS + 1;
             p->due_ms     = now + LORA_MESH_RELAY_DELAY_MIN_MS + ( get_rand_32( ) % span );
             relay_used[i] = true;
-            return;
+            return true;
         }
     }
     stats.relay_overflow++;
+    return false;
 }
 
-static void deliver( uint8_t src, const uint8_t* payload, uint8_t len )
+static void deliver( uint8_t src, const uint8_t* payload, uint8_t len, uint8_t hops )
 {
     if( rxq_ring.count >= LORA_MESH_RXQ_LEN )
     {
@@ -183,6 +190,7 @@ static void deliver( uint8_t src, const uint8_t* payload, uint8_t len )
     delivery_t* d = &rxq[ring_slot( &rxq_ring, rxq_ring.count, LORA_MESH_RXQ_LEN )];
     d->src        = src;
     d->len        = len;
+    d->hops       = hops;
     memcpy( d->data, payload, len );
     rxq_ring.count++;
     stats.delivered++;
@@ -234,7 +242,9 @@ static void handle_packet( const uint8_t* pkt, uint8_t len, uint32_t now )
     // Deliver rule: only packets for us or broadcast. Empty packets are heartbeats: not delivered.
     if( ( dst == self_id || dst == MESH_BROADCAST ) && payload_len > 0 )
     {
-        deliver( src, &pkt[MESH_HEADER_LEN], payload_len );
+        // links travelled (1 = direct); 0 = unknown if the hops byte is out of range
+        const uint8_t links = hops <= LORA_MESH_HOP_LIMIT ? ( uint8_t ) ( LORA_MESH_HOP_LIMIT - hops + 1 ) : 0;
+        deliver( src, &pkt[MESH_HEADER_LEN], payload_len, links );
     }
 
     // Relay rule: anything not addressed only to us, while hops remain
@@ -242,7 +252,10 @@ static void handle_packet( const uint8_t* pkt, uint8_t len, uint32_t now )
     {
         if( hops > 0 )
         {
-            enqueue_relay( pkt, len, now );
+            if( enqueue_relay( pkt, len, now ) && src < sizeof( relayed_from ) / sizeof( relayed_from[0] ) )
+            {
+                relayed_from[src]++;
+            }
         }
         else
         {
@@ -308,6 +321,8 @@ bool lora_mesh_init( uint8_t node_id )
     memset( seen, 0, sizeof( seen ) );
     memset( relay_used, 0, sizeof( relay_used ) );
     memset( heard, 0, sizeof( heard ) );
+    memset( relayed_from, 0, sizeof( relayed_from ) );
+    last_recv_valid = false;
     txq_ring  = ( ring_t ){ 0 };
     rxq_ring  = ( ring_t ){ 0 };
     in_flight = IN_FLIGHT_NONE;
@@ -342,7 +357,9 @@ int lora_mesh_recv( uint8_t* src, uint8_t* buf, uint16_t buf_size )
         return MESH_RECV_BUF_TOO_SMALL;
     }
     memcpy( buf, d->data, d->len );
-    *src = d->src;
+    *src            = d->src;
+    last_recv_valid = true;
+    last_recv_hops  = d->hops;
     return d->len;
 }
 
@@ -451,6 +468,24 @@ void lora_mesh_last_link_quality( int8_t* rssi_dbm, int8_t* snr_db )
 {
     *rssi_dbm = last_rssi_dbm;
     *snr_db   = last_snr_db;
+}
+
+bool lora_mesh_last_recv_info( uint8_t* hops, uint8_t* prev_hop )
+{
+    if( hops != NULL )
+    {
+        *hops = last_recv_valid ? last_recv_hops : 0;
+    }
+    if( prev_hop != NULL )
+    {
+        *prev_hop = 0;  // unknown: the LoRa header has no relay field
+    }
+    return last_recv_valid;
+}
+
+uint16_t lora_mesh_relayed_from( uint8_t src )
+{
+    return src < sizeof( relayed_from ) / sizeof( relayed_from[0] ) ? relayed_from[src] : 0;
 }
 
 const mesh_radio_t lora_mesh_radio = {

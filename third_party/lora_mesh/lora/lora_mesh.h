@@ -41,6 +41,14 @@ void lora_mesh_set_heartbeat( uint32_t interval_ms );
 // RSSI/SNR of the last packet heard directly (any hop), for debugging.
 void lora_mesh_last_link_quality( int8_t* rssi_dbm, int8_t* snr_db );
 
+// Route of the packet lora_mesh_recv() returned most recently (not part of mesh_radio_t).
+// *hops = links it travelled (1 = heard straight from its source). *prev_hop is always 0
+// (unknown): the LoRa header has no relay field. Returns false if recv() has not returned a packet yet.
+bool lora_mesh_last_recv_info( uint8_t* hops, uint8_t* prev_hop );
+
+// Packets from node src (1-5) this node has queued for relaying since boot (wraps; use differences).
+uint16_t lora_mesh_relayed_from( uint8_t src );
+
 extern const mesh_radio_t lora_mesh_radio;
 
 #endif  // LORA_MESH_H

@@ -33,4 +33,13 @@ const mesh_radio_t* radio_wifi(void);
  * mac (may be NULL) gets its MAC when the result is >= 0. Read-only after radios_init(). */
 int radios_wst_owner(uint8_t mac[6]);
 
+/* Route of the packet r->recv() returned most recently (TRANSFER_VISIBILITY.md 3.1):
+ *   *hops = links travelled (1 = direct, 0 = unknown), *prev = node it was heard from (0 = unknown;
+ *   always 0 on LoRa, whose header has no relay field). Returns false for the offline stubs. */
+bool radios_last_recv_info(const mesh_radio_t* r, uint8_t* hops, uint8_t* prev);
+
+/* Packets from node src that this node has queued for relaying on r since boot (wraps at 65536).
+ * 0 for the offline stubs. */
+uint16_t radios_relayed_from(const mesh_radio_t* r, uint8_t src);
+
 #endif
