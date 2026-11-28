@@ -7,7 +7,7 @@ alfp_config.h / alfp_wire.h / alfp_profiles.c (protocol), main_smp.c / rtos_port
 sound_features.h / sensing.h (sensing).
 
 Run:      pip install pillow
-          python tools/make_gifs.py
+          python tools/make_gifs.py            (or name some: mesh, alfp, smp, pipeline)
 """
 from pathlib import Path
 
@@ -133,7 +133,8 @@ LAPTOP = (85, 270)
 
 def mesh_base(c, active=()):
     c.text(24, 28, "SmartRelay trail mesh", 21, INK, True, anchor="lm")
-    c.text(24, 54, "Grey lines: who can hear whom over WiFi (topology filter ON)", 13, MUTED, anchor="lm")
+    c.text(24, 54, "Grey lines: which nodes are in radio range on the trail (WiFi: topology filter ON)", 13, MUTED,
+           anchor="lm")
     for a, nbs in NEIGHBOURS.items():
         for b in nbs:
             if a < b:
@@ -175,10 +176,18 @@ def mesh_gif():
 
     for _ in range(8):
         scene("PIR and sound trigger fire together on node 5", {5}, [])
-    for i in range(18):
-        t = i / 17
-        scene("27-byte telemetry is under 1024 B, so it goes over LoRa", {5},
-              [(along([POS[5], (480, 262), POS[1]], t), LORA, "telemetry")])
+    # LoRa floods: node 5 broadcasts, its neighbours 3 and 4 rebroadcast, node 1 keeps the first copy
+    for i in range(14):
+        t = i / 13
+        scene("31-byte telemetry is under 1024 B, so it goes over LoRa", {5},
+              [(lerp(POS[5], POS[3], t), LORA, "telemetry"), (lerp(POS[5], POS[4], t), LORA, "")])
+    for i in range(16):
+        t = i / 15
+        t4 = max(0.0, (i - 3) / 15)  # node 4's copy leaves a little later (relay jitter)
+        scene("LoRa floods: nodes 3 and 4 both rebroadcast it towards node 1", {3, 4, 5},
+              [(lerp(POS[3], POS[1], t), LORA, "telemetry"), (lerp(POS[4], POS[1], t4), LORA, "")])
+    for _ in range(8):
+        scene("Node 1 keeps the first copy and drops the duplicate (30 s duplicate cache)", {5}, [])
     for i in range(46):
         pk = []
         for k in range(7):
@@ -346,7 +355,8 @@ def pipeline_gif():
 
 
 if __name__ == "__main__":
-    mesh_gif()
-    alfp_gif()
-    smp_gif()
-    pipeline_gif()
+    import sys
+
+    GIFS = {"mesh": mesh_gif, "alfp": alfp_gif, "smp": smp_gif, "pipeline": pipeline_gif}
+    for name in sys.argv[1:] or GIFS:  # e.g. "python tools/make_gifs.py mesh" redraws only mesh.gif
+        GIFS[name]()
