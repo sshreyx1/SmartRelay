@@ -145,25 +145,25 @@ static int16_t to_x10_i16 (float32_t value)
 #if SOUND_LEGACY_MODE
 bool sensing_record_sound (uint32_t seconds, audio_result_t* audio)
 {
-    sensing_sound_t* r = &s_sound;
-    *r                 = (sensing_sound_t){
-        .ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN};
-    if (!audio_capture(seconds, s_h.wait_ms, audio, &r->lost))
+    sensing_sound_t* p_snd = &s_sound;
+    *p_snd                 = (sensing_sound_t){
+        .b_is_ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN};
+    if (!audio_capture(seconds, s_h.p_wait_ms, audio, &p_snd->lost))
     {
         audio->samples = 0;
         printf("[AUDIO] no free DMA channel, sound features missing\n");
         return false;
     }
-    s_legacy_label = audio->label;
+    s_legacy_label = audio->p_label;
     /* 0 = mic.c's AMBIENT_NOISE */
-    r->label_id  = audio->class_id == 0 ? SC_AMBIENT : SC_UNKNOWN;
-    r->rms       = audio->rms;
-    r->zcr_per_s = audio->zcr_per_s;
-    r->ok        = true;
-    if (r->lost)
+    p_snd->label_id  = audio->class_id == 0 ? SC_AMBIENT : SC_UNKNOWN;
+    p_snd->rms       = audio->rms;
+    p_snd->zcr_per_s = audio->zcr_per_s;
+    p_snd->b_is_ok        = true;
+    if (p_snd->lost)
     {
         printf("[AUDIO] warning: %" PRIu32 " samples lost (task too slow)\n",
-               (uint32_t)r->lost);
+               (uint32_t)p_snd->lost);
     }
     return true;
 }
@@ -224,8 +224,8 @@ void sensing_log_sound (void)
 #if SOUND_LEGACY_MODE
     printf("[SOUND] LEGACY mic.c thresholds: %s -> label=%s id=%u rms=%u "
            "zcr=%u lost=%" PRIu32 "\n",
-           s_legacy_label, sound_class_name(r->label_id), r->label_id, r->rms,
-           r->zcr_per_s, (uint32_t)r->lost);
+           s_legacy_label, sound_class_name(p_snd->label_id), p_snd->label_id, p_snd->rms,
+           p_snd->zcr_per_s, (uint32_t)p_snd->lost);
     return;
 #endif
     printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%" PRIu32

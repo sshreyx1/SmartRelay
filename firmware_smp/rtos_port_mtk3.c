@@ -87,7 +87,7 @@ void rtos_atomic_add_u32 (volatile uint32_t* p_counter, uint32_t delta)
     *p_counter += delta;
     ISpinUnlock(&s_counter_lock, intsts);
 #else
-    *counter += delta;
+    *p_counter += delta;
 #endif
 }
 

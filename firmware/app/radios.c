@@ -73,7 +73,7 @@ static const mesh_radio_t lora_offline = {"lora",   off_send,      off_recv,
 #include "wifi_mesh_config.h"
 #include "wst_link.h"
 #else
-static const mesh_radio_t wifi_mesh = {"wifi",   off_send,      off_recv,
+static const mesh_radio_t g_wifi_mesh = {"wifi",   off_send,      off_recv,
                                        off_poll, off_maxp_wifi, off_heard,
                                        off_busy, off_stats,     off_drop};
 #endif
@@ -208,7 +208,7 @@ void radios_set_wifi_topology_filter (bool b_enable)
 #ifdef HAVE_WIFI_MESH
     wifi_mesh_set_topology_filter(b_enable);
 #else
-    (void)on;
+    (void)b_enable;
 #endif
 }
 

@@ -6,7 +6,7 @@ from collections import defaultdict
 
 repo, out_path = sys.argv[1], sys.argv[2]
 files = subprocess.run(['git', '-C', repo, 'ls-files', '*.c', '*.h'], capture_output=True, text=True).stdout.split()
-VENDOR = ('third_party/mtk3smp_rp2040/', 'third_party/lora_mesh/src/lr1121/')
+VENDOR = ('third_party/mtk3smp_rp2040/', 'third_party/lora_mesh/src/')  # kernel, Semtech and Waveshare drivers
 files = [f for f in files if not f.startswith(VENDOR)]
 
 def strip(src):

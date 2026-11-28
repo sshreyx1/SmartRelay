@@ -113,9 +113,9 @@ unsigned wifi_mesh_test_state_size (void)
 {
     return sizeof(wm_state_t);
 }
-void wifi_mesh_test_use (void* state)
+void wifi_mesh_test_use (void* p_new_state)
 {
-    S = (wm_state_t*)state;
+    p_state = (wm_state_t*)p_new_state;
 }
 #endif
 
