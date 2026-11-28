@@ -1,6 +1,8 @@
 # Sending photos between two Picos over LoRa
 
-Pico **A** (node 1) receives, Pico **B** (node 2) sends. Both run Mridula's LoRa mesh unchanged and
+[Back to the README](../README.md)
+
+Pico **A** (node 1) receives, Pico **B** (node 2) sends. Both run Mridula's LoRa mesh and
 the ALFP fragmentation layer. WiFi is not used.
 
 ## 1. Wiring (both Picos identical, same as the full node: docs/BRINGUP.md)

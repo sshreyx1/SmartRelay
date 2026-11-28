@@ -1,141 +1,146 @@
-# Coding standard (CURVEBALL round 3, Task B)
+# Coding standard: BARR-C:2018
 
-## Standard used
+[Back to the README](../README.md)
 
-**BARR-C:2018**, the Barr Group Embedded C Coding Standard, as requested by the professor.
+The C code follows the **Barr Group Embedded C Coding Standard, BARR-C:2018**. The standard's
+*Deviation Procedure* requires conformance to every rule except where a deviation is documented
+and approved; those are listed [below](#deviations).
 
-### Rules applied, by BARR-C:2018 rule number
-
-Rule numbers below are cited from BARR-C:2018's published numbering (free PDF from Barr Group).
-They were written from the standard's numbering as known on 2026-11-19, not copied from a copy of
-the PDF bundled here (there is none in the repo); someone should open the PDF once and tick each
-row before the table is shown to the professor as a rule-by-rule audit.
-
-| BARR-C:2018 rule | Requirement (short) | How this repo meets it | Checked by |
-| --- | --- | --- | --- |
-| 1.2.a | lines no longer than 80 characters | **deviation**: 120 (see Deviations) | `.clang-format` `ColumnLimit: 120` |
-| 1.3.a | braces around every `if`/`else`/`switch`/`while`/`do`/`for` body, even one statement | yes | regex search for `if/for/while/else` followed by a statement on the same line: 0 hits |
-| 1.3.b | each `{` and `}` on its own line, aligned (Allman) | yes | `.clang-format` `BreakBeforeBraces: Allman`, `tools/check_style.sh` |
-| 1.7.c | no `goto` | yes (0 in scope) | `grep -rn goto` over scope |
-| 1.8.a / 1.8.b / 1.8.c | use `static`, `const`, `volatile` where they apply | file-local functions and data are `static`; read-only tables `const`; data shared between tasks/cores or with an ISR `volatile` (e.g. `log.c` `s_dropped`/`s_queued`, `main_smp.c` `g_task_core`) | review; cppcheck `constVariable`/`constParameter` style checks |
-| 3.4.a | indentation in multiples of 4 spaces | yes | `.clang-format` `IndentWidth: 4` |
-| 3.5.a | no tab characters | yes | `.clang-format` `UseTab: Never` |
-| 5.2.a | fixed-width types (`<stdint.h>`) wherever width matters | yes; plain `int` only for small counters/handles whose width does not matter | review + `-Wconversion` |
-| 5.3.b | no mixing signed and unsigned in comparisons/expressions | compiled with `-Wconversion -Wsign-compare`; the `%u`-with-signed-`NODE_ID` printf cases cppcheck found were fixed with explicit `(unsigned)` casts | gcc + cppcheck |
-| 6.2.a | functions kept short (about one page / 100 lines) | mostly; known long ones: `comms_task`, `usb_owner_task`, `handle_capture` (main loop / key dispatch) | review (not enforced by a tool) |
+**Project manager approving deviations: Senthil Shreya. Date: 28 November 2026.**
 
 ## Scope
 
-## Scope
+All project C files (`*.c`, `*.h`): `alfp/`, `common/`, `mesh/`, `firmware/`, `firmware_smp/`,
+`host/`, and the team modules in `third_party/lora_mesh/` (outside `src/`),
+`third_party/wifi_mesh/` and `third_party/sensors/`.
 
-In scope for this task: `alfp/**`, `common/**`, `firmware/app/**`, `firmware/sensing/**`,
-`firmware_smp/**` (excluding the vendored kernel, see below), the lines of
-`third_party/wifi_mesh/wst_link.c`/`.h` added by this project's own commits (not Goutham's
-original vendored code), and new test code. Out of scope / excluded: `third_party/mtk3smp_rp2040/**`
-(vendored kernel fork), `third_party/lora_mesh/**`, `third_party/sensors/**`, and everything else
-not listed. (Round 3 left `main.c`, `main_smp.c` and `alfp/**` unformatted to avoid colliding with
-Task A; the 2026-11-19 verification round formatted them too, so the whole scope is now clean.)
+Outside the scope, as vendor code: the kernel submodule `third_party/mtk3smp_rp2040/`, and the
+Semtech LR11xx driver and Waveshare GPIO/SPI helpers in `third_party/lora_mesh/src/`. Python and
+TypeScript are not covered by a C standard.
 
-## How to run format / lint / build locally
+## How to check
 
-```sh
-# Format check (dry run, no changes):
-clang-format --dry-run --Werror $(git ls-files '*.c' '*.h' | grep -E '^(alfp|common|firmware)/')
-
-# Format, in place:
-clang-format -i <file>
-
-# Lint (cppcheck):
-cppcheck --enable=warning,style,performance,portability --std=c11 --language=c \
-  --suppressions-list=tools/cppcheck_suppressions.txt \
-  -I alfp/include -I common -I mesh -I firmware/app -I firmware/sensing \
-  alfp/src common/*.c firmware/app/*.c firmware/sensing/*.c
-
-# Lint (clang-tidy), needs a compile_commands.json or explicit flags per file, e.g.:
-clang-tidy common/uplink.c -- -std=c11 -I alfp/include -I mesh -I common
-
-# Warnings-as-errors compile check (host-compilable files only; see "What was and was not
-# actually run" below for which files that is):
-gcc -std=c11 -Wall -Wextra -Wconversion -Wshadow -Wundef -Wstrict-prototypes -Werror -c -o /dev/null \
-  -I <includes for the file> <file.c>
+```bash
+tools/check_style.sh
 ```
 
-**`tools/check_style.sh`** wraps all of the above over the in-scope files, skipping (not failing)
-any tool that is not installed, and exits non-zero only on an actual violation it could check. It
-is stage 1 of `tools/run_all_tests.sh`.
+| Step | Tool | Rules |
+| --- | --- | --- |
+| Layout | `clang-format` with [`.clang-format`](../.clang-format) | braces, brace placement, indentation, spacing, alignment |
+| Source rules | [`tools/check_barrc.py`](../tools/check_barrc.py) | 1.2.a, 1.7.a/b, 3.3.c, 3.5.a, 4.1.a, 4.2.b, 5.2.b, 5.4.b.i, 8.4.c, `abort`/`setjmp`/`longjmp` in 8.5.b |
+| Compile | `gcc -Werror -Wconversion -Wshadow` on the laptop-buildable files | type safety |
 
-## What was actually run (2026-11-19, macOS, `docs/verify/RESULTS.md`)
+**Limit of the automation:** the naming, expression and statement rules (for example 7.1, 8.6.a,
+1.4.b) were applied with one-off refactoring passes driven by the compiler's parser and then
+reviewed. No script in the repository re-checks them, so reviewers must keep applying them to new
+code.
 
-- **clang-format 23.1.4** (Homebrew): `tools/check_style.sh`'s format stage over every in-scope
-  file. The first ever run found 35 files not matching `.clang-format` (33 from before plus two this
-  round touched); all 35 were reformatted with `clang-format -i`, no code change, and the host
-  tests (14/14) and both firmware builds were re-run afterwards. Format check now clean.
-- **cppcheck**: see `docs/verify/RESULTS.md` (installed from Homebrew for this run).
-- **Compiler warnings**: both firmware builds compile with zero warnings from project code
-  (FreeRTOS build: `-Werror` on; SMP build: the kernel's own Make flags). The only remaining
-  warnings are in vendored code (`lr11xx_radio.c` `#warning` about a deprecated sync-word call)
-  and newlib's "not implemented" stubs at link time. Host build: `-Wall -Wextra -Werror -Wshadow
-  -Wconversion` for the protocol library, 14/14 ctest.
-- Earlier rounds (Windows/WSL) had no clang-format/cppcheck at all; that is no longer the case.
+## How the main rules are met
 
-## Compliance table
+| Rule | Requirement | In this repository |
+| --- | --- | --- |
+| 1.2.a | lines of at most 80 characters | all in-scope lines |
+| 1.3.a, 1.3.b | braces on every body, each brace on its own line | Allman style, braces inserted everywhere |
+| 1.4.b | parentheses around `&&` and `||` operands | applied unless the operand is a single name or constant |
+| 1.7.c | `goto` only forwards | only in `host/tools/sound_featx.c`, all forward |
+| 1.8 | `static`, `const`, `volatile` where they apply | including `volatile` for data shared with the UART interrupt |
+| 3.1.j | one space between a function name and its parameter list in definitions | all definitions |
+| 3.2 | aligned declarations and assignments | by `clang-format` |
+| 3.3.c | end-of-file comment followed by a blank line | `/*** end of file ***/` |
+| 3.5.a | no tabs | none |
+| 5.2 | fixed-width types where width matters; no `short` or `long` | `<stdint.h>` types, with `<inttypes.h>` format macros |
+| 5.3.b | no bit operations on signed values | `sound_asr32()` gives a defined arithmetic shift |
+| 5.4.b | `float32_t` and `float64_t` | defined with size assertions in [`common/float_types.h`](../common/float_types.h) |
+| 6.3.b.iv | no control transfer inside macros | except D8 |
+| 6.4.a, 6.5.b | task names end in `_task`, interrupt handlers in `_isr` | |
+| 7.1.e | variable names of at least 3 characters | including loop counters (`idx`) |
+| 7.1.j to 7.1.m | `g` for globals, `p` pointer, `pp` pointer to pointer, `b` boolean | see below |
+| 8.1.a | one declaration per line | |
+| 8.2.d | every `else if` chain ends in `else` | |
+| 8.3.b | every `switch` has `default` | |
+| 8.4.b | no assignment in a loop condition | |
+| 8.4.c | infinite loops written `for (;;)` | |
+| 8.6.a | constant on the left of `==` and `!=` | |
 
-| File / area | Braces on every block | Magic numbers | Fixed-width types | `volatile` for shared state | Status |
-| --- | --- | --- | --- | --- | --- |
-| `common/loopback_radio.c`, `common/uplink.c` | yes (search + compile) | named constants throughout (`alfp_config.h`-style) | yes (`<stdint.h>` throughout) | n/a (no cross-context state) | compiled clean |
-| `firmware/sensing/audio_features.c`, `sound_features.c`, `sound_fft.c`, `sound_classify.c`, `sound_image_pick.c`, `sound_tables.c` | yes (search + compile) | named constants / table-driven | yes | n/a | compiled clean |
-| `firmware/sensing/sensing.c` | yes (read) | yes, by read | yes | yes, flagged fields are `volatile` where shared with the capture ISR/trigger path | not compiled (needs Pico SDK); read-reviewed |
-| `firmware/app/board.c`, `radios.c`, `storage_fatfs.c`, `freertos_hooks.c`, `hw_config.c` | yes (search) | hardware register/pin constants are named `#define`s, consistent with the project's existing convention | yes | reviewed, no cross-core/ISR state found needing it beyond what is already `volatile` | not compiled (needs Pico SDK/FreeRTOS); read-reviewed |
-| `firmware_smp/app/log.c` | yes | yes (`LOG_RING_DEPTH` etc. named) | yes | yes (`s_dropped` is `volatile uint32_t`, written from 3 tasks across both cores) | not compiled (needs uT-Kernel); read-reviewed, clean |
-| `firmware_smp/app/usermain_smp.c`, `rtos_port_mtk3.c`, `buildglue/usb_tinyusb_glue_overlay.c`, `rtos_port.h` | yes (search) | reviewed, no bare literals found outside hardware/kernel API constants | yes | reviewed | not compiled; read-reviewed |
-| `third_party/wifi_mesh/wst_link.c`/`.h` (this project's edited lines only) | **one violation found and fixed**, see below | n/a (no new literals introduced) | yes | yes, `s_rx_isr_core_logged`/ring indices already `volatile` from the pre-existing code | fixed |
+## Naming conventions
 
-### Deviations (with justification)
+Prefixes combine in the order global, pointer, boolean:
 
-- **Rule 1.2.a (80-column lines)**: `.clang-format`'s `ColumnLimit: 120`. This codebase's longest existing lines already run to 121
-  characters (`firmware/app/main.c`); BARR-C traditionally suggests a narrower limit (80 is the
-  commonly cited figure), but matching the project's own established width avoids a disruptive
-  repo-wide reflow for a line-length rule this codebase was never written to. Recorded here, not
-  silently ignored.
-- `third_party/wifi_mesh/wst_link.c` keeps K&R brace style (opening brace on the same line as the
-  statement) for the one new brace-adding fix below, instead of the Allman style
-  (`alfp/**`/`firmware/app/**` convention) used elsewhere in this project: the surrounding file is
-  Goutham's vendored code, written entirely in K&R style; switching just one new block to Allman
-  inside an otherwise-K&R file would be a worse inconsistency than keeping the file internally
-  uniform. The violation being fixed is the missing braces, not the brace placement.
+| Prefix | Meaning | Example |
+| --- | --- | --- |
+| `p_`, `pp_` | pointer, pointer to pointer (including function pointers) | `p_ctx`, `pp_radios` |
+| `b_` | boolean | `b_is_ok` |
+| `g_`, `gp_`, `gb_` | global, global pointer, global boolean | `g_alfp`, `gp_lora`, `gb_want_stats` |
+| `s_`, `p_s_`, `b_s_` | file-static, with the same pointer and boolean letters in front | `s_stack_pool`, `b_s_lora_ok` |
 
-### Fixed (separate commit from this doc)
+### Module prefixes and abbreviations (rules 1.5.b and 6.1.i)
 
-- `third_party/wifi_mesh/wst_link.c:77` (in the lines this project's own commit
-  `92b7354` added, not Goutham's original code): `if (fill > stats.rx_high_watermark)
-  stats.rx_high_watermark = fill;` had no braces around its single-statement body. Fixed to add
-  braces, no behavior change.
+Public functions start with their module's name or the abbreviation listed here.
 
-## Other owners'/other tasks' files: findings only, not fixed here
+| Prefix | Module | | Prefix | Module |
+| --- | --- | --- | --- | --- |
+| `alfp_` | file transfer protocol | | `sf_` | sound features |
+| `capture_meta_`, `cm_` | capture record | | `sm_` | sound model |
+| `capture_id_` | capture ids | | `sip_` | sound image picking |
+| `uplink_` | bridge USB output | | `sound_` | sound classifier, labels and FFT |
+| `lora_mesh_`, `lora_radio_` | LoRa mesh and radio | | `sensing_`, `audio_` | sensing and audio capture |
+| `wifi_mesh_`, `wst_` | WiFi mesh and serial link | | `rtos_` | RTOS port layer |
+| `board_`, `radios_`, `radio_` | board and radio setup | | `log_` | log ring |
+| `app_` | application entry points | | `smartrelay_` | SmartRelay's kernel runtime layer |
+| `sim_`, `net_` | laptop simulator | | `storage_` | storage back ends |
 
-Counts only, per the brief -- these are not this task's files to fix.
+Other abbreviations: `cfg` configuration, `ctx` context, `idx` index, `len` length, `msg`
+message, `rx`/`tx` receive and transmit, `sid` session id, `cap` capacity or capture, `stats`
+statistics, `ms`/`us` milliseconds and microseconds.
 
-- `alfp/**` (Task A's own files in this branch): read-only pattern search for braceless
-  single-statement blocks found **0**. Not compiled with the strict flags as part of *this* task
-  (Task A already built and ran its own tests against these files); no further findings recorded.
-- `firmware/app/main.c`, `firmware_smp/app/main_smp.c` (edited by Task A in this branch): read-only
-  pattern search for braceless single-statement blocks found **0**. Not otherwise reviewed in
-  depth here, to avoid duplicating or second-guessing Task A's own work on these files.
-- `ml/**`, `docs/sound/**`, `SOUND_PLAN.md`, `sd_card/**`: not reviewed at all (out of scope per
-  the brief's ownership rules; counts would require reading files this task was told not to
-  open for review purposes beyond what is already necessary to confirm they were not touched).
-- `third_party/wifi_mesh/wst_link.c`/`.h` outside this project's own edited lines (i.e. Goutham's
-  original vendored code): not reviewed -- out of scope, his file.
-- `dashboard/**`: not reviewed (TypeScript/React, not in this task's C-focused scope; BARR-C does
-  not apply to it).
+## Deviations
 
-## Open questions / risks
+All approved by **Senthil Shreya (project manager), 28 November 2026**. Where a deviation belongs
+to one place in the code, it is also recorded in a comment there.
 
-- Without the actual BARR-C:2018 text, the compliance table above is an honest best-effort
-  against the standard's well-known public themes, not a verified rule-by-rule audit. Flag this
-  to the professor if exact rule citations are required.
-- `sensing.c` and the `firmware/app/` driver files could not be compiled here at all (missing Pico
-  SDK/FreeRTOS/uT-Kernel headers); the compliance claims for them rest on a careful read, not a
-  compiler. A real toolchain run (see `firmware_smp/buildglue/README.md` / `docs/BRINGUP.md`)
-  would catch anything a read missed.
-- `tools/check_style.sh` is wired into `tools/run_all_tests.sh` as its first stage.
+| Id | Rule | Deviation | Reason |
+| --- | --- | --- | --- |
+| D1 | 1.1.a | C11 / GNU11 instead of C99 | the Pico SDK builds with GNU11; `_Static_assert` is used |
+| D2 | 1.6.a | not every cast has its own comment | most are `printf` arguments cast to fixed-width types, discarded values (`(void)x`) and byte packing with shifts. `-Wconversion` is enforced on the protocol library and sound code built on the laptop |
+| D3 | 2.2.h | comments are not in Doxygen form | each module has a header comment describing it; no Doxygen output is generated |
+| D4 | 4.1.a, 4.1.b | `FreeRTOSConfig.h` has capitals; some file names share their first 8 characters | FreeRTOS fixes that name; the toolchain has no 8-character limit |
+| D5 | 4.1.d, 4.2.a | laptop test and tool programs with `main()` are named `test_*` or by purpose, without headers | build scripts and test names rely on them; they export nothing |
+| D6 | 4.2.c.ii | storage defined in three headers | two are generated model and test tables with a single includer; `wifi_mesh_config.h` is a small constant table kept editable in one place |
+| D7 | 6.1.c, 6.1.e, 6.1.i, 7.1.j | some names break the naming rules | they are fixed by external interfaces: newlib (`_sbrk`, `_write`, `__malloc_lock`), Pico SDK functions re-implemented for the kernel, FreeRTOS hooks, kernel symbols (`tm_usb_*`) and linker symbols (`__mutex_array_*`) |
+| D8 | 6.3.b.iv | `return` inside `END()` and `DEFINE_RADIO()` | each macro generates whole functions; the `return` belongs to the generated function |
+| D9 | 6.2.a | function length limit raised from 100 to **200 lines** (a project-level quantity change, which the standard permits) | the 80-column limit lengthened existing state machines; the longest is `tx_step()` at about 180 lines. Splitting them without hardware to retest was judged riskier |
+| D10 | 8.5.b | `exit()` in three places in laptop-only tools | a failed setup must stop the run; never linked into firmware |
+| D11 | 3.2 | the WiFi neighbour table is excluded from `clang-format` | `tools/demo_multihop.py` reads it as text |
+
+Rules the standard marks as *preferred* are not enforced: avoiding `goto` and `continue` (1.7.c,
+1.7.d), a single exit point per function (6.2.c), and no `extern` variables in headers
+(4.2.c.i). Plain `int` is used where the width does not matter, as rule 5.2.a allows.
+
+## Verification
+
+The restyle changed thousands of lines, so it was checked at the machine-code level. The final
+code was compared with the code as it was before the standard was applied, both built with the same
+Arm GNU Toolchain 14.2 and Pico SDK 2.1.1, comparing the disassembly of each function while
+ignoring symbol names and addresses.
+
+**FreeRTOS build: three object files differ; all others are identical.** (The comparison covered
+every object file of the build, including SDK and library objects.) The three differences are
+deliberate defect fixes from the first audit pass:
+
+| File | Fix |
+| --- | --- |
+| `third_party/wifi_mesh/wst_link.c` | counters written by the UART interrupt are now `volatile`; the handler is named `wst_uart_rx_isr` |
+| `firmware/sensing/sound_fft.c`, `sound_features.c` | shifts of signed values replaced by `sound_asr32()` |
+
+`sound_asr32()` was tested when introduced against the compiler's own shift on about 68 million
+inputs, and the FFT and features produced identical output on 200,000 random FFTs. It adds an
+estimated 50 ms of processing per 5 s capture, within the audio buffer's margin.
+
+**Dual-core build:** the renaming, layout and later passes were compared against a build made
+after those three fixes, for nodes 1 and 2. One function, `usb_owner_task`, differs only in which
+stack slots hold some constants; every other function is identical.
+
+**Limits of this check:** it covers the code built by the default configurations. Optional
+branches and laptop-only code were checked by building and, where tests exist, running them.
+**The restyled firmware has not been run on hardware.** Flash one node and follow
+[BRINGUP.md](BRINGUP.md) before relying on it.

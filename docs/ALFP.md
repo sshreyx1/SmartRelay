@@ -1,7 +1,8 @@
-# ALFP design notes (Member 2: Fragmentation and microSD)
+# ALFP: design notes
 
-The full, illustrated version is the shared design doc. This file is the offline copy that
-travels with the code.
+[Back to the README](../README.md) · [Packet formats](PROTOCOLS.md#5-alfp)
+
+![ALFP exchange](media/alfp.gif)
 
 ## What it does
 
@@ -15,7 +16,7 @@ then checked with CRC-32 and handed to the laptop over USB.
 ## Protocol: sender-polled selective repeat
 
 1. Sender computes the file's CRC-32 from the SD card (512 bytes per step, so the radio keeps being serviced).
-2. MANIFEST: size, fragment count and size, CRC-32, radio, 27-byte capture metadata.
+2. MANIFEST: size, fragment count and size, CRC-32, radio, capture metadata (31-byte record).
 3. DATA 0 .. n-1, paced (LoRa 500 ms after the radio goes idle; WiFi 10 ms).
 4. POLL(round). Bridge answers with a NACK listing exactly the missing fragments (list or bitmap,
    whichever is shorter), or with ACK OK if everything is in and the CRC-32 matches.
@@ -63,9 +64,9 @@ b0 = version (high nibble, 1) | type (low nibble).
 | One task owns radios + SD | FatFs built non-reentrant; mesh code needs no locks |
 | Radio chosen once per attempt | WiFi if bridge heartbeat heard on WiFi within 10 s, else LoRa, else wait on SD |
 
-## Radio choice by size (CURVEBALL round 3)
+## Radio choice by size
 
-The professor's requirement: small data (sensor readings, the sound label/features) goes over
+The requirement: small data (sensor readings, the sound label/features) goes over
 LoRa; large data (images) goes over WiFi. `alfp_select_radio()` (above: "Radio chosen once per
 attempt") never looked at size at all, just preference order and freshness -- a capture always
 tried WiFi first regardless of how small it was. `alfp_select_radio_for_size()`
@@ -89,7 +90,7 @@ Even the smallest size this table measures (2,000 B) already costs 21 s over LoR
 second over WiFi -- the "prefer LoRa below the threshold" side of the rule is not about LoRa being
 fast, it is about keeping WiFi free for the image while a telemetry-sized payload's extra latency
 is tolerable and does not need the faster radio. The 27-byte capture record (`capture_meta_t`)
-plus the small name-tail telemetry transfers actually send (Task A.2 below) are two orders of
+plus the small name-tail telemetry transfers actually send are two orders of
 magnitude under even the cheapest row in this table, so 1,024 B comfortably separates "telemetry"
 from "image" for every image this firmware has ever produced (`sd_card/samples/*.jpg` run
 roughly 5.8-10.2 kB) while leaving room to grow. If a future sensor payload needs more than 1 KB,
@@ -114,7 +115,7 @@ exactly as before. The size rule sends the telemetry job over LoRa and the image
 The backend links them by `capture_id` (`backend/storage.py`'s `record_capture()`), so a capture
 with only its telemetry arrived (WiFi down) shows on the dashboard without an image, and the image
 attaches to the same row whenever it arrives. `APP_SPLIT_TELEMETRY=0` restores the single combined
-transfer this firmware always sent before this round.
+transfer the firmware sent originally.
 
 ## Measured performance (simulator, 8 kB image, 2 hops, 10% loss per hop)
 
@@ -128,30 +129,10 @@ Recommendation for the LoRa mesh: channel activity detection (listen-before-talk
 transmission makes transfers 18% faster (e3). The bridge's 3 s heartbeat is the main source of
 collisions at 1 hop without it.
 
-## Memory (arm-none-eabi, Pico W)
+## Memory (arm-none-eabi, Pico W, measured on an earlier build)
 
 | | Size |
 | --- | --- |
 | ALFP context | 2,452 B RAM |
 | ALFP code | ~9 kB flash (+1.5 kB CRC tables) |
 | Whole node firmware, all members' code | 178 kB flash, 110 kB static RAM of 264 kB (48 kB FreeRTOS heap, 16 kB audio DMA ring) |
-
-## Integration with the team's code (8 Oct)
-
-- One image per node (`csc09_node_1..5.uf2`) with Mridula's LoRa mesh, Goutham's WiFi mesh,
-  Maryam's PIR/DHT22/weather tree and Rhaylene's sound trigger and classifier. Their sources are
-  compiled as delivered; only Mridula's `gpio.h` pin defines were made overridable.
-- Pins (firmware/app/board.h): the microSD card uses the Maker Pi Pico slot, sharing SPI1 with the
-  LoRa module (separate chip selects GP15 and GP13). DIO9 moved GP15 to GP7 and BUSY GP14 to GP6.
-  The single comms task owns both SPI devices, mounts the SD card before LoRa starts, and runs the
-  bus at 1 MHz.
-- Trigger: PIR and sound trigger high together (their rule), 5 s cooldown. Each capture records
-  5 s of audio and sends energy-based class, RMS and zero crossings per second in the capture
-  record together with temperature, humidity, light and weather label.
-- Audio: Rhaylene's 160 kB record buffer does not fit, so the ADC free-runs at 16 kHz into a 16 kB
-  DMA ring and the same features are computed while streaming. Identical to her
-  `mic_analyze_buffer()` in 30 test cases; on the RP2040 emulator 16000 samples per second, none lost.
-- DHT22: her bit-banged read needs ~5 ms without interruption; the sensors task is raised above
-  the comms task for exactly that window.
-- Verified on the laptop: Goutham's real `wifi_mesh.c` + ALFP in three processes, E to C to A
-  through his topology filter, byte-for-byte identical up to 35% loss per hop.

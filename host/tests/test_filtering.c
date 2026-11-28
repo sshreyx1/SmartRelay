@@ -31,7 +31,7 @@
  *     wifi_mesh_init() call) as part of run_wifi_integration.sh's multi-hop
  *     E->C->A scenario --
  *     that is where this filter is actually exercised, not here. See
- *     docs/TEST_REPORT.md.
+ *     docs/TESTING.md.
  */
 #include <inttypes.h>
 #include <string.h>

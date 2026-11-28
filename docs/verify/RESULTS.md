@@ -1,9 +1,11 @@
-# Verification results, 2026-11-19 (branch `curveball-verify`)
+# Hardware verification results, 19 November 2026
+
+[Back to the testing summary](../TESTING.md). This is a record of that session: file names and line
+references are those of the code at the time.
 
 Hardware: node 1 (bridge, WST-1) and node 2 (field node, carrying WST-3's ESP-01), both on the
 dual-core uT-Kernel 3 SMP firmware, on one MacBook over USB. Every number below comes from a file in
-[evidence/](evidence/) (large logs are gzipped). Report-text changes for the shared Google Docs are
-in [DOC_CHANGES.md](DOC_CHANGES.md).
+[evidence/](evidence/) (large logs are gzipped).
 
 ## 1. Summary
 

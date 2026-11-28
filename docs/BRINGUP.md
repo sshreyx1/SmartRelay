@@ -1,19 +1,25 @@
-# CSC09 node firmware: wiring, build, flash and test
+# Wiring, flashing and bring-up
 
-One firmware image now carries everyone's code:
+[Back to the README](../README.md)
 
-| Member | Code | Where it lives | Changed? |
-| --- | --- | --- | --- |
-| Mridula (LoRa mesh) | `lora_mesh.c`, `lora_radio.c`, LR1121 driver | `third_party/lora_mesh/` | Only `gpio.h`: the pin defines are wrapped in `#ifndef` so BUSY and DIO9 can move. Defaults unchanged. |
-| Goutham (WiFi mesh) | `wifi_mesh.c`, `wst_link.c`, `wifi_mesh_config.h` | `third_party/wifi_mesh/` | No |
-| Rhaylene (sound) | `sound.c`, `mic.c` | `third_party/sensors/` | No |
-| Maryam (environment) | `pir.c`, `DHT22.c`, `weather_tree.h` | `third_party/sensors/` | No |
-| Shreya (ALFP, SD, integration) | `alfp/`, `firmware/` | | |
+One firmware image per node carries every team member's module:
+
+| Member | Module | Where it lives |
+| --- | --- | --- |
+| Mridula | LoRa mesh, LR1121 driver | `third_party/lora_mesh/` (BUSY and DIO9 pins made configurable) |
+| Goutham | WiFi mesh, serial link | `third_party/wifi_mesh/` |
+| Rhaylene | sound trigger, microphone, classifier | `third_party/sensors/`, `firmware/sensing/` |
+| Maryam | PIR, DHT22, weather label | `third_party/sensors/` |
+| Shreya | ALFP, microSD, integration | `alfp/`, `firmware/` |
+
+The modules were later renamed and reformatted to the [coding standard](CODING_STANDARD.md),
+which did not change their behaviour apart from the fixes listed there. These steps use the
+FreeRTOS images; for the dual-core images see [MICROKERNEL.md](MICROKERNEL.md).
 
 What a field node does: every 2 s it reads the DHT22 and the light sensor and runs Maryam's weather
 tree. When the PIR and the sound trigger are high at the same moment (the rule from their
 `main.c`), it records 5 s of audio, runs Rhaylene's sound classifier, packs everything into the
-27-byte capture record and queues the next sample image from the SD card. ALFP sends the image
+capture record and queues the next sample image from the SD card. ALFP sends the image
 plus the record to node 1 over WiFi if WiFi can hear the bridge, otherwise over LoRa, and repairs
 any lost fragments. Node 1 checks the CRC-32, saves the file and streams it to the laptop.
 
@@ -90,7 +96,7 @@ DAT2 lines, which a card ignores in SPI mode.
   python3 tools/make_sample_images.py my_photos/*.jpg --out sd_card/samples
   ```
 
-  (label images: `python tools/make_label_images.py`, see `docs/sound/HANDOFF.md`). 160x120 JPEGs
+  (label images: `python tools/make_label_images.py`). 160x120 JPEGs
   are 3 to 6 kB, the label images up to 10 kB: about 1 s over WiFi, 30 to 70 s over LoRa.
   Anything up to 120 kB works. The node also keeps `meta/next_id` on the card so capture ids
   (`N2-000042`) never restart after a reboot; do not delete it between demo runs.
@@ -99,9 +105,7 @@ DAT2 lines, which a card ignores in SPI mode.
 
 ## 3. Get the .uf2 files
 
-### Option A: use the ones I built (no setup)
-
-The `uf2/` folder has everything ready to flash:
+### Option A: use the ready-made images
 
 | File | Flash it on | What it is |
 | --- | --- | --- |
@@ -111,35 +115,19 @@ The `uf2/` folder has everything ready to flash:
 | `alfp_selftest.uf2` | any node | SD card + the protocol, no radios |
 | `lora_photo_rx.uf2` / `lora_photo_tx.uf2` | two nodes | LoRa-only photo test |
 
-The node number is baked into the file, so `csc09_node_3.uf2` always runs as node 3 (C).
+The node number is built into the file, so `csc09_node_3.uf2` always runs as node 3 (C).
 
-### Option B: build them yourself (after changing code)
+### Option B: build them yourself
 
-You need a Linux, Mac or WSL (Ubuntu on Windows) terminal. On Windows, install WSL once with
-`wsl --install` in PowerShell, reboot, then open "Ubuntu" from the Start menu.
+Use a Linux, macOS or WSL terminal with `cmake`, the Arm GNU toolchain, `git` and Python 3.
 
 ```bash
-# one time: compiler and tools
 sudo apt update && sudo apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential git python3
-#   (Mac: brew install cmake && brew install --cask gcc-arm-embedded)
-
-# one time: unzip the project and fetch the pinned SDK, FreeRTOS and SD-card library
-unzip csc09_alfp.zip && cd alfp
-./tools/fetch_deps.sh                    # about 2 minutes, prints three export lines
-
-# every new terminal: paste the three export lines it printed, e.g.
-export PICO_SDK_PATH=$PWD/deps/pico-sdk
-export FREERTOS_KERNEL_PATH=$PWD/deps/FreeRTOS-Kernel
-export FATFS_PICO_PATH=$PWD/deps/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
-
-# build everything (first time about 3 minutes)
+./tools/fetch_deps.sh                    # prints three export lines: paste them
 cmake -S firmware -B build-fw
 cmake --build build-fw -j4
 ls build-fw/*.uf2
 ```
-
-After editing code, run only `cmake --build build-fw -j4` again. In WSL the files are at
-`\\wsl$\Ubuntu\home\<you>\alfp\build-fw` in Windows Explorer, so you can drag them from there.
 
 Build options (add to the first `cmake` line, e.g. `cmake -S firmware -B build-fw -DAUDIO_SECONDS=3`):
 
@@ -212,7 +200,7 @@ FAT32, card not fully pushed in, or the DIO9 wire is still on GP15.
 
 ### Stage 3: LoRa between two Picos (`lora_photo_rx.uf2` + `lora_photo_tx.uf2`)
 
-Proves Mridula's radio on the new pins with the shared SD card. Follow `docs/LORA_PHOTO_TEST.md`.
+Proves Mridula's radio on the new pins with the shared SD card. Follow [LORA_PHOTO_TEST.md](LORA_PHOTO_TEST.md).
 Pass = the CRC-32 printed by both Picos is identical and the photo opens on the laptop.
 
 ### Stage 4: full firmware, two nodes (node 1 + node 2)
@@ -296,49 +284,3 @@ Lower `LORA_TX_POWER_DBM` in Mridula's `lora_radio.h` if you need real LoRa hops
 | Nothing at all on the serial monitor | wrong COM port. USB serial drops anything printed before the monitor opened, so a late monitor misses the start-up lines: press `h` or `s` |
 
 ---
-
-## 8. What changed from each member's original code, and why
-
-- **Rhaylene, mic recording.** `mic_record_buffer()` needs a 160 kB buffer (5 s x 16 kHz x 2 bytes),
-  60% of the Pico's RAM, which does not fit next to two radio stacks, FreeRTOS and the SD driver.
-  The firmware records the same 5 s at the same 16 kHz, but the ADC is paced by its own clock and
-  DMA streams the samples through a 16 kB ring while `audio_features.c` computes her exact energy,
-  zero-crossing rate and decision tree. `host/tests/test_audio.c` runs her unchanged
-  `mic_analyze_buffer()` and the streaming version on the same data in 30 cases: the numbers are
-  identical. On the RP2040 emulator the capture took exactly 16000 samples per second with none lost.
-  The raw audio is not stored or sent (160 kB would take about 20 minutes over LoRa); its features go
-  with every capture.
-- **Rhaylene, classifier observations for her to look at:** quiet white noise around 2048 comes out
-  as `HIGH_FREQ_RUSTLE` (ADC noise crosses the mid-line often, so zcr > 0.15), and any DC offset
-  from 2048 comes out as `LOUD_ANIMAL_CALL`. Both come straight from the thresholds, not the integration.
-- **Maryam, DHT22.** `DHT_read()` times the sensor's bits by counting loop iterations, so it must
-  not be interrupted. The firmware raises the sensors task above the radio task for those few
-  milliseconds, and builds `DHT22.c` with its 40 us `sleep_us` turned into a busy wait (under
-  FreeRTOS a sleep can overrun by tens of microseconds, right when the sensor starts answering).
-  Her source file is unchanged; both are build settings.
-- **Both, the 16-byte `LoRaMeshPacket` and `lora.c`.** Replaced by the capture record that rides
-  inside every ALFP transfer (`common/capture_meta.h`), so sensor data and image always arrive
-  together and verified. `lora.c` was a placeholder; Mridula's real driver is used. (The old packet
-  also put the energy into a `uint16_t`, which overflows above 65535; the record carries the RMS,
-  which fits.)
-- **Fields still "unknown" in every record:** `weather_conf`, `trigger_trust` and `sound_conf`.
-  Neither tree outputs a confidence. If Maryam or Rhaylene add one, it is one line each in
-  `firmware/sensing/sensing.c`.
-- **Mridula, pins.** BUSY GP14 to GP6 and DIO9 GP15 to GP7, passed in from CMake. Her driver runs
-  SPI1 at 1 MHz; the SD card now runs at the same speed on the same bus.
-- **Goutham.** Used as is: `wifi_mesh.c` and `wst_link.c`. His `bridge.c` is not used, because node
-  1's firmware already forwards finished files to the laptop (`tools/bridge_receiver.py`).
-
-## 9. Tested before handing over
-
-| Test | Result |
-| --- | --- |
-| All firmware images build with the team's code (`cmake --build`) | 9 .uf2 files, no warnings in our code |
-| Laptop test suite (`ctest`, 7 suites, sanitizers on) | all pass |
-| Mridula's real `lora_mesh.c` + ALFP, two processes, 20% loss | file byte-for-byte identical |
-| Goutham's real `wifi_mesh.c` + ALFP, three processes, E to C to A through his topology filter, 0/10/20/35% loss per hop | file byte-for-byte identical every time |
-| Rhaylene's `mic_analyze_buffer()` vs the streaming version, 30 cases | identical |
-| DMA audio capture on the RP2040 emulator (rp2040js), 1 kHz test tone | 16000 samples in 1.001 s, 0 lost, energy and crossings match the maths, `adc_read()` for the light sensor still works after. With a forced 0.7 s stall the lost-sample counter is exact |
-| Code review of the integration by a second reviewer | 4 fixes applied (comms loop yield, lost-sample count, DHT22 start pulse, WiFi status line) |
-
-Still to be tested on the real boards: everything in stage 1 to 5 above.
