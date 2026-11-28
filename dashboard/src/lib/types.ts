@@ -1,27 +1,26 @@
 /**
- * Types mirroring the REAL backend contract (backend/app.py, storage.py).
+ * Types mirroring the backend contract (backend/app.py, storage.py) field for field.
  *
- * This dashboard is a UI port of the old trail-mesh demo app (same layout,
- * same colour scheme, same components) rebuilt against the actual ALFP
- * wire data instead of a simulated one. A few fields the old UI showed --
- * species identification, review workflow, per-fragment live progress,
- * RSSI/SNR, battery, duplicate/retransmit counts -- simply don't exist in
- * the current protocol or backend yet. Those are marked `TBD` below and the
- * components that use them render a plain "TBD" note instead of inventing a
- * number. Wiring one up later is: add the field to the real pipeline, fill
- * it in here, and the matching UI piece lights up on its own.
+ * null always means "the source cannot answer" and the UI shows "Data unavailable" for it.
+ * A 0 is only ever shown when the backend confirms zero.
  */
 
 export type NodeStatus = 'recent' | 'stale' | 'never seen'
 export type NodeRole = 'bridge' | 'field'
+export type Mode = 'real' | 'sim' | 'both'
+export type RadioFilter = 'lora' | 'wifi' | 'unknown'
+export type FileKind = 'image' | 'telemetry' | 'test' | null
 
 export interface MeshNode {
   node_id: number
   role: NodeRole
+  /** time of the last REAL capture received from this node (not a heartbeat) */
   last_seen: number | null
   seconds_since: number | null
   last_radio: string | null
   status: NodeStatus
+  /** a file from this node is being uploaded by the bridge right now */
+  arriving?: boolean
 }
 
 export interface Stats {
@@ -30,24 +29,83 @@ export interface Stats {
   by_radio: Record<string, number>
 }
 
+export interface BridgeEvent {
+  connected: boolean
+  at: number
+}
+
+export interface BridgeState {
+  connected: boolean
+  port: string | null
+  since: number | null
+  history: BridgeEvent[]
+}
+
 export interface HealthInfo {
   ok: boolean
+  server_time: number
   bridge_port: string | null
   bridge_connected: boolean
+  bridge: BridgeState
   dashboards_connected: number
   stats: Stats
 }
 
+/** One fragment as the bridge reported it (@EVT RXF). via = node that delivered it (null = unknown, LoRa). */
+export interface Fragment {
+  seq: number
+  round: number | null
+  hops: number | null
+  via: number | null
+  t_rel_s: number | null
+  dup_count: number
+}
+
 /**
- * One real, verified ALFP transfer reassembled by the bridge. This is both
- * "a sighting" (it has a photo + sensor readings) and "a completed
- * transfer" (it has frag_total/radio/crc32) in the old UI's vocabulary --
- * the real pipeline only ever gives us the finished, CRC-checked file, so
- * there is one shape here instead of two.
- *
- * "-" / null means the firmware's capture_meta.h sent its MISSING/UNKNOWN
- * sentinel for that field (see common/capture_meta.h) -- never a guess.
+ * One file (ALFP transfer) as the bridge saw it: backend/transfers.py TransferTracker.transfer_view().
+ * A capture usually sends two: telemetry + image. *_ms = bridge clock, *_at = laptop clock.
+ * null = not reported (old bridge firmware without @EVT lines, or the backend started mid-transfer).
  */
+export interface Transfer {
+  id: number
+  node_id: number
+  sid: number
+  capture_row_id: number | null
+  capture_id: number | null
+  kind: FileKind
+  radio: string | null
+  size_bytes: number | null
+  frag_count: number | null
+  frag_size: number | null
+  crc_sender: string | null
+  crc_bridge_ok: 0 | 1 | null
+  crc_laptop_ok: 0 | 1 | null
+  status: 'in_progress' | 'verified' | 'failed'
+  fail_reason: string | null
+  first_ms: number | null
+  done_ms: number | null
+  first_at: number | null
+  verified_at: number | null
+  upload_start_at: number | null
+  upload_end_at: number | null
+  /** ms the file waited in the sender's queue (node clock, capture meta v2) */
+  queued_ms: number | null
+  nacks: number | null
+  dups: number | null
+  rounds: number | null
+  hops_min: number | null
+  hops_max: number | null
+  last_at: number | null
+  is_demo: boolean | 0 | 1
+  /** distinct fragments received so far */
+  have: number
+  /** fragments per delivering node id ("0" = unknown) */
+  via_counts: Record<string, number>
+  radio_s: number | null
+  upload_s: number | null
+  fragments?: Fragment[]
+}
+
 export interface Capture {
   id: number
   node_id: number
@@ -60,7 +118,6 @@ export interface Capture {
   image_path: string | null
   image_url: string | null
   received_at: number
-
   uptime_ms: number | null
   trigger_pir: 0 | 1
   trigger_sound: 0 | 1
@@ -70,36 +127,107 @@ export interface Capture {
   weather_label: number | null
   weather_name: string | null
   trigger_trust: number | null
-  /** label id decided ON THE NODE (common/sound_classes.h); the backend only names it */
   sound_class: number | null
   sound_name: string | null
   sound_rms: number | null
   sound_zcr: number | null
   image_index: number | null
-  /** node's confidence in sound_class, 0-100 (null for rows from before the classifier) */
   sound_conf?: number | null
-  /** e.g. "DOG"; a group name ("BIRD") when the node only knew the group */
   sound_label?: string | null
-  /** e.g. "MAMMAL" */
   sound_group?: string | null
-  /** image file the node picked for that label, e.g. "dog_01.jpg" */
   image_name?: string | null
-  /** "N2-000042": the same name the node logs and uses on its SD card */
   display_id?: string | null
-
   is_demo: 0 | 1
+  files: Transfer[]
 }
 
-/** One row of /api/species: how often the nodes reported a sound label. */
-export interface SpeciesTally {
+export interface SoundClassRow {
   sound_class: number
   sound_label: string
   sound_group: string | null
   count: number
-  last_seen: number
-  nodes: number[]
   mean_conf: number | null
-  demo_count: number
+  nodes: number[]
+  last_seen: number
+  sim_count: number
+}
+
+export interface RadioMixRow {
+  radio: string
+  node_id: number
+  kind: string
+  files: number
+  avg_size: number | null
+  avg_frags: number | null
+  max_size: number | null
+  duplicates: number | null
+}
+
+export interface Insight {
+  level: 'info' | 'warn'
+  text: string
+  evidence: string
+}
+
+export interface TimelineBin {
+  t: number
+  real: number
+  sim: number
+}
+
+export interface Summary {
+  range: { first: number | null; last: number | null }
+  filtered_range: { first: number | null; last: number | null }
+  captures: number
+  real_captures: number
+  sim_captures: number
+  dual_sensor: { count: number; of: number }
+  crc_verified_transfers: number
+  failed_transfers: number
+  laptop_crc_failed: number
+  field_nodes_reporting: { count: number; of: number; window_s: number; basis: string; nodes: number[] } | null
+  by_node: Record<string, number>
+  by_radio: { lora: number; wifi: number; unknown: number }
+  timeline: { bin_s: number; bins: TimelineBin[] }
+  /** bridge-measured radio time of image files, per radio; null = never reported */
+  median_transfer_s: { wifi: number | null; lora: number | null } | null
+  median_usb_upload_s: number | null
+  sound_classes: SoundClassRow[]
+  radio_mix: { rows: RadioMixRow[]; note: string }
+  insights: Insight[]
+}
+
+export interface ReadingPoint {
+  id: number
+  received_at: number
+  temperature_c: number | null
+  humidity_pct: number | null
+  light_raw: number | null
+  sound_rms: number | null
+  is_demo: 0 | 1
+}
+
+export interface FieldNodeDetail {
+  node_id: number
+  role: 'field'
+  captures_count: number
+  last_capture_at: number | null
+  last_radio: { radio: string | null; kind: FileKind; received_at: number } | null
+  median_image_transfer_s: number | null
+  median_image_transfer_radio: string
+  fragments_resent: { resent: number; of: number } | null
+  files: {
+    files: number
+    frags: number | null
+    dup: number | null
+    dup_known: number | null
+    wifi_files: number | null
+    lora_files: number | null
+  }
+  captures: Capture[]
+  readings: ReadingPoint[]
+  /** Wi-Fi fragments per delivering node ("direct" = straight from the sender, "unknown"); LoRa total */
+  relay_counts: { wifi: Record<string, number>; lora: number } | null
 }
 
 export interface LogLine {
@@ -108,20 +236,21 @@ export interface LogLine {
   received_at: number
 }
 
-export interface HourBucket {
-  hour: number
-  count: number
-}
-
-/** A capture's temp/humidity/light plotted over time for one node -- real,
- *  derived client-side from the captures already on hand (there is no
- *  separate telemetry/heartbeat table yet; every real reading we have
- *  comes attached to a capture). */
-export interface EnvironmentPoint {
-  received_at: number
-  temperature_c: number | null
-  humidity_pct: number | null
-  light_raw: number | null
+export interface BridgeDetail {
+  node_id: 1
+  role: 'bridge'
+  bridge: BridgeState
+  transfers: {
+    verified: number | null
+    failed: number | null
+    laptop_failed: number | null
+    laptop_ok: number | null
+    real: number | null
+    fail_reasons: Record<string, number>
+    bridge_crc_retries: number
+  }
+  in_flight: Transfer[]
+  log: LogLine[]
 }
 
 // --- WebSocket envelope ----------------------------------------------------
@@ -131,12 +260,54 @@ export interface SnapshotPayload {
   captures: Capture[]
   log: LogLine[]
   stats: Stats
+  in_flight: Transfer[]
+  bridge: BridgeState
+}
+
+export interface StartPayload {
+  transfer_id: number
+  node_id: number
+  sid: number
+  radio: string | null
+  first_at: number | null
+  is_demo: boolean
+}
+
+export interface ProgressPayload {
+  transfer_id: number
+  node_id: number
+  sid: number
+  radio: string | null
+  have: number
+  frag_count: number | null
+  kind: FileKind
+  capture_id: number | null
+  last_hops: number | null
+  last_via: number | null
+  via_counts: Record<string, number>
+  nacks: number | null
+  dups: number | null
+  elapsed_s: number | null
+  is_demo: boolean
+}
+
+export interface FailedPayload {
+  transfer_id: number
+  reason: string
+  node_id: number
+  sid: number
+  is_demo: boolean
 }
 
 export type WsEvent =
   | { event: 'snapshot'; data: SnapshotPayload; ts: number }
   | { event: 'capture'; data: Capture; ts: number }
   | { event: 'log'; data: { line: string }; ts: number }
+  | { event: 'transfer_start'; data: StartPayload; ts: number }
+  | { event: 'transfer_progress'; data: ProgressPayload; ts: number }
+  | { event: 'transfer_done'; data: Transfer; ts: number }
+  | { event: 'transfer_failed'; data: FailedPayload; ts: number }
+  | { event: 'bridge_status'; data: BridgeState; ts: number }
 
 export type NotificationLevel = 'info' | 'warning' | 'error'
 
@@ -147,7 +318,7 @@ export interface AppNotification {
   body: string
   at: Date
   read: boolean
+  tag?: 'REAL' | 'SIMULATED'
 }
 
 export type ConnectionState = 'connecting' | 'live' | 'offline'
-export type Theme = 'light' | 'dark'

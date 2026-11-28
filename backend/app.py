@@ -33,6 +33,8 @@ Run:
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 import json
 import logging
 import os
@@ -41,15 +43,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from live_bridge import CompletedTransfer, LiveBridge, autodetect_port
-from storage import Store
-from transfers import TransferTracker
+from storage import Filters, Store
+from transfers import TransferTracker, kind_of
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
 log = logging.getLogger("smartrelay.api")
@@ -57,7 +59,10 @@ log = logging.getLogger("smartrelay.api")
 BASE_DIR = Path(__file__).parent
 DASHBOARD_DIST = BASE_DIR.parent / "dashboard" / "dist"
 
-store = Store(db_path=str(BASE_DIR / "smartrelay.db"), captures_dir=str(BASE_DIR / "received"))
+# SMARTRELAY_DB / SMARTRELAY_CAPTURES_DIR let tests point the app at a throwaway database.
+CAPTURES_DIR = Path(os.environ.get("SMARTRELAY_CAPTURES_DIR") or BASE_DIR / "received")
+store = Store(db_path=os.environ.get("SMARTRELAY_DB") or str(BASE_DIR / "smartrelay.db"),
+              captures_dir=str(CAPTURES_DIR))
 
 BRIDGE_PORT = os.environ.get("SMARTRELAY_BRIDGE_PORT") or autodetect_port()
 DEMO_MODE_REQUIRES_TOKEN = os.environ.get("SMARTRELAY_DEMO_TOKEN", "").strip()
@@ -114,11 +119,28 @@ def with_image_url(row: Dict[str, Any]) -> Dict[str, Any]:
     return row
 
 
+def with_files(rows: List[Dict[str, Any]], fragments: bool = False) -> List[Dict[str, Any]]:
+    """Capture rows plus the transfers (files) that delivered them, as TransferTracker views: usually
+    telemetry + image, each with its own radio time, upload time, CRC checks and relay counts."""
+    ids = store.transfers_for(r["id"] for r in rows)
+    for r in rows:
+        with_image_url(r)
+        r["files"] = [v for v in (tracker.transfer_view(t, with_fragments=fragments) for t in ids.get(r["id"], []))
+                      if v is not None]
+    return rows
+
+
 TELEMETRY_MARKER = "TELEMETRY"  # kept in sync by hand with firmware/app/main.c's APP_TELEMETRY_MARKER
 
 
 def on_transfer(xfer: CompletedTransfer) -> None:
     meta = xfer.meta
+    if kind_of(meta) == "test":
+        # A size-ladder test payload (no capture record): a real verified transfer, but not a capture.
+        tracker.on_file_saved(xfer.hdr, xfer.is_demo, None)
+        log.info("test payload verified: node %s session %s, %d bytes via %s", xfer.src, xfer.session_id,
+                 xfer.size, xfer.radio)
+        return
     # Task A.2: the node sends capture metadata and the image as two separate ALFP transfers, so
     # the size rule can route the tiny one over LoRa and the image over WiFi. The telemetry
     # transfer's original_name tail (tools/bridge_receiver.decode_meta) is the literal marker
@@ -152,13 +174,21 @@ def on_line(line: str) -> None:
     hub.broadcast_soon("log", {"line": line})
 
 
+# USB link history for the bridge page, newest last (since this backend started).
+bridge_history: List[Dict[str, Any]] = []
+BRIDGE_HISTORY_MAX = 50
+
+
 def on_bridge_status(connected: bool, port: Optional[str]) -> None:
     log.info("bridge serial %s (%s)", "connected" if connected else "LOST", port)
+    bridge_history.append({"connected": connected, "at": time.time()})
+    del bridge_history[:-BRIDGE_HISTORY_MAX]
     hub.broadcast_soon("bridge_status", bridge_status())
 
 
 def bridge_status() -> Dict[str, Any]:
-    return {"connected": bridge.connected, "port": bridge.port or BRIDGE_PORT, "since": bridge.since}
+    return {"connected": bridge.connected, "port": bridge.port or BRIDGE_PORT, "since": bridge.since,
+            "history": list(reversed(bridge_history))}
 
 
 # docs/PROTOCOLS.md: the bridge's @EVT lines -> transfers / fragments tables + live WS events
@@ -200,8 +230,30 @@ async def lifespan(app: FastAPI):
     store.close()
 
 
-app = FastAPI(title="smartrelay", version="1.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(title="smartrelay", version="2.0", lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+                   expose_headers=["Content-Disposition"])
+
+
+# ---------------------------------------------------------------------------
+# Filters (shared by every list, KPI, chart, insight and export)
+# ---------------------------------------------------------------------------
+
+def get_filters(
+    node_id: Optional[int] = None,
+    radio: Optional[str] = Query(None, pattern="^(lora|wifi|unknown)$"),
+    trigger: Optional[str] = Query(None, pattern="^(dual|pir|sound|manual)$"),
+    since: Optional[float] = None,
+    until: Optional[float] = None,
+    mode: Optional[str] = Query(None, pattern="^(real|sim|both)$"),
+    include_demo: Optional[bool] = None,
+    q: Optional[str] = None,
+) -> Filters:
+    """mode replaces include_demo; the old parameter still works (true -> both, false -> real)."""
+    if mode is None:
+        mode = "real" if include_demo is None else ("both" if include_demo else "real")
+    return Filters(node_id=node_id, radio=radio, trigger=trigger, since=since, until=until, mode=mode,
+                   q=(q or None))
 
 
 # ---------------------------------------------------------------------------
@@ -226,6 +278,7 @@ async def api_nodes() -> Dict[str, Any]:
     bridge last reassembled a real capture from that node. There is no
     periodic heartbeat in the firmware today, so we do not invent one."""
     last_seen = store.node_last_seen()
+    arriving = {t["node_id"] for t in tracker.in_flight()}
     now = time.time()
     nodes = []
     for node_id in range(1, 6):
@@ -238,15 +291,68 @@ async def api_nodes() -> Dict[str, Any]:
             "seconds_since": round(age) if age is not None else None,
             "last_radio": info["radio"] if info else None,
             "status": "never seen" if age is None else ("recent" if age < 600 else "stale"),
+            "arriving": node_id in arriving,
         })
-    return {"nodes": nodes, "note": "status reflects real captures only; the firmware has no laptop-facing heartbeat yet"}
+    return {"nodes": nodes, "note": "status reflects the last real capture received; the firmware has no "
+                                    "laptop-facing heartbeat"}
+
+
+@app.get("/api/nodes/{node_id}")
+async def api_node(node_id: int, f: Filters = Depends(get_filters)) -> Dict[str, Any]:
+    if not 1 <= node_id <= 5:
+        raise HTTPException(status_code=404, detail="no such node")
+    if node_id == 1:
+        return {"node_id": 1, "role": "bridge", "bridge": bridge_status(), **store.bridge_detail(),
+                "in_flight": tracker.in_flight(), "log": store.log_page(limit=20)}
+    d = store.node_detail(node_id, f)
+    with_files(d["captures"])
+    return d
+
+
+@app.get("/api/summary")
+async def api_summary(f: Filters = Depends(get_filters)) -> Dict[str, Any]:
+    return store.summary(f)
 
 
 @app.get("/api/captures")
-async def api_captures(limit: int = Query(50, le=500), node_id: Optional[int] = None,
-                       include_demo: bool = True) -> Dict[str, Any]:
-    rows = store.recent_captures(limit=limit, node_id=node_id, include_demo=include_demo)
-    return {"captures": [with_image_url(r) for r in rows]}
+async def api_captures(f: Filters = Depends(get_filters), limit: int = Query(20, ge=1, le=500),
+                       before_id: Optional[int] = None, has_image: bool = False) -> Dict[str, Any]:
+    f.has_image = has_image
+    rows = store.filtered_captures(f, limit=limit, before_id=before_id)
+    return {"captures": with_files(rows), "total": store.count_captures(f)}
+
+
+EXPORT_FIELDS = [
+    "id", "display_id", "node_id", "capture_id", "received_at", "received_iso", "is_demo", "trigger_pir",
+    "trigger_sound", "temperature_c", "humidity_pct", "light_raw", "weather_name", "sound_label", "sound_group",
+    "sound_conf", "sound_rms", "image_name", "crc32",
+]
+FILE_FIELDS = ["radio", "size_bytes", "frag_count", "nacks", "dups", "rounds", "hops_max", "radio_s", "upload_s",
+               "crc_laptop_ok", "sid"]
+
+
+@app.get("/api/captures/export")
+async def api_export(f: Filters = Depends(get_filters),
+                     format: str = Query("csv", pattern="^(csv|json)$")) -> Response:
+    rows = with_files(store.filtered_captures(f, limit=100_000))
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    if format == "json":
+        body = json.dumps({"filters": f.__dict__, "captures": rows}, indent=1, default=str)
+        return Response(body, media_type="application/json",
+                        headers={"Content-Disposition": f'attachment; filename="smartrelay-captures-{stamp}.json"'})
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(EXPORT_FIELDS + [f"telemetry_{k}" for k in FILE_FIELDS] + [f"image_{k}" for k in FILE_FIELDS])
+    for r in rows:
+        r["received_iso"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(r["received_at"]))
+        by_kind = {t.get("kind"): t for t in r["files"]}
+        line = [r.get(k) for k in EXPORT_FIELDS]
+        for kind in ("telemetry", "image"):
+            t = by_kind.get(kind) or {}
+            line += [t.get(k) for k in FILE_FIELDS]
+        w.writerow(line)
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="smartrelay-captures-{stamp}.csv"'})
 
 
 @app.get("/api/captures/{capture_row_id}")
@@ -254,9 +360,9 @@ async def api_capture(capture_row_id: int) -> Dict[str, Any]:
     row = store.get_capture(capture_row_id)
     if not row:
         raise HTTPException(status_code=404, detail="capture not found")
-    row = with_image_url(row)
-    # both transfers of this capture (telemetry + image), each with its own timing and checks
-    row["transfers"] = [tracker.transfer_view(t["id"]) for t in store.transfers_for_capture(capture_row_id)]
+    # both transfers of this capture (telemetry + image), each with its own timing, checks and fragments
+    row = with_files([row], fragments=True)[0]
+    row["transfers"] = row["files"]  # the name the transfer-visibility branch used
     return row
 
 
@@ -289,9 +395,18 @@ async def api_species(include_demo: bool = False) -> Dict[str, Any]:
             "note": "labels are decided on the node (two-stage tree classifier); the backend only counts them"}
 
 
+@app.get("/api/sound_classes")
+async def api_sound_classes(f: Filters = Depends(get_filters)) -> Dict[str, Any]:
+    return {"classes": store.sound_classes(f),
+            "note": "sound classes from each node's on-board classifier, not confirmed species"}
+
+
 @app.get("/api/log")
-async def api_log(limit: int = Query(200, le=1000)) -> Dict[str, Any]:
-    return {"lines": store.recent_log(limit=limit)}
+async def api_log(limit: int = Query(20, ge=1, le=1000), before_id: Optional[int] = None,
+                  kind: str = Query("all", pattern="^(all|errors|nack|fail)$"),
+                  show_evt: bool = False) -> Dict[str, Any]:
+    """Newest first. 'Load older' passes the smallest id it has as before_id."""
+    return {"lines": store.log_page(limit=limit, before_id=before_id, kind=kind, show_evt=show_evt)}
 
 
 # ---------------------------------------------------------------------------
@@ -326,8 +441,8 @@ async def websocket_endpoint(ws: WebSocket) -> None:
             "event": "snapshot",
             "data": {
                 "nodes": (await api_nodes())["nodes"],
-                "captures": [with_image_url(r) for r in store.recent_captures(limit=30)],
-                "log": store.recent_log(limit=50),
+                "captures": with_files(store.filtered_captures(Filters(mode="both"), limit=20)),
+                "log": store.recent_log(limit=20),
                 "stats": store.stats(),
                 "in_flight": tracker.in_flight(),
                 "bridge": bridge_status(),
@@ -346,7 +461,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
 # Static
 # ---------------------------------------------------------------------------
 
-app.mount("/captures", StaticFiles(directory=str(BASE_DIR / "received")), name="captures")
+app.mount("/captures", StaticFiles(directory=str(CAPTURES_DIR)), name="captures")
 
 if DASHBOARD_DIST.is_dir():
     assets_dir = DASHBOARD_DIST / "assets"
