@@ -229,7 +229,7 @@ class SuiteRunner:
 def _summary(lines: List[str], ok: bool) -> str:
     """The most useful closing line a tool printed: pytest's count, ctest's percentage, or the
     run_all_tests.sh verdict."""
-    keys = ("passed", "failed", "tests passed", "No stage failed", "stage(s) FAILED", "OK")
+    keys = ("passed", "PASSED", "failed", "FAILED", "tests passed", "No stage failed")
     for line in reversed(lines[-60:]):
         s = line.strip().strip("=").strip()
         if s and any(k in s for k in keys) and not s.startswith("$"):
