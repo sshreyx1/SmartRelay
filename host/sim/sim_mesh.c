@@ -46,10 +46,12 @@ typedef struct
 typedef struct
 {
     frame_t txq[TXQ_LEN];
-    uint8_t txq_head, txq_n;
+    uint8_t txq_head;
+    uint8_t txq_n;
     relay_t relayq[RELAYQ_LEN];
     rxitem_t rxq[RXQ_LEN];
-    uint8_t rxq_head, rxq_n;
+    uint8_t rxq_head;
+    uint8_t rxq_n;
     seen_t seen[SEEN_LEN];
     uint8_t seen_next;
     bool heard[SIM_MAX_NODES + 1];
@@ -57,7 +59,9 @@ typedef struct
     /* current transmission */
     bool b_enable;
     frame_t cur;
-    uint32_t start_ms, air_start_ms, end_ms;
+    uint32_t start_ms;
+    uint32_t air_start_ms;
+    uint32_t end_ms;
     uint32_t backoff_until;
     uint16_t pkt_id;
     float drop_rate;
@@ -68,7 +72,8 @@ typedef struct
 typedef struct
 {
     uint8_t node;
-    uint32_t air_start, end;
+    uint32_t air_start;
+    uint32_t end;
 } txlog_t;
 
 static struct

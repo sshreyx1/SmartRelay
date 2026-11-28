@@ -68,7 +68,8 @@ static void job_path(const alfp_outbox_t* p_outbox, uint32_t seq, char* p_out, s
 
 typedef struct
 {
-    uint32_t min, max;
+    uint32_t min;
+    uint32_t max;
     uint16_t count;
 } scan_t;
 

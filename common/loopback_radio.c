@@ -18,7 +18,8 @@ typedef struct
 typedef struct
 {
     item_t queue[Q]; /* packets waiting to be received by this endpoint */
-    uint8_t head, count;
+    uint8_t head;
+    uint8_t count;
     uint32_t busy_until;
     uint8_t node_id;
     mesh_stats_t stats;
@@ -31,7 +32,8 @@ static struct
     uint32_t (*p_now)(void);
     uint32_t (*p_rnd)(void);
     uint16_t maxp;
-    uint32_t air, lat;
+    uint32_t air;
+    uint32_t lat;
     float loss;
 } loopback;
 

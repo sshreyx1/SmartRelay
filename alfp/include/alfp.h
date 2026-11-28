@@ -112,10 +112,17 @@ typedef struct
 
 typedef struct
 {
-    uint32_t pkts_in, pkts_bad_crc, pkts_bad_other;
-    uint32_t tx_ok, tx_failed;
-    uint32_t rx_ok, rx_crc_fail, rx_expired, rx_refused_busy;
-    uint32_t data_dup, data_orphan;
+    uint32_t pkts_in;
+    uint32_t pkts_bad_crc;
+    uint32_t pkts_bad_other;
+    uint32_t tx_ok;
+    uint32_t tx_failed;
+    uint32_t rx_ok;
+    uint32_t rx_crc_fail;
+    uint32_t rx_expired;
+    uint32_t rx_refused_busy;
+    uint32_t data_dup;
+    uint32_t data_orphan;
     uint32_t send_blocked; /* radio queue full, retried later */
 } alfp_stats_t;
 

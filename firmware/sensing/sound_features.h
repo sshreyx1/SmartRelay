@@ -52,10 +52,18 @@ typedef struct
     int16_t imag[SF_FRAME];
     uint32_t n_frames;
     uint32_t n_samples;   /* every sample added, including a last partial frame */
-    uint64_t sum, sum_sq; /* raw samples, for the DC-corrected RMS */
-    double band_mean[SF_N_BANDS], band_m2[SF_N_BANDS];
-    double cen_mean, cen_m2, zcr_mean, zcr_m2, loud_mean, loud_m2;
-    float loud_min, loud_max;
+    uint64_t sum;
+    uint64_t sum_sq; /* raw samples, for the DC-corrected RMS */
+    double band_mean[SF_N_BANDS];
+    double band_m2[SF_N_BANDS];
+    double cen_mean;
+    double cen_m2;
+    double zcr_mean;
+    double zcr_m2;
+    double loud_mean;
+    double loud_m2;
+    float loud_min;
+    float loud_max;
     double flux_sum;
     float prev_shape[SF_N_BANDS];
     uint16_t hist[SF_HIST_BUCKETS];

@@ -84,10 +84,10 @@ static void print_stats( void )
             ( unsigned long ) stats.relay_overflow, ( unsigned long ) stats.drop_injected );
     for( uint8_t node_id = 1; node_id <= 5; node_id++ )
     {
-        uint32_t now_ms;
-        if( (NODE_ID != node_id) && (p_mesh->p_last_heard( node_id, &now_ms )) )
+        uint32_t heard_ms;
+        if( (NODE_ID != node_id) && (p_mesh->p_last_heard( node_id, &heard_ms )) )
         {
-            printf( "  last heard node %u: %lu ms ago\n", node_id, ( unsigned long ) ( now_ms( ) - now_ms ) );
+            printf( "  last heard node %u: %lu ms ago\n", node_id, ( unsigned long ) ( now_ms( ) - heard_ms ) );
         }
     }
 }

@@ -95,9 +95,14 @@ static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
 static uint32_t g_capture_id;           /* last id used; restored from the SD card at boot */
 static uint32_t g_boot_first_id;        /* first capture id issued in this boot (ids only grow) */
 static char g_payload_names[TEST_PAYLOADS_MAX][32];
-static uint8_t g_n_payloads, g_next_payload;
+static uint8_t g_n_payloads;
+static uint8_t g_next_payload;
 static sip_table_t g_images; /* samples/<prefix>_NN.jpg found at boot */
-static volatile bool gb_want_stats, gb_toggle_drop, gb_force_capture, gb_want_env, gb_toggle_topo;
+static volatile bool gb_want_stats;
+static volatile bool gb_toggle_drop;
+static volatile bool gb_force_capture;
+static volatile bool gb_want_env;
+static volatile bool gb_toggle_topo;
 static volatile bool gb_want_test_payload; /* console 'p' (test A.3): send the next size-ladder file */
 static volatile bool gb_toggle_hold;       /* console 'H' (test T6): comms stops taking captures off g_capture_q */
 static volatile bool gb_comms_ready;
@@ -225,7 +230,8 @@ static uint32_t g_longest_comms_loop_ms;
 /* ---- transfer events (bridge -> laptop, TRANSFER_VISIBILITY.md 3.3) --------------------------- */
 
 /* Route of the packet alfp_handle_packet() is working on right now (set by comms_service()). */
-static uint8_t g_pkt_hops, g_pkt_prev;
+static uint8_t g_pkt_hops;
+static uint8_t g_pkt_prev;
 
 /* One whole line in one write, through the same stdout the uplink uses, so an event line can sit
  * between two "@D" lines but can never end up inside one. */
@@ -397,7 +403,8 @@ static void store_next_id(const alfp_storage_t* p_store, uint32_t next)
 }
 
 static uint32_t s_job_seq[ALFP_OUTBOX_MAX + 8];
-static uint32_t s_n_jobs, s_highest_seen;
+static uint32_t s_n_jobs;
+static uint32_t s_highest_seen;
 
 static void scan_outbox_cb(const char* p_name, void* p_user)
 {

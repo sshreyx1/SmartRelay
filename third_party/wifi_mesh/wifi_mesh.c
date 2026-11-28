@@ -70,11 +70,13 @@ typedef struct {
     uint32_t heard_ms[6];
 
     out_pkt_t sendq[WIFI_MESH_SEND_QUEUE];     /* our own packets, FIFO */
-    uint8_t   sq_head, sq_count;
+    uint8_t   sq_head;
+    uint8_t sq_count;
     out_pkt_t relayq[WIFI_MESH_RELAY_QUEUE];   /* others' packets       */
     uint8_t   rq_count;
     in_pkt_t  recvq[WIFI_MESH_RECV_QUEUE];     /* waiting for recv()    */
-    uint8_t   rcv_head, rcv_count;
+    uint8_t   rcv_head;
+    uint8_t rcv_count;
 
     mesh_stats_t stats;
     uint32_t filtered;
@@ -82,7 +84,8 @@ typedef struct {
 
     /* route of the packet recv() returned last (wifi_mesh_last_recv_info) */
     bool     b_last_valid;
-    uint8_t  last_hops, last_prev;
+    uint8_t  last_hops;
+    uint8_t last_prev;
     uint16_t relayed_from[6];   /* relays queued, per original source */
 } wm_state_t;
 

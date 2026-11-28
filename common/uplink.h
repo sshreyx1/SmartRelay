@@ -60,24 +60,30 @@ typedef struct
     uint8_t meta[ALFP_MAX_META];
     uint8_t meta_len;
     /* radio-side timing and repair counts, bridge clock (ms since boot) */
-    uint32_t first_ms, done_ms;
-    uint16_t nacks, dups;
+    uint32_t first_ms;
+    uint32_t done_ms;
+    uint16_t nacks;
+    uint16_t dups;
 } uplink_job_t;
 
 typedef struct
 {
     const alfp_storage_t* p_store;
     uplink_job_t jobs[UPLINK_QUEUE_DEPTH];
-    uint8_t head, count;
+    uint8_t head;
+    uint8_t count;
     /* progress through jobs[head] */
     bool b_started;
     int handle;        /* jobs[head]'s file, open from its header line to its END line; -1 = none */
     uint32_t off; /* bytes of the file already sent as @D lines */
     uint32_t crc; /* running CRC-32 of those bytes */
     uint8_t buf[UPLINK_CHUNK_BYTES];
-    uint16_t buf_len, buf_pos;
+    uint16_t buf_len;
+    uint16_t buf_pos;
     /* counters for the 's' stats line */
-    uint32_t sent_ok, sent_bad, queue_full;
+    uint32_t sent_ok;
+    uint32_t sent_bad;
+    uint32_t queue_full;
     uint8_t max_waiting;
 } uplink_queue_t;
 

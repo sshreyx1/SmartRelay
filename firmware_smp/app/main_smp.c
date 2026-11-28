@@ -101,7 +101,8 @@ static volatile uint32_t g_capture_q_waiting; /* for the 'H' message; the kernel
 static const mesh_radio_t* g_radios[2];       /* preference: WiFi first, then LoRa */
 static uint32_t g_capture_id;                 /* last id used; restored from the SD card at boot */
 static char g_payload_names[TEST_PAYLOADS_MAX][32];
-static uint8_t g_n_payloads, g_next_payload;
+static uint8_t g_n_payloads;
+static uint8_t g_next_payload;
 static sip_table_t g_images; /* samples/<prefix>_NN.jpg found at boot */
 static rtos_id_t g_flags = -1;
 
@@ -495,7 +496,8 @@ static void store_next_id(const alfp_storage_t* p_store, uint32_t next)
 }
 
 static uint32_t s_job_seq[ALFP_OUTBOX_MAX + 8];
-static uint32_t s_n_jobs, s_highest_seen;
+static uint32_t s_n_jobs;
+static uint32_t s_highest_seen;
 
 static void scan_outbox_cb(const char* p_name, void* p_user)
 {

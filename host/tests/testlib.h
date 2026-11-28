@@ -4,7 +4,10 @@
 
 #include <stdio.h>
 
-static int g_fail, g_checks, g_tests, g_tests_failed;
+static int g_fail;
+static int g_checks;
+static int g_tests;
+static int g_tests_failed;
 
 #define CHECK(cond)                                                                   \
     do                                                                                \

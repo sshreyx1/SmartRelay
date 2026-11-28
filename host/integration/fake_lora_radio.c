@@ -25,7 +25,8 @@
 static int sock = -1;
 static int self;
 static bool b_tx_on;
-static uint32_t tx_end, tx_start;
+static uint32_t tx_end;
+static uint32_t tx_start;
 static uint8_t tx_buf[256];
 static uint8_t tx_len;
 static double loss;

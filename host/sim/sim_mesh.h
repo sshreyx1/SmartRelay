@@ -36,7 +36,8 @@ typedef struct
 {
     float link_loss;        /* per-hop random loss 0..1 */
     float corrupt_rate;     /* chance a delivered payload has one bit flipped (after radio CRC) */
-    uint16_t relay_min_ms, relay_max_ms;
+    uint16_t relay_min_ms;
+    uint16_t relay_max_ms;
     bool b_carrier_sense;
     uint16_t max_payload;   /* 250 LoRa, 245 WiFi */
     uint32_t uart_baud;     /* WiFi only: Pico <-> ESP8266 link */

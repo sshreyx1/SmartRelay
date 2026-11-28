@@ -75,7 +75,9 @@ static const mesh_radio_t wifi_mesh
 #include "board.h"
 #include "pico/stdlib.h"
 
-static bool b_s_lora_ok, b_s_wifi_ok, b_s_wst_seen;
+static bool b_s_lora_ok;
+static bool b_s_wifi_ok;
+static bool b_s_wst_seen;
 static int s_wst_owner = -1; /* radios_wst_owner() */
 static uint8_t s_wst_mac[6];
 

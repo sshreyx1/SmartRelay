@@ -26,8 +26,10 @@
 #include "storage_fatfs.h"
 #include "uplink.h"
 
-static alfp_ctx_t g_tx, g_rx;
-static bool gb_tx_done, gb_rx_done;
+static alfp_ctx_t g_tx;
+static alfp_ctx_t g_rx;
+static bool gb_tx_done;
+static bool gb_rx_done;
 static alfp_tx_report_t g_tx_rep;
 static char g_rx_path[80];
 

@@ -23,7 +23,8 @@
 
 #define BASE_PORT 47200
 
-static int sock = -1, self;
+static int sock = -1;
+static int self;
 static double loss;
 static wst_link_stats_t stats;
 static struct
@@ -31,7 +32,8 @@ static struct
     uint8_t len;
     uint8_t buf[WST_MAX_PKT];
 } queue[WST_TX_QUEUE];
-static int queue_head, queue_count;
+static int queue_head;
+static int queue_count;
 static uint64_t busy_until_us;
 
 void fake_wst_set_node(int node_id)

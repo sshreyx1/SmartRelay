@@ -683,7 +683,9 @@ static void test_outbox_prepare_meta(void)
 typedef struct
 {
     char kind; /* S start, M manifest, F frag, N nack, X fail, T tx start, K tx nack */
-    uint16_t sid, seq, count;
+    uint16_t sid;
+    uint16_t seq;
+    uint16_t count;
     uint8_t round;
     bool b_dup;
 } ev_t;

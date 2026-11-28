@@ -28,7 +28,8 @@ static const char* s_legacy_label = "";
 #endif
 static sensing_sound_t s_sound;
 static sensing_env_t s_env = { .weather = -1 };
-static uint32_t s_last_dht_try, s_last_dht_good;
+static uint32_t s_last_dht_try;
+static uint32_t s_last_dht_good;
 static bool b_s_have_dht;
 static uint32_t s_cooldown_until;
 

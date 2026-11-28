@@ -32,7 +32,8 @@ void fake_radio_set_node(int node_id);
 
 
 static alfp_ctx_t ctx;
-static int done, ok_flag;
+static int done;
+static int ok_flag;
 static char rx_path[200];
 static volatile sig_atomic_t stop;
 

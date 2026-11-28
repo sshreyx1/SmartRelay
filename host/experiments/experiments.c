@@ -21,8 +21,14 @@ typedef struct
     int radio; /* SIM_LORA / SIM_WIFI */
     int hops;
     float loss;
-    uint32_t gap, gapmax, pollto;
-    uint8_t polls, copies, rounds, stalled, taildup;
+    uint32_t gap;
+    uint32_t gapmax;
+    uint32_t pollto;
+    uint8_t polls;
+    uint8_t copies;
+    uint8_t rounds;
+    uint8_t stalled;
+    uint8_t taildup;
     int chunk_size;
     int trials;
     uint32_t size;
@@ -33,8 +39,14 @@ typedef struct
 
 typedef struct
 {
-    int trials, ok_flag;
-    double t_sum, t_sq, rounds_sum, sent_sum, frag_sum, air_sum;
+    int trials;
+    int ok_flag;
+    double t_sum;
+    double t_sq;
+    double rounds_sum;
+    double sent_sum;
+    double frag_sum;
+    double air_sum;
     double t_ok[512];
     int n_ok;
     int why[4];

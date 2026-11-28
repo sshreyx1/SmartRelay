@@ -36,10 +36,12 @@
 #define EVT_FLAGTEST_BIT_B (1u << 7)
 
 static rtos_id_t g_flags = -1;
-static rtos_id_t g_core0_id = -1, g_core1_id = -1;
+static rtos_id_t g_core0_id = -1;
+static rtos_id_t g_core1_id = -1;
 
 /* ---- check 2: real concurrency ------------------------------------------------------------- */
-static volatile uint32_t g_spin0_count, g_spin1_count;
+static volatile uint32_t g_spin0_count;
+static volatile uint32_t g_spin1_count;
 
 static void spin_for_ms(volatile uint32_t* p_counter, uint32_t msec)
 {
@@ -54,7 +56,10 @@ static void spin_for_ms(volatile uint32_t* p_counter, uint32_t msec)
 /* ---- check 3: tick accuracy ----------------------------------------------------------------- */
 typedef struct
 {
-    uint32_t min_ms, max_ms, sum_ms, count;
+    uint32_t min_ms;
+    uint32_t max_ms;
+    uint32_t sum_ms;
+    uint32_t count;
 } delay_stats_t;
 
 static void measure_delay(uint32_t request_ms, uint32_t trials, delay_stats_t* p_out)
@@ -93,7 +98,10 @@ typedef struct
 #define STRESS_COUNT 100000u
 static uint8_t g_stress_buf[RTOS_MSGQ_BYTES(sizeof(stress_msg_t), STRESS_Q_DEPTH)];
 static rtos_id_t g_stress_q = -1;
-static volatile uint32_t g_stress_lost, g_stress_reordered, g_stress_bad_checksum, g_stress_received;
+static volatile uint32_t g_stress_lost;
+static volatile uint32_t g_stress_reordered;
+static volatile uint32_t g_stress_bad_checksum;
+static volatile uint32_t g_stress_received;
 
 #define CAPQ_DEPTH 4 /* same shape as main_smp.c's capture queue: exactly 4 deep */
 static uint8_t g_capq_buf[RTOS_MSGQ_BYTES(sizeof(uint32_t), CAPQ_DEPTH)];

@@ -92,7 +92,8 @@ void tm_tusb_write_flush(void)
  * plus a compiler barrier is enough, no spinlock needed. */
 #define CONSOLE_RX_RING_SIZE 32u
 static volatile unsigned char console_rx_ring[CONSOLE_RX_RING_SIZE];
-static volatile unsigned console_rx_head, console_rx_tail;
+static volatile unsigned console_rx_head;
+static volatile unsigned console_rx_tail;
 
 void tm_tusb_discard_input(void)
 {

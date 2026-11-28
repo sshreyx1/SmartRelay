@@ -49,7 +49,8 @@ uint8_t wst_crc8(const uint8_t *p_data, uint32_t len, uint8_t crc) {
 /* ---------- RX ring buffer (filled by interrupt) ---------- */
 #define RXBUF_SIZE 2048            /* power of two */
 static volatile uint8_t  rxbuf[RXBUF_SIZE];
-static volatile uint16_t rx_head, rx_tail;
+static volatile uint16_t rx_head;
+static volatile uint16_t rx_tail;
 
 /* volatile (BARR-C 1.8.c): the UART RX ISR below writes uart_overflow,
  * rx_isr_core and rx_high_watermark, and task code reads the whole struct. */
@@ -86,7 +87,8 @@ static void wst_uart_rx_isr(void) {
 
 /* ---------- Received-packet queue (for the mesh to read) ---------- */
 static wst_rx_pkt_t rxq[WST_RX_QUEUE];
-static uint8_t rxq_head, rxq_tail;
+static uint8_t rxq_head;
+static uint8_t rxq_tail;
 
 /* ---------- Transmit queue (complete frames ready to write) ---------- */
 typedef struct {
@@ -94,14 +96,17 @@ typedef struct {
     uint8_t  bytes[WST_MAX_PKT + 4];   /* AA, type, len, packet, crc */
 } tx_frame_t;
 static tx_frame_t txq[WST_TX_QUEUE];
-static uint8_t  txq_head, txq_tail, txq_count;
+static uint8_t  txq_head;
+static uint8_t txq_tail;
+static uint8_t txq_count;
 static uint16_t tx_pos;          /* how much of the front frame is written  */
 static bool     b_tx_waiting;      /* front frame written, waiting for TXDONE */
 static uint64_t tx_wait_start;
 
 /* Small out-of-band frame (WHOAMI) that skips the queue */
 static uint8_t  ctl_frame[3];
-static uint8_t  ctl_len, ctl_pos;
+static uint8_t  ctl_len;
+static uint8_t ctl_pos;
 
 /* ---------- Our MAC ---------- */
 static uint8_t my_mac[6];
@@ -110,7 +115,10 @@ static bool    b_have_mac;
 /* ---------- Frame parser state ---------- */
 enum { P_SOF, P_TYPE, P_LEN, P_MAC, P_BODY, P_STATUS, P_CRC };
 static uint8_t  state = P_SOF;
-static uint8_t  type, len, pos, status;
+static uint8_t  type;
+static uint8_t len;
+static uint8_t pos;
+static uint8_t status;
 static uint8_t  mac[6];
 static uint8_t  body[WST_MAX_PKT];
 static uint64_t start;
