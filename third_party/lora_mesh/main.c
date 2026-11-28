@@ -66,7 +66,8 @@ static void check_test_packet( uint8_t src, const uint8_t* p_buf, int len )
     const bool     b_is_ok      = ( len == exp_len ) && (0 == memcmp( p_buf, expected, exp_len ));
     if( b_is_ok ) rx_ok++; else rx_bad++;
 
-    int8_t rssi, snr;
+    int8_t rssi;
+    int8_t snr;
     lora_mesh_last_link_quality( &rssi, &snr );
     printf( "RX from %u seq %" PRIu32 ", %d bytes, %s (last hop RSSI %d dBm, SNR %d dB) [ok %" PRIu32 ", bad %" PRIu32 "]\n", src,
             (uint32_t) seq, len, b_is_ok ? "byte-exact OK" : "MISMATCH", rssi, snr, (uint32_t) rx_ok,
@@ -125,7 +126,7 @@ int main( void )
 
         uint8_t src;
         int     len;
-        while( ( len = p_mesh->p_recv( &src, buf, sizeof( buf ) ) ) >= 0 )
+        for( len = p_mesh->p_recv( &src, buf, sizeof( buf ) ); len >= 0; len = p_mesh->p_recv( &src, buf, sizeof( buf ) ) )
         {
             check_test_packet( src, buf, len );
         }

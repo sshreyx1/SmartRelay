@@ -59,9 +59,9 @@ static const mesh_radio_t lora_offline
 
 #ifdef HAVE_LORA_MESH
 #include "lora_mesh.h" /* Mridula: exports lora_mesh_radio, lora_mesh_init, lora_mesh_set_heartbeat */
-#define lora_mesh g_lora_mesh_radio
+#define LORA_BACKEND g_lora_mesh_radio
 #else
-#define lora_mesh lora_offline
+#define LORA_BACKEND lora_offline
 #endif
 
 #ifdef HAVE_WIFI_MESH
@@ -201,7 +201,7 @@ void radios_set_wifi_topology_filter(bool b_enable)
 
 const mesh_radio_t* radio_lora(void)
 {
-    return b_s_lora_ok ? &lora_mesh : &lora_offline;
+    return b_s_lora_ok ? &LORA_BACKEND : &lora_offline;
 }
 
 const mesh_radio_t* radio_wifi(void)
@@ -214,7 +214,7 @@ bool radios_last_recv_info(const mesh_radio_t* p_radio, uint8_t* p_hops, uint8_t
     *p_hops = 0;
     *p_prev = 0;
 #ifdef HAVE_LORA_MESH
-    if (b_s_lora_ok && (p_radio == &lora_mesh))
+    if (b_s_lora_ok && (p_radio == &LORA_BACKEND))
     {
         return lora_mesh_last_recv_info(p_hops, p_prev);
     }
@@ -232,7 +232,7 @@ bool radios_last_recv_info(const mesh_radio_t* p_radio, uint8_t* p_hops, uint8_t
 uint16_t radios_relayed_from(const mesh_radio_t* p_radio, uint8_t src)
 {
 #ifdef HAVE_LORA_MESH
-    if (b_s_lora_ok && (p_radio == &lora_mesh))
+    if (b_s_lora_ok && (p_radio == &LORA_BACKEND))
     {
         return lora_mesh_relayed_from(src);
     }

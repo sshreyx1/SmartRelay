@@ -83,7 +83,8 @@ static void test_uplink_stream(void)
 
     /* The queued path the firmware uses must produce exactly the same text, whatever the per-pass
      * line budget, and must keep several finished files in order. */
-    static char one_shot[64 * 1024], queued[3 * 64 * 1024];
+    static char one_shot[64 * 1024];
+    static char queued[3 * 64 * 1024];
     gp_buf = one_shot;
     g_buf_len = 0;
     CHECK(uplink_send_file(&net.node[1].store, &rep, wb, NULL) == 0);

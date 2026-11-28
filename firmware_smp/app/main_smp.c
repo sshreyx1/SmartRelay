@@ -475,8 +475,8 @@ static uint32_t read_u32_file(const alfp_storage_t* p_store, const char* p_path)
     char txt[16] = { 0 };
     int len = p_store->p_read_at(p_store->p_ctx, handle, 0, (uint8_t*)txt, sizeof(txt) - 1);
     p_store->p_close(p_store->p_ctx, handle);
-    unsigned long value = 0;
-    return (len > 0) && (1 == sscanf(txt, "%lu", &value)) ? (uint32_t)value : 0;
+    uint32_t value = 0;
+    return (len > 0) && (1 == sscanf(txt, "%" SCNu32, &value)) ? value : 0;
 }
 
 /* write to a temp file, then rename over the real one: a power cut leaves one of the two intact */
@@ -503,7 +503,7 @@ static uint32_t s_highest_seen;
 static void scan_outbox_cb(const char* p_name, void* p_user)
 {
     (void)p_user;
-    unsigned long seq;
+    uint32_t seq;
     if (('q' == p_name[0]) && (1 == sscanf(p_name + 1, "%8lu", &seq)) && (s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0])))
     {
         s_job_seq[s_n_jobs++] = (uint32_t)seq;
@@ -819,7 +819,9 @@ static void comms_task(void* p_arg)
            (unsigned)APP_RADIO_SIZE_THRESHOLD);
 
     rtos_flags_set(g_flags, EVT_COMMS_READY);
-    bool b_dropping = false, b_topo = true, b_hold = false;
+    bool b_dropping = false;
+    bool b_topo = true;
+    bool b_hold = false;
     for (;;)
     {
         uint32_t loop_start = rtos_now_ms();
@@ -901,22 +903,22 @@ static void rtos_wait_ms(uint32_t msec)
     rtos_delay_ms(msec);
 }
 
-/* DHT22.c times the sensor's bits by counting loop iterations and must not be interrupted during
+/* dht22.c times the sensor's bits by counting loop iterations and must not be interrupted during
  * the ~5 ms bit-timing part of the read. Post-Tri1 decision: interrupt masking instead of the
  * priority boost. On the dual-core build sensors is alone on core 1, so a priority boost protected
  * nothing (no other task there) while interrupts could still land; masking core 1's interrupts
  * delays nothing else: the radio UART/SPI interrupts and the kernel tick all run on core 0
- * (docs/curveball_findings.md: core 0 is the sole timekeeper). DHT22.c calls these only around the
+ * (docs/curveball_findings.md: core 0 is the sole timekeeper). dht22.c calls these only around the
  * bit-timing loop, never around its 20 ms start pulse, and that loop runs from RAM (sources.mk).
  * SMP=0 (everything on one core): masking 5 ms there would stall the ESP-01 UART, so that build
  * keeps the priority boost, like the FreeRTOS build. */
 #if defined(CNF_SMP) && CNF_SMP
 static uint32_t s_dht_irq_state;
-void DHT_timing_enter(void)
+void dht_timing_enter(void)
 {
     s_dht_irq_state = save_and_disable_interrupts();
 }
-void DHT_timing_exit(void)
+void dht_timing_exit(void)
 {
     restore_interrupts(s_dht_irq_state);
 }
@@ -1046,7 +1048,8 @@ static void t6_fire_captures(void)
  * about 1 s; comms and sensors keep running. */
 static void measure_tick(void)
 {
-    uint32_t min_us = UINT32_MAX, max_us = 0;
+    uint32_t min_us = UINT32_MAX;
+    uint32_t max_us = 0;
     uint64_t sum_us = 0;
     rtos_delay_ms(1); /* start on a tick edge */
     uint32_t start_ms = rtos_now_ms();
@@ -1143,8 +1146,13 @@ static void usb_owner_task(void* p_arg)
     {
         g_task_core[TASK_USB_OWNER] = (uint8_t)rtos_core_id();
         int chan;
-        while ((chan = rtos_console_getchar()) >= 0)
+        for (;;)
         {
+            chan = rtos_console_getchar();
+            if (chan < 0)
+            {
+                break;
+            }
             switch (chan)
             {
                 case 'c':

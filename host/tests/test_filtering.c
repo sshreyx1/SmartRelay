@@ -79,7 +79,7 @@ static void test_duplicate_suppression(void)
 /* Packets not addressed to this node: a unicast frame must never be handed to a node's own
  * application layer (mesh_stats_t.delivered) unless it is the destination or the destination is
  * MESH_BROADCAST -- an intermediate relay only relays (mesh_stats_t.relayed), never delivers. */
-static void test_not_addressed_to_node_is_not_delivered(void)
+static void test_other_node_not_delivered(void)
 {
     sim_cfg_t cfg;
     sim_default_cfg(&cfg, 3);
@@ -101,7 +101,7 @@ static void test_not_addressed_to_node_is_not_delivered(void)
 
 /* Injected packet loss (the 'd' console key on real hardware, sim_set_drop_rate here): a transfer
  * must still complete, with the resent counter climbing to show the repair actually happened. */
-static void test_loss_injection_30_percent_still_completes(void)
+static void test_30pct_loss_completes(void)
 {
     sim_cfg_t cfg;
     sim_default_cfg(&cfg, 2);
@@ -123,12 +123,12 @@ static void test_loss_injection_30_percent_still_completes(void)
 }
 
 /* A packet addressed to MESH_BROADCAST is delivered everywhere it is heard, unlike a unicast
- * addressed elsewhere (test_not_addressed_to_node_is_not_delivered above) -- the other half of
+ * addressed elsewhere (test_other_node_not_delivered above) -- the other half of
  * the same filtering rule, verified directly against sim_mesh.c's heartbeat frames (dst 0xFE is
  * sim_mesh.c's own heartbeat marker, delivered to nobody's app layer by design, but "heard" by
  * everyone -- used here only to confirm every node in range does hear the sender at all, which
  * the broadcast delivery rule depends on). */
-static void test_heartbeat_heard_by_every_linked_node(void)
+static void test_heartbeat_all_neighbours(void)
 {
     sim_cfg_t cfg;
     sim_default_cfg(&cfg, 3);
@@ -151,8 +151,8 @@ static void test_heartbeat_heard_by_every_linked_node(void)
 int main(void)
 {
     RUN(test_duplicate_suppression);
-    RUN(test_not_addressed_to_node_is_not_delivered);
-    RUN(test_loss_injection_30_percent_still_completes);
-    RUN(test_heartbeat_heard_by_every_linked_node);
+    RUN(test_other_node_not_delivered);
+    RUN(test_30pct_loss_completes);
+    RUN(test_heartbeat_all_neighbours);
     return SUMMARY();
 }

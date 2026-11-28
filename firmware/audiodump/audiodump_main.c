@@ -163,7 +163,8 @@ static void send_class(void)
 {
     float32_t features[SF_N_FEATURES];
     compute_features(features);
-    uint8_t label_id = SC_UNKNOWN, conf = SC_UNKNOWN;
+    uint8_t label_id = SC_UNKNOWN;
+    uint8_t conf = SC_UNKNOWN;
     uint32_t start_t = time_us_32();
     sound_classify(features, &label_id, &conf);
     uint32_t usec = time_us_32() - start_t;

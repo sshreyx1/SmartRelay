@@ -15,6 +15,7 @@
  * Portable C99: no mmap, getopt or unistd.h, so it builds with MSVC too.
  */
 #include "float_types.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +29,7 @@ static uint16_t s_buf[MAX_SAMPLES];
 static sf_t s_sf;
 
 /* Returns the number of samples read, or -1 with a message on stderr. */
-static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
+static int32_t read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
 {
     FILE* p_file = fopen(p_path, "rb");
     if (!p_file)
@@ -37,7 +38,7 @@ static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
         return -1;
     }
     unsigned char pre[12];
-    long result = -1;
+    int32_t result = -1;
     if ((10 != fread(pre, 1, 10, p_file)) || (0 != memcmp(pre, "\x93NUMPY", 6)))
     {
         fprintf(stderr, "%s: not a .npy file\n", p_path);
@@ -73,10 +74,10 @@ static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
     {
         goto done;
     }
-    unsigned long count = strtoul(p_shape + 10, NULL, 10);
+    uint32_t count = (uint32_t)strtoul(p_shape + 10, NULL, 10);
     if (count > max)
     {
-        fprintf(stderr, "%s: %lu samples, more than %u\n", p_path, count, max);
+        fprintf(stderr, "%s: %" PRIu32 " samples, more than %u\n", p_path, count, max);
         goto done;
     }
     unsigned char* p_bytes = (unsigned char*)p_out;
@@ -85,11 +86,11 @@ static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
         fprintf(stderr, "%s: file shorter than its header says\n", p_path);
         goto done;
     }
-    for (unsigned long idx = 0; idx < count; idx++) /* little-endian on disk, whatever this machine is */
+    for (uint32_t idx = 0; idx < count; idx++) /* little-endian on disk, whatever this machine is */
     {
         p_out[idx] = (uint16_t)(p_bytes[2 * idx] | (p_bytes[2 * idx + 1] << 8));
     }
-    result = (long)count;
+    result = (int32_t)count;
 done:
     fclose(p_file);
     return result;
@@ -146,7 +147,7 @@ int main(int argc, char** pp_argv)
             continue;
         }
         files++;
-        long count = read_npy(pp_argv[idx], s_buf, MAX_SAMPLES);
+        int32_t count = read_npy(pp_argv[idx], s_buf, MAX_SAMPLES);
         if (count < 0)
         {
             failed = 1;

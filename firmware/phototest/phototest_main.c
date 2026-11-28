@@ -91,7 +91,8 @@ static uint16_t frags_for(uint32_t size)
 
 static void link_quality(void)
 {
-    int8_t rssi, snr;
+    int8_t rssi;
+    int8_t snr;
     lora_mesh_last_link_quality(&rssi, &snr);
     printf("  last packet heard: RSSI %d dBm, SNR %d dB\n", rssi, snr);
 }

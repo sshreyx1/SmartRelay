@@ -276,7 +276,9 @@ static bool seen_check_add(radio_t* p_radio, uint8_t src, uint16_t msg_id)
 static void on_frame(uint8_t node, int kind, const frame_t* p_frame)
 {
     radio_t* p_radio = &world.radios[node][kind];
-    uint8_t src = p_frame->buf[0], dst = p_frame->buf[1], hops = p_frame->buf[4];
+    uint8_t src = p_frame->buf[0];
+    uint8_t dst = p_frame->buf[1];
+    uint8_t hops = p_frame->buf[4];
     uint16_t msg_id = (uint16_t)(p_frame->buf[2] | (p_frame->buf[3] << 8));
     p_radio->stats.rx_count++;
     if ((src == node) || (seen_check_add(p_radio, src, msg_id)))
@@ -343,7 +345,8 @@ static bool overlaps(uint32_t start_a, uint32_t end_a, uint32_t start_b, uint32_
 static void finish_tx(uint8_t jdx, int kind)
 {
     radio_t* p_radio_j = &world.radios[jdx][kind];
-    uint32_t start_ms = p_radio_j->air_start_ms, end_ms = p_radio_j->end_ms;
+    uint32_t start_ms = p_radio_j->air_start_ms;
+    uint32_t end_ms = p_radio_j->end_ms;
     for (uint8_t idx = 1; idx <= world.cfg.n_nodes; idx++)
     {
         if ((idx == jdx) || (!world.cfg.adj[kind][idx][jdx]))
@@ -407,7 +410,8 @@ static bool channel_busy_near(uint8_t node, int kind)
 static void start_tx(uint8_t node, int kind, const frame_t* p_frame, bool b_own)
 {
     radio_t* p_radio = &world.radios[node][kind];
-    uint32_t uart_ms, on_air_ms;
+    uint32_t uart_ms;
+    uint32_t on_air_ms;
     airtime(kind, p_frame->len, &uart_ms, &on_air_ms);
     p_radio->b_enable = true;
     p_radio->cur = *p_frame;
@@ -576,14 +580,14 @@ static bool m_tx_busy(int kind)
  * are the generated functions' own and never jump out of the code that uses the macro.
  * Approved by: ____________________ (project manager), date: __________ */
 #define DEFINE_RADIO(NAME, KIND, STR)                                                                   \
-    static bool NAME##_send(uint8_t d, const uint8_t* p, uint16_t l) { return m_send(KIND, d, p, l); } \
-    static int NAME##_recv(uint8_t* s, uint8_t* b, uint16_t c) { return m_recv(KIND, s, b, c); }       \
+    static bool NAME##_send(uint8_t dst, const uint8_t* p_buf, uint16_t len) { return m_send(KIND, dst, p_buf, len); } \
+    static int NAME##_recv(uint8_t* p_src, uint8_t* p_buf, uint16_t cap) { return m_recv(KIND, p_src, p_buf, cap); }       \
     static void NAME##_poll(void) { mesh_poll(world.cur, KIND); }                                           \
     static uint16_t NAME##_maxp(void) { return world.cfg.kind[KIND].max_payload; }                          \
-    static bool NAME##_heard(uint8_t n, uint32_t* ms) { return m_last_heard(KIND, n, ms); }             \
+    static bool NAME##_heard(uint8_t node, uint32_t* p_msec) { return m_last_heard(KIND, node, p_msec); }             \
     static bool NAME##_busy(void) { return m_tx_busy(KIND); }                                           \
-    static void NAME##_stats(mesh_stats_t* o) { *o = world.radios[world.cur][KIND].stats; }                             \
-    static void NAME##_drop(float32_t r) { world.radios[world.cur][KIND].drop_rate = r; }                                \
+    static void NAME##_stats(mesh_stats_t* p_out) { *p_out = world.radios[world.cur][KIND].stats; }                             \
+    static void NAME##_drop(float32_t rate) { world.radios[world.cur][KIND].drop_rate = rate; }                                \
     const mesh_radio_t g_sim_##NAME = {STR,           NAME##_send,  NAME##_recv,  NAME##_poll, NAME##_maxp, \
                                      NAME##_heard,  NAME##_busy,  NAME##_stats, NAME##_drop};
 

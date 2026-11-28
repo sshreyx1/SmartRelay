@@ -207,7 +207,8 @@ bool net_files_equal(net_t* p_net, uint8_t node_a, const char* p_path_a, uint8_t
     bool b_equal = p_file_a && p_file_b;
     while (b_equal)
     {
-        int chr_a = fgetc(p_file_a), chr_b = fgetc(p_file_b);
+        int chr_a = fgetc(p_file_a);
+        int chr_b = fgetc(p_file_b);
         if (chr_a != chr_b)
         {
             b_equal = false;

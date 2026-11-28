@@ -45,14 +45,16 @@ void sm_predict(const sm_model_t* p_model, const float32_t* p_features, uint8_t*
 
 void sound_classify(const float32_t features[SF_N_FEATURES], uint8_t* p_label_id, uint8_t* p_conf)
 {
-    uint8_t group, conf_a;
+    uint8_t group;
+    uint8_t conf_a;
     sm_predict(&sm_stage1, features, &group, &conf_a);
     *p_label_id = group;
     *p_conf = conf_a;
     const sm_model_t* p_size_b = sm_stage2_for_group(group);
     if (p_size_b)
     {
-        uint8_t animal, conf_b;
+        uint8_t animal;
+        uint8_t conf_b;
         sm_predict(p_size_b, features, &animal, &conf_b);
         const uint8_t conf = (uint8_t)(((uint32_t)conf_a * conf_b + 50u) / 100u);
         if (conf >= k_min_conf)

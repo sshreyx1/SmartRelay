@@ -39,7 +39,8 @@ void sound_fft256(int16_t* p_real, int16_t* p_imag)
                 /* Q15 complex multiply with rounding; sound_asr32() is a well-defined arithmetic shift */
                 const int32_t twid_real = sound_asr32(w_real * p_real[jdx] - w_imag * p_imag[jdx] + SOUND_Q15_HALF, 15u);
                 const int32_t twid_imag = sound_asr32(w_real * p_imag[jdx] + w_imag * p_real[jdx] + SOUND_Q15_HALF, 15u);
-                const int32_t real_a = p_real[idx], imag_a = p_imag[idx];
+                const int32_t real_a = p_real[idx];
+                const int32_t imag_a = p_imag[idx];
                 p_real[idx] = (int16_t)sound_asr32(real_a + twid_real, 1u);
                 p_imag[idx] = (int16_t)sound_asr32(imag_a + twid_imag, 1u);
                 p_real[jdx] = (int16_t)sound_asr32(real_a - twid_real, 1u);

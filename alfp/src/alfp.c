@@ -340,7 +340,8 @@ static void pace_update(alfp_ctx_t* p_ctx, uint16_t missing)
     {
         return;
     }
-    uint32_t gap_low = p_xfer->p_prof->gap_ms, gap_high = p_xfer->p_prof->gap_max_ms > gap_low ? p_xfer->p_prof->gap_max_ms : gap_low;
+    uint32_t gap_low = p_xfer->p_prof->gap_ms;
+    uint32_t gap_high = p_xfer->p_prof->gap_max_ms > gap_low ? p_xfer->p_prof->gap_max_ms : gap_low;
     uint32_t loss_pct = (uint32_t)missing * 100u / p_xfer->sent_round;
     if (loss_pct > 25u)
     {
@@ -744,7 +745,8 @@ static alfp_rx_t* rx_open(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_
     if (!p_slot)
     {
         /* Evict the most idle ACTIVE session if it has been quiet for over half its expiry. */
-        uint32_t tnow = now(p_ctx), worst = 0;
+        uint32_t tnow = now(p_ctx);
+        uint32_t worst = 0;
         for (unsigned idx = 0; idx < ALFP_RX_SESSIONS; idx++)
         {
             alfp_rx_t* p_session = &p_ctx->rx_sessions[idx];

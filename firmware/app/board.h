@@ -7,7 +7,7 @@
  * at the same time.
  *
  *   GP0   PIR OUT (Grove port 1)                    Maryam    pir.h
- *   GP4   DHT22 DATA                                Maryam    DHT22.c
+ *   GP4   DHT22 DATA                                Maryam    dht22.c
  *   GP5   LoRa RESET                                Mridula   gpio.h
  *   GP6   LoRa BUSY        (moved from GP14)        Mridula   CMake LORA_BUSY_PIN
  *   GP7   LoRa DIO9 / IRQ  (moved from GP15)        Mridula   CMake LORA_IRQ_PIN

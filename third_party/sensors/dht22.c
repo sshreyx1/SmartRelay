@@ -1,5 +1,5 @@
 #include "float_types.h"
-#include "DHT22.h"
+#include "dht22.h"
 #include "hardware/gpio.h"
 #include "pico/time.h"
 #include "pico/stdlib.h"
@@ -8,20 +8,20 @@
 #define DHT_PIN 4
 #define MIN_INTERVAL 2000
 
-static uint32_t expectPulse(bool b_level);
+static uint32_t expect_pulse(bool b_level);
 
 /* Default: nothing (the FreeRTOS build and the bench test programs). A firmware that needs the
  * bit-timing part protected defines its own non-weak versions. */
-__attribute__((weak)) void DHT_timing_enter(void) {}
-__attribute__((weak)) void DHT_timing_exit(void) {}
+__attribute__((weak)) void dht_timing_enter(void) {}
+__attribute__((weak)) void dht_timing_exit(void) {}
 
-void DHT_init() {
+void dht_init() {
     gpio_init(DHT_PIN);
     gpio_set_dir(DHT_PIN, GPIO_IN);
     gpio_pull_up(DHT_PIN);
 }
 
-bool DHT_read(float32_t *p_temperature, float32_t *p_humidity) {
+bool dht_read(float32_t *p_temperature, float32_t *p_humidity) {
     uint32_t current_millis = to_ms_since_boot(get_absolute_time());
     static uint32_t last_read_time = 0;
 
@@ -36,23 +36,23 @@ bool DHT_read(float32_t *p_temperature, float32_t *p_humidity) {
     gpio_put(DHT_PIN, 0);
     sleep_ms(20);
     /* ~5 ms from releasing the line to the 40th bit: every bit is decoded by counting loop
-     * iterations, so nothing may interrupt this part (see DHT_timing_enter in DHT22.h). */
-    DHT_timing_enter();
+     * iterations, so nothing may interrupt this part (see dht_timing_enter in dht22.h). */
+    dht_timing_enter();
     gpio_put(DHT_PIN, 1);
     sleep_us(40);
     gpio_set_dir(DHT_PIN, GPIO_IN);
 
-    bool b_is_ok = (UINT32_MAX != expectPulse(0)) && (UINT32_MAX != expectPulse(1));
+    bool b_is_ok = (UINT32_MAX != expect_pulse(0)) && (UINT32_MAX != expect_pulse(1));
 
     for (int idx = 0; b_is_ok && (idx < 80); idx += 2) {
-        pulses[idx] = expectPulse(0);
-        pulses[idx + 1] = expectPulse(1);
+        pulses[idx] = expect_pulse(0);
+        pulses[idx + 1] = expect_pulse(1);
 
         if ((UINT32_MAX == pulses[idx]) || (UINT32_MAX == pulses[idx + 1])) {
             b_is_ok = false;
         }
     }
-    DHT_timing_exit();
+    dht_timing_exit();
     if (!b_is_ok) {
         return false;
     }
@@ -80,7 +80,7 @@ bool DHT_read(float32_t *p_temperature, float32_t *p_humidity) {
     return false;
 }
 
-static uint32_t expectPulse(bool b_level) {
+static uint32_t expect_pulse(bool b_level) {
     uint32_t count = 0;
     while (gpio_get(DHT_PIN) == b_level) {
         if (++count >= 10000) {

@@ -372,7 +372,8 @@ void lora_mesh_poll( void )
     for( int idx = 0; idx < 4; idx++ )
     {
         uint8_t                  len;
-        int8_t                   rssi, snr;
+        int8_t                   rssi;
+        int8_t                   snr;
         const lora_radio_event_t evt = lora_radio_service( rx_buf, &len, &rssi, &snr );
         if( LORA_EVT_NONE == evt )
         {

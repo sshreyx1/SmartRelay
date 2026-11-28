@@ -131,7 +131,9 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
     }
 
     /* Find the missing range and count. */
-    uint16_t n_missing = 0, first = 0, last = 0;
+    uint16_t n_missing = 0;
+    uint16_t first = 0;
+    uint16_t last = 0;
     for (uint16_t idx = 0; idx < frag_count; idx++)
     {
         if (!bit_get(p_have_bitmap, idx))

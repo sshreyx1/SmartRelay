@@ -5,7 +5,7 @@
 #include "pir.h"
 #include "sound.h"
 #include "mic.h"
-#include "DHT22.h"
+#include "dht22.h"
 #include "weather_tree.h"
 #include "lora.h"
 

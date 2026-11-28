@@ -65,7 +65,7 @@ static FILE* fh(storage_posix_t* p_posix, int handle)
 static int p_read_at(void* p_ctx, int handle, uint32_t off, uint8_t* p_buf, uint16_t len)
 {
     FILE* p_file = fh(p_ctx, handle);
-    if ((!p_file) || (0 != fseek(p_file, (long)off, SEEK_SET)))
+    if ((!p_file) || (0 != fseek(p_file, (int32_t)off, SEEK_SET)))
     {
         return -1;
     }
@@ -76,7 +76,7 @@ static int p_write_at(void* p_ctx, int handle, uint32_t off, const uint8_t* p_bu
 {
     storage_posix_t* p_posix = p_ctx;
     FILE* p_file = fh(p_posix, handle);
-    if ((!p_file) || (0 != fseek(p_file, (long)off, SEEK_SET)))
+    if ((!p_file) || (0 != fseek(p_file, (int32_t)off, SEEK_SET)))
     {
         return -1;
     }
@@ -151,7 +151,7 @@ static int p_list(void* p_ctx, const char* p_dir, void (*p_callback)(const char*
         return -1;
     }
     struct dirent* p_entry;
-    while ((p_entry = readdir(p_dir_handle)))
+    for (p_entry = readdir(p_dir_handle); NULL != p_entry; p_entry = readdir(p_dir_handle))
     {
         if ('.' == p_entry->d_name[0])
         {

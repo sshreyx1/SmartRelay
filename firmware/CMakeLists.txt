@@ -113,15 +113,15 @@ target_link_libraries(sound PUBLIC pico_stdlib)
 
 # ---- Maryam's + Rhaylene's sensors (unchanged sources) + the glue ----
 add_library(sensing STATIC
-  ${SENSORS_DIR}/pir.c ${SENSORS_DIR}/sound.c ${SENSORS_DIR}/mic.c ${SENSORS_DIR}/DHT22.c
+  ${SENSORS_DIR}/pir.c ${SENSORS_DIR}/sound.c ${SENSORS_DIR}/mic.c ${SENSORS_DIR}/dht22.c
   sensing/sensing.c sensing/audio_capture.c sensing/audio_features.c)
 target_include_directories(sensing PUBLIC ${SENSORS_DIR} sensing app ${ROOT}/common)
 target_compile_definitions(sensing PUBLIC AUDIO_SECONDS=${AUDIO_SECONDS}u SOUND_LEGACY_MODE=$<BOOL:${SOUND_LEGACY_MODE}>)
 target_link_libraries(sensing PUBLIC sound pico_stdlib hardware_adc hardware_dma hardware_gpio hardware_timer)
-# DHT22.c's 40 us "release the line" wait must be exact. Under FreeRTOS, sleep_us() blocks the task
+# dht22.c's 40 us "release the line" wait must be exact. Under FreeRTOS, sleep_us() blocks the task
 # and wakes it through an interrupt and the timer task, which can hold the line high too long while
 # the DHT22 starts answering. Busy-wait instead, without touching Maryam's source.
-set_source_files_properties(${SENSORS_DIR}/DHT22.c PROPERTIES COMPILE_DEFINITIONS "sleep_us=busy_wait_us")
+set_source_files_properties(${SENSORS_DIR}/dht22.c PROPERTIES COMPILE_DEFINITIONS "sleep_us=busy_wait_us")
 set_source_files_properties(sensing/sensing.c sensing/audio_capture.c sensing/audio_features.c sensortest/sensortest_main.c
   PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra")
 

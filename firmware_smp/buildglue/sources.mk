@@ -124,7 +124,7 @@ SRC_sensing := $(SR)/firmware/sensing/sensing.c \
 SRC_sensors := $(SR)/third_party/sensors/pir.c \
                $(SR)/third_party/sensors/sound.c \
                $(SR)/third_party/sensors/mic.c \
-               $(SR)/third_party/sensors/DHT22.c
+               $(SR)/third_party/sensors/dht22.c
 SRC_app := $(SR)/firmware/app/radios.c \
            $(SR)/firmware/app/storage_fatfs.c \
            $(SR)/firmware/app/hw_config.c \
@@ -200,11 +200,11 @@ $(SMARTRELAY_LIB): $(LIB_OBJS)
 	@rm -f "$@"
 	$(SMARTRELAY_AR) rcs "$@" $^
 
-# DHT22.c's 40 us "release the line" wait must be exact - same reasoning and fix as
+# dht22.c's 40 us "release the line" wait must be exact - same reasoning and fix as
 # firmware/CMakeLists.txt's set_source_files_properties for the FreeRTOS build.
-$(call obj_of,sensors,DHT22.c): APP_DEFINES += -Dsleep_us=busy_wait_us
+$(call obj_of,sensors,dht22.c): APP_DEFINES += -Dsleep_us=busy_wait_us
 
-# DHT22.c decodes each bit by counting loop iterations. On the dual-core build core 0 (radios, SD
+# dht22.c decodes each bit by counting loop iterations. On the dual-core build core 0 (radios, SD
 # card) shares the 16 KB flash cache with core 1, and cache misses landing inside a pulse
 # corrupted ~40% of readings on real hardware (FreeRTOS build, one core: 0%). Its code is renamed
 # into a .data.* section after compiling, so the kernel's own linker script places it in RAM and
@@ -212,7 +212,7 @@ $(call obj_of,sensors,DHT22.c): APP_DEFINES += -Dsleep_us=busy_wait_us
 # and Maryam's source is untouched.
 SMARTRELAY_OBJCOPY ?= arm-none-eabi-objcopy
 APP_POST_COMPILE := @true
-$(call obj_of,sensors,DHT22.c): APP_POST_COMPILE = $(SMARTRELAY_OBJCOPY) \
+$(call obj_of,sensors,dht22.c): APP_POST_COMPILE = $(SMARTRELAY_OBJCOPY) \
     --rename-section .text=.data.smartrelay_ramfunc_dht22,alloc,load,contents,code "$@"
 
 # One explicit rule per source. Everything is $$-escaped so it expands when the recipe runs:

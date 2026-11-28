@@ -52,13 +52,13 @@ static void log_size_choice(alfp_outbox_t* p_outbox, const char* p_path, int32_t
 
 static bool parse_seq(const char* p_name, uint32_t* p_seq)
 {
-    unsigned long value = 0;
+    uint32_t value = 0;
     char tail[8] = { 0 };
-    if (('q' != p_name[0]) || (2 != sscanf(p_name + 1, "%8lu%7s", &value, tail)) || (0 != strcmp(tail, ".job")))
+    if (('q' != p_name[0]) || (2 != sscanf(p_name + 1, "%8" SCNu32 "%7s", &value, tail)) || (0 != strcmp(tail, ".job")))
     {
         return false;
     }
-    *p_seq = (uint32_t)value;
+    *p_seq = value;
     return true;
 }
 

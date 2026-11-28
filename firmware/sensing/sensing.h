@@ -1,7 +1,7 @@
 /*
  * sensing.h - glue between Maryam's and Rhaylene's sensor code and the capture pipeline.
  *
- * Their code is used unchanged (third_party/sensors): pir.c, sound.c, mic.c (init), DHT22.c,
+ * Their code is used unchanged (third_party/sensors): pir.c, sound.c, mic.c (init), dht22.c,
  * weather_tree.h. This file adds:
  *   - the dual trigger from their main.c: PIR motion AND sound trigger high at the same time
  *   - a DHT22 reading every 2 s, kept with its age so a failed sensor is reported as missing
@@ -45,7 +45,7 @@ typedef struct
     uint32_t dht_good;
 } sensing_env_t;
 
-#define SENSING_DHT_PERIOD_MS 2100u /* DHT22.c refuses reads closer than 2000 ms */
+#define SENSING_DHT_PERIOD_MS 2100u /* dht22.c refuses reads closer than 2000 ms */
 #define SENSING_DHT_STALE_MS 10000u /* older than this = "missing" in the metadata */
 #define SENSING_COOLDOWN_MS 5000u   /* their main.c: 5 s PIR settle time after a capture */
 

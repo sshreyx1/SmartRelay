@@ -17,7 +17,8 @@ int main(void)
     int match = 0;
     for (int idx = 0; idx < SM_N_VECTORS; idx++)
     {
-        uint8_t label = 0, conf = 0;
+        uint8_t label = 0;
+        uint8_t conf = 0;
         sound_classify(sm_vec_features[idx], &label, &conf);
         if ((label == sm_vec_label[idx]) && (conf == sm_vec_conf[idx]))
         {

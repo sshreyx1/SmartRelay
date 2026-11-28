@@ -8,7 +8,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "DHT22.h"
+#include "dht22.h"
 #include "audio_capture.h"
 #include "board.h"
 #include "hardware/adc.h"
@@ -61,10 +61,10 @@ void sensing_init(const sensing_hooks_t* p_hooks)
     pir_init();   /* Maryam: GP0 input, pull-down */
     sound_init(); /* Rhaylene: GP14 input, pull-down */
     mic_init();   /* Rhaylene: adc_init() + GP26 as ADC */
-    DHT_init();   /* Maryam: GP4 input, pull-up */
+    dht_init();   /* Maryam: GP4 input, pull-up */
     adc_gpio_init(BOARD_LIGHT_GPIO);
     s_env.light = read_light();
-    /* DHT22.c's own 2 s guard starts at 0 ms, so the first read is allowed 2 s after boot. */
+    /* dht22.c's own 2 s guard starts at 0 ms, so the first read is allowed 2 s after boot. */
     s_last_dht_try = 0;
 }
 
@@ -77,17 +77,18 @@ bool sensing_env_poll(uint32_t now_ms)
     s_last_dht_try = now_ms;
     s_env.light = read_light();
 
-    float32_t temp_c = 0.0f, humidity = 0.0f;
+    float32_t temp_c = 0.0f;
+    float32_t humidity = 0.0f;
     if (s_h.p_timing_begin)
     {
         s_h.p_timing_begin();
     }
-    bool b_is_ok = DHT_read(&temp_c, &humidity);
+    bool b_is_ok = dht_read(&temp_c, &humidity);
     if (s_h.p_timing_end)
     {
         s_h.p_timing_end();
     }
-    /* DHT22.c does not decode negative temperatures (bit 15); Singapore never needs it, but a
+    /* dht22.c does not decode negative temperatures (bit 15); Singapore never needs it, but a
      * reading with that bit set would be nonsense, so it is rejected with the out-of-range check. */
     if (b_is_ok && (temp_c > -40.0f) && (temp_c < 80.0f) && (humidity >= 0.0f) && (humidity <= 100.0f))
     {

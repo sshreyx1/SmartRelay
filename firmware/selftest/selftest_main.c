@@ -157,7 +157,8 @@ static bool run_once(const alfp_storage_t* p_store, const char* p_src, float32_t
         alfp_service(&g_rx, radios_b, 1);
         sleep_ms(1);
     }
-    int32_t size_a, size_b;
+    int32_t size_a;
+    int32_t size_b;
     uint32_t crc_a = file_crc(p_store, p_src, &size_a);
     uint32_t crc_b = gb_rx_done ? file_crc(p_store, g_rx_path, &size_b) : 0;
     bool b_is_ok = gb_tx_done && (ALFP_TX_DONE == g_tx_rep.result) && gb_rx_done && (crc_a == crc_b) && (size_a == size_b);

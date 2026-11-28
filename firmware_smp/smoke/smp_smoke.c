@@ -17,6 +17,7 @@
  * Nothing in this file has been compiled (no ARM toolchain in the environment that wrote it, see
  * docs/curveball_findings.md); it is written against rtos_port.h/log.h as they stand, not guessed.
  */
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -189,17 +190,18 @@ static void check2_concurrency(void)
     rtos_flags_set(g_flags, EVT_START_CONCURRENCY); /* phase B: both at once */
     spin_for_ms(&g_spin0_count, 1000);
     rtos_flags_wait_any(g_flags, EVT_CONCURRENCY_DONE, &bits, 5000);
-    uint32_t both0 = g_spin0_count, both1 = g_spin1_count;
+    uint32_t both0 = g_spin0_count;
+    uint32_t both1 = g_spin1_count;
 
     /* Real concurrency: core0's rate barely changes with core1 also running (independent cores,
      * not one core time-sliced), and core1 made real, comparable progress. Not a speed-up claim,
      * just "both cores were actually counting during the same 1 s window". */
     bool b_is_ok = (both1 > 0) && (both0 > solo0 / 2u); /* generous: just rule out "core1 starved core0" */
     tm_sprintf((UB*)line,
-               (UB*)"%s check2_concurrency: solo core0=%lu both core0=%lu both core1=%lu ratio(both1/solo0)=%lu.%02lu",
-               b_is_ok ? "PASS" : "FAIL", (unsigned long)solo0, (unsigned long)both0, (unsigned long)both1,
-               (unsigned long)(both1 * 100u / (solo0 ? solo0 : 1u) / 100u),
-               (unsigned long)(both1 * 100u / (solo0 ? solo0 : 1u) % 100u));
+               (UB*)"%s check2_concurrency: solo core0=%" PRIu32 " both core0=%" PRIu32 " both core1=%" PRIu32 " ratio(both1/solo0)=%" PRIu32 ".%02" PRIu32,
+               b_is_ok ? "PASS" : "FAIL", (uint32_t)solo0, (uint32_t)both0, (uint32_t)both1,
+               (uint32_t)(both1 * 100u / (solo0 ? solo0 : 1u) / 100u),
+               (uint32_t)(both1 * 100u / (solo0 ? solo0 : 1u) % 100u));
     log_write_line(line);
 }
 
@@ -214,13 +216,13 @@ static void check3_tick_accuracy(void)
      * would show up here as min/mean/max all sitting near 10, which is the point of this check. */
     bool b_ok1 = delay_a.max_ms <= 3u; /* 1 ms requested: allow slack for ms-quantization + scheduling */
     bool b_ok2 = delay_b.max_ms <= 4u; /* 2 ms requested */
-    tm_sprintf((UB*)line, (UB*)"%s check3_tick_1ms: min=%lu mean=%lu.%02lu max=%lu (n=%lu, ms resolution)",
-               b_ok1 ? "PASS" : "FAIL", (unsigned long)delay_a.min_ms, (unsigned long)(delay_a.sum_ms / delay_a.count),
-               (unsigned long)(delay_a.sum_ms * 100u / delay_a.count % 100u), (unsigned long)delay_a.max_ms, (unsigned long)delay_a.count);
+    tm_sprintf((UB*)line, (UB*)"%s check3_tick_1ms: min=%" PRIu32 " mean=%" PRIu32 ".%02" PRIu32 " max=%" PRIu32 " (n=%" PRIu32 ", ms resolution)",
+               b_ok1 ? "PASS" : "FAIL", (uint32_t)delay_a.min_ms, (uint32_t)(delay_a.sum_ms / delay_a.count),
+               (uint32_t)(delay_a.sum_ms * 100u / delay_a.count % 100u), (uint32_t)delay_a.max_ms, (uint32_t)delay_a.count);
     log_write_line(line);
-    tm_sprintf((UB*)line, (UB*)"%s check3_tick_2ms: min=%lu mean=%lu.%02lu max=%lu (n=%lu, ms resolution)",
-               b_ok2 ? "PASS" : "FAIL", (unsigned long)delay_b.min_ms, (unsigned long)(delay_b.sum_ms / delay_b.count),
-               (unsigned long)(delay_b.sum_ms * 100u / delay_b.count % 100u), (unsigned long)delay_b.max_ms, (unsigned long)delay_b.count);
+    tm_sprintf((UB*)line, (UB*)"%s check3_tick_2ms: min=%" PRIu32 " mean=%" PRIu32 ".%02" PRIu32 " max=%" PRIu32 " (n=%" PRIu32 ", ms resolution)",
+               b_ok2 ? "PASS" : "FAIL", (uint32_t)delay_b.min_ms, (uint32_t)(delay_b.sum_ms / delay_b.count),
+               (uint32_t)(delay_b.sum_ms * 100u / delay_b.count % 100u), (uint32_t)delay_b.max_ms, (uint32_t)delay_b.count);
     log_write_line(line);
 }
 
@@ -262,9 +264,9 @@ static void check4_msgq_stress(void)
     rtos_flags_wait_any(g_flags, EVT_MSGQ_STRESS_DONE, &bits, 5000);
 
     bool b_is_ok = (0 == g_stress_lost) && (0 == g_stress_reordered) && (0 == g_stress_bad_checksum);
-    tm_sprintf((UB*)line, (UB*)"%s check4_msgq_stress: received=%lu/%lu lost=%lu reordered=%lu bad_checksum=%lu",
-               b_is_ok ? "PASS" : "FAIL", (unsigned long)g_stress_received, (unsigned long)STRESS_COUNT,
-               (unsigned long)g_stress_lost, (unsigned long)g_stress_reordered, (unsigned long)g_stress_bad_checksum);
+    tm_sprintf((UB*)line, (UB*)"%s check4_msgq_stress: received=%" PRIu32 "/%" PRIu32 " lost=%" PRIu32 " reordered=%" PRIu32 " bad_checksum=%" PRIu32,
+               b_is_ok ? "PASS" : "FAIL", (uint32_t)g_stress_received, (uint32_t)STRESS_COUNT,
+               (uint32_t)g_stress_lost, (uint32_t)g_stress_reordered, (uint32_t)g_stress_bad_checksum);
     log_write_line(line);
 
     /* Full-queue case, same shape as main_smp.c's 4-deep capture queue: the 5th nowait send into
@@ -292,8 +294,8 @@ static void check4_msgq_stress(void)
     }
     uint32_t dropped_after = log_dropped_count();
     bool b_ok_ring = dropped_after > dropped_before;
-    tm_sprintf((UB*)line, (UB*)"%s check4_log_ring_capacity: dropped %lu -> %lu (rose: %s)", b_ok_ring ? "PASS" : "FAIL",
-               (unsigned long)dropped_before, (unsigned long)dropped_after, b_ok_ring ? "yes" : "no");
+    tm_sprintf((UB*)line, (UB*)"%s check4_log_ring_capacity: dropped %" PRIu32 " -> %" PRIu32 " (rose: %s)", b_ok_ring ? "PASS" : "FAIL",
+               (uint32_t)dropped_before, (uint32_t)dropped_after, b_ok_ring ? "yes" : "no");
     log_write_line(line);
 }
 
@@ -327,8 +329,8 @@ static void check6_atomic_counters(void)
     rtos_flags_wait_any(g_flags, EVT_ATOMIC_DONE, &bits, 30000);
     uint32_t want = ATOMIC_ITERS * 2u;
     bool b_is_ok = g_atomic_counter == want;
-    tm_sprintf((UB*)line, (UB*)"%s check6_atomic_counters: got %lu want %lu (both cores, %lu each)",
-               b_is_ok ? "PASS" : "FAIL", (unsigned long)g_atomic_counter, (unsigned long)want, (unsigned long)ATOMIC_ITERS);
+    tm_sprintf((UB*)line, (UB*)"%s check6_atomic_counters: got %" PRIu32 " want %" PRIu32 " (both cores, %" PRIu32 " each)",
+               b_is_ok ? "PASS" : "FAIL", (uint32_t)g_atomic_counter, (uint32_t)want, (uint32_t)ATOMIC_ITERS);
     log_write_line(line);
 }
 
@@ -343,7 +345,7 @@ static void check7_log_ring_stall(void)
     {
         uint32_t loop_start = rtos_now_ms();
         char probe[LOG_LINE_MAX];
-        tm_sprintf((UB*)probe, (UB*)"stall probe %lu", (unsigned long)count++);
+        tm_sprintf((UB*)probe, (UB*)"stall probe %" PRIu32, (uint32_t)count++);
         log_write_line(probe); /* never blocks even though nothing is draining right now */
         uint32_t loop_ms = rtos_elapsed_ms(loop_start);
         if (loop_ms > g_log_stall_longest_loop_ms)
@@ -358,9 +360,9 @@ static void check7_log_ring_stall(void)
     {
     }
     bool b_is_ok = (dropped_after > dropped_before) && (g_log_stall_longest_loop_ms < 100u);
-    tm_sprintf((UB*)line, (UB*)"%s check7_log_ring_stall: dropped %lu -> %lu over 5 s, longest single loop %lu ms",
-               b_is_ok ? "PASS" : "FAIL", (unsigned long)dropped_before, (unsigned long)dropped_after,
-               (unsigned long)g_log_stall_longest_loop_ms);
+    tm_sprintf((UB*)line, (UB*)"%s check7_log_ring_stall: dropped %" PRIu32 " -> %" PRIu32 " over 5 s, longest single loop %" PRIu32 " ms",
+               b_is_ok ? "PASS" : "FAIL", (uint32_t)dropped_before, (uint32_t)dropped_after,
+               (uint32_t)g_log_stall_longest_loop_ms);
     log_write_line(line);
 }
 
@@ -373,16 +375,16 @@ static void check8_stack_high_water(void)
      * with (4096 B, see smoke_main() below) -- not a hard pass/fail per the brief, just reported
      * for a human to judge; still prints FAIL if a task is already within 10% of its stack. */
     bool b_is_ok = (free0 > 409u) && (free1 > 409u);
-    tm_sprintf((UB*)line, (UB*)"%s check8_stack_high_water: core0_task %lu B free, core1_task %lu B free",
-               b_is_ok ? "PASS" : "FAIL", (unsigned long)free0, (unsigned long)free1);
+    tm_sprintf((UB*)line, (UB*)"%s check8_stack_high_water: core0_task %" PRIu32 " B free, core1_task %" PRIu32 " B free",
+               b_is_ok ? "PASS" : "FAIL", (uint32_t)free0, (uint32_t)free1);
     log_write_line(line);
 }
 
 static void print_stats(void)
 {
     char line[LOG_LINE_MAX];
-    tm_sprintf((UB*)line, (UB*)"[stats] atomic_counter=%lu log_dropped=%lu stress_received=%lu",
-               (unsigned long)g_atomic_counter, (unsigned long)log_dropped_count(), (unsigned long)g_stress_received);
+    tm_sprintf((UB*)line, (UB*)"[stats] atomic_counter=%" PRIu32 " log_dropped=%" PRIu32 " stress_received=%" PRIu32,
+               (uint32_t)g_atomic_counter, (uint32_t)log_dropped_count(), (uint32_t)g_stress_received);
     log_write_line(line);
 }
 

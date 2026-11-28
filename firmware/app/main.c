@@ -382,8 +382,8 @@ static uint32_t read_u32_file(const alfp_storage_t* p_store, const char* p_path)
     char txt[16] = { 0 };
     int len = p_store->p_read_at(p_store->p_ctx, handle, 0, (uint8_t*)txt, sizeof(txt) - 1);
     p_store->p_close(p_store->p_ctx, handle);
-    unsigned long value = 0;
-    return (len > 0) && (1 == sscanf(txt, "%lu", &value)) ? (uint32_t)value : 0;
+    uint32_t value = 0;
+    return (len > 0) && (1 == sscanf(txt, "%" SCNu32, &value)) ? value : 0;
 }
 
 /* write to a temp file, then rename over the real one: a power cut leaves one of the two intact */
@@ -410,7 +410,7 @@ static uint32_t s_highest_seen;
 static void scan_outbox_cb(const char* p_name, void* p_user)
 {
     (void)p_user;
-    unsigned long seq;
+    uint32_t seq;
     if (('q' == p_name[0]) && (1 == sscanf(p_name + 1, "%8lu", &seq)) && (s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0])))
     {
         s_job_seq[s_n_jobs++] = (uint32_t)seq;
@@ -738,7 +738,9 @@ static void comms_task(void* p_arg)
            (unsigned)APP_RADIO_SIZE_THRESHOLD);
 
     gb_comms_ready = true;
-    bool b_dropping = false, b_topo = true, b_hold = false;
+    bool b_dropping = false;
+    bool b_topo = true;
+    bool b_hold = false;
     uint32_t next_relay_log = p_now(NULL) + 1000u;
     for (;;)
     {
@@ -820,7 +822,7 @@ static void rtos_wait_ms(uint32_t msec)
     vTaskDelay(pdMS_TO_TICKS(msec ? msec : 1));
 }
 
-/* DHT22.c times the sensor's bits by counting loop iterations, so it must not be interrupted by
+/* dht22.c times the sensor's bits by counting loop iterations, so it must not be interrupted by
  * the comms task for the ~5 ms of the read. Raising this task above comms for that moment does
  * it without touching her code (its 20 ms start pulse still sleeps normally). */
 static UBaseType_t s_saved_prio;

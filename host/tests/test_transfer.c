@@ -81,13 +81,14 @@ static unsigned count_in(const char* p_path, const char* p_suffix, int depth)
         return 0;
     }
     struct dirent* p_entry;
-    while ((p_entry = readdir(p_dir_handle)))
+    for (p_entry = readdir(p_dir_handle); NULL != p_entry; p_entry = readdir(p_dir_handle))
     {
         if ('.' == p_entry->d_name[0])
         {
             continue;
         }
-        size_t name_len = strlen(p_entry->d_name), suffix_len = strlen(p_suffix);
+        size_t name_len = strlen(p_entry->d_name);
+        size_t suffix_len = strlen(p_suffix);
         if ((name_len > suffix_len) && (0 == strcmp(p_entry->d_name + name_len - suffix_len, p_suffix)))
         {
             count_c++;
@@ -542,7 +543,7 @@ static void test_outbox_survives_reboot(void)
 
 /* F9 + F3: a bridge reboot deletes the .part files transfers cut off by the reboot left behind,
  * and a session id that repeats after the reboot never overwrites a file already in the inbox. */
-static void test_bridge_reboot_parts_and_names(void)
+static void test_bridge_reboot_part_names(void)
 {
     setup(0, 2, 2, false, 150);
     CHECK(start_send(2, &g_sim_wifi, "img/f3a.jpg", 5000, 70));
@@ -808,8 +809,15 @@ static void test_progress_callbacks(void)
 
     /* order and content */
     CHECK(g_nev > 0 && g_ev[0].kind == 'T');
-    int first_s = -1, first_m = -1, first_n = -1, n_fail = 0;
-    unsigned frags_r0 = 0, frags_r1 = 0, dups_r1 = 0, tx_nacks = 0, n_nacks = 0;
+    int first_s = -1;
+    int first_m = -1;
+    int first_n = -1;
+    int n_fail = 0;
+    unsigned frags_r0 = 0;
+    unsigned frags_r1 = 0;
+    unsigned dups_r1 = 0;
+    unsigned tx_nacks = 0;
+    unsigned n_nacks = 0;
     for (unsigned idx = 0; idx < g_nev; idx++)
     {
         const ev_t* p_entry = &g_ev[idx];
@@ -885,7 +893,7 @@ int main(void)
     RUN(test_edge_sizes);
     RUN(test_outbox_survives_reboot);
     RUN(test_metadata_delivered);
-    RUN(test_bridge_reboot_parts_and_names);
+    RUN(test_bridge_reboot_part_names);
     RUN(test_progress_callbacks);
     RUN(test_outbox_prepare_meta);
     return SUMMARY();

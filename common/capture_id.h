@@ -43,14 +43,14 @@ static inline bool capture_id_parse(const char* p_str, uint8_t* p_node, uint32_t
         return false;
     }
     char* p_end;
-    unsigned long count = strtoul(p_str + 1, &p_end, 10);
+    uint32_t count = (uint32_t)strtoul(p_str + 1, &p_end, 10);
     if ((count > 255) || (('-' != *p_end) && ('_' != *p_end)) || (p_end[1] < '0') || (p_end[1] > '9'))
     {
         return false;
     }
     const char* p_digits = p_end + 1;
-    unsigned long value = strtoul(p_digits, &p_end, 10);
-    if ((p_end - p_digits < 6) || (value > 0xFFFFFFFFul))
+    size_t value = strtoul(p_digits, &p_end, 10); /* size_t is as wide as strtoul()'s result on both targets */
+    if ((p_end - p_digits < 6) || (value > UINT32_MAX))
     {
         return false;
     }

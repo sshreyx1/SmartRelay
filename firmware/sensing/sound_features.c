@@ -46,7 +46,8 @@ static void process_frame(sf_t* p_feat)
     /* pass 1: centred samples -> energy, zero crossings, peak of the windowed frame */
     uint64_t energy = 0;
     uint32_t crossings = 0;
-    int32_t prev = 0, peak = 0;
+    int32_t prev = 0;
+    int32_t peak = 0;
     for (uint32_t pos = 0; pos < SF_FRAME; pos++)
     {
         const int32_t centred = (int32_t)p_feat->frame[pos] - mean;
@@ -82,7 +83,8 @@ static void process_frame(sf_t* p_feat)
     sound_fft256(p_feat->real, p_feat->imag);
 
     uint64_t band[SF_N_BANDS] = { 0 };
-    uint64_t total = 0, weighted = 0;
+    uint64_t total = 0;
+    uint64_t weighted = 0;
     for (uint32_t band_idx = 0; band_idx < SF_N_BANDS; band_idx++)
     {
         for (uint32_t bin_idx = k_band_lo[band_idx]; bin_idx < k_band_lo[band_idx + 1]; bin_idx++)
@@ -188,7 +190,8 @@ void sf_finish(const sf_t* p_feat, float32_t out[SF_N_FEATURES])
     p_out_vec[5] = p_feat->loud_max - p_feat->loud_min;
 
     /* quietest 10%: the first bucket where the running count reaches n/10; active = 6 dB (3 buckets) above it */
-    uint32_t cum = 0, b10 = 0;
+    uint32_t cum = 0;
+    uint32_t b10 = 0;
     for (b10 = 0; b10 < SF_HIST_BUCKETS; b10++)
     {
         cum += p_feat->hist[b10];

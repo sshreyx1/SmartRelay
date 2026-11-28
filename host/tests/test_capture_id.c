@@ -19,14 +19,14 @@ static void expect_str(const char* p_got, const char* p_want)
     }
 }
 
-static void expect_parse(const char* p_str, int ok_flag, unsigned node, unsigned long cap_id)
+static void expect_parse(const char* p_str, int ok_flag, unsigned node, uint32_t cap_id)
 {
     uint8_t got_node = 0;
     uint32_t value = 0;
     int got = capture_id_parse(p_str, &got_node, &value);
     if ((got != ok_flag) || (ok_flag && ((got_node != node) || (value != cap_id))))
     {
-        printf("FAIL: parse('%s') = %d N%u %" PRIu32 ", want %d N%u %lu\n", p_str, got, got_node, (uint32_t)value, ok_flag, node, cap_id);
+        printf("FAIL: parse('%s') = %d N%u %" PRIu32 ", want %d N%u %" PRIu32 "\n", p_str, got, got_node, (uint32_t)value, ok_flag, node, cap_id);
         fails++;
     }
 }

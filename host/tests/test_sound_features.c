@@ -89,7 +89,8 @@ static void test_sine_bands(void)
 
 static void test_block_sizes(void)
 {
-    float32_t ref[SF_N_FEATURES], feats[SF_N_FEATURES];
+    float32_t ref[SF_N_FEATURES];
+    float32_t feats[SF_N_FEATURES];
     sine(700, 500, 2083, 3, 40);
     features(N, ref);
     const uint32_t sizes[] = {1, 7, 256, 1000, 8192};
@@ -102,7 +103,8 @@ static void test_block_sizes(void)
 
 static void test_dc_offset(void)
 {
-    float32_t vec_a[SF_N_FEATURES], vec_b[SF_N_FEATURES];
+    float32_t vec_a[SF_N_FEATURES];
+    float32_t vec_b[SF_N_FEATURES];
     sine(1500, 300, 2048, 4, 30);
     features(4096, vec_a);
     for (int idx = 0; idx < N; idx++)
@@ -150,7 +152,8 @@ static void test_silence_and_clipping(void)
 
 static void test_fft_vs_dft(void)
 {
-    int16_t real[SOUND_FFT_N], imag[SOUND_FFT_N];
+    int16_t real[SOUND_FFT_N];
+    int16_t imag[SOUND_FFT_N];
     float64_t value_x[SOUND_FFT_N];
     srand(5);
     for (int pos = 0; pos < SOUND_FFT_N; pos++)
@@ -161,19 +164,24 @@ static void test_fft_vs_dft(void)
         imag[pos] = 0;
     }
     sound_fft256(real, imag);
-    float64_t fft = 0, dft = 0;
-    int peak_fft = 0, peak_dft = 0;
-    float64_t best_fft = -1, best_dft = -1;
+    float64_t fft = 0;
+    float64_t dft = 0;
+    int peak_fft = 0;
+    int peak_dft = 0;
+    float64_t best_fft = -1;
+    float64_t best_dft = -1;
     for (int kdx = 1; kdx <= SOUND_FFT_N / 2; kdx++)
     {
-        float64_t dft_real = 0, dft_imag = 0;
+        float64_t dft_real = 0;
+        float64_t dft_imag = 0;
         for (int pos = 0; pos < SOUND_FFT_N; pos++)
         {
             dft_real += value_x[pos] * cos(2 * M_PI * kdx * pos / SOUND_FFT_N);
             dft_imag -= value_x[pos] * sin(2 * M_PI * kdx * pos / SOUND_FFT_N);
         }
         float64_t power_dft = dft_real * dft_real + dft_imag * dft_imag;
-        float64_t fft_real = real[kdx] * 256.0, file_info = imag[kdx] * 256.0; /* undo the documented 1/256 scaling */
+        float64_t fft_real = real[kdx] * 256.0; /* undo the documented 1/256 scaling */
+        float64_t file_info = imag[kdx] * 256.0;
         float64_t power_fft = fft_real * fft_real + file_info * file_info;
         dft += power_dft;
         fft += power_fft;
@@ -195,7 +203,8 @@ static void test_fft_vs_dft(void)
 static void test_quiet_keeps_shape(void)
 {
     /* block floating point: a 4-count tone must give the same spectral shape as an 800-count one */
-    float32_t loud[SF_N_FEATURES], quiet[SF_N_FEATURES];
+    float32_t loud[SF_N_FEATURES];
+    float32_t quiet[SF_N_FEATURES];
     sine(2500, 800, 2100, 6, 0);
     features(4096, loud);
     sine(2500, 4, 2100, 6, 0);

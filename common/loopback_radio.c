@@ -136,13 +136,13 @@ static bool l_busy(int self_id)
  * jump out of the code that uses the macro. The only alternative is hand-copying each function.
  * Approved by: ____________________ (project manager), date: __________ */
 #define END(N, I)                                                                                                      \
-    static bool N##_send(uint8_t d, const uint8_t* p, uint16_t l)                                                      \
+    static bool N##_send(uint8_t dst, const uint8_t* p_buf, uint16_t len)                                                      \
     {                                                                                                                  \
-        return l_send(I, d, p, l);                                                                                     \
+        return l_send(I, dst, p_buf, len);                                                                                     \
     }                                                                                                                  \
-    static int N##_recv(uint8_t* s, uint8_t* b, uint16_t c)                                                            \
+    static int N##_recv(uint8_t* p_src, uint8_t* p_buf, uint16_t cap)                                                            \
     {                                                                                                                  \
-        return l_recv(I, s, b, c);                                                                                     \
+        return l_recv(I, p_src, p_buf, cap);                                                                                     \
     }                                                                                                                  \
     static void N##_poll(void)                                                                                         \
     {                                                                                                                  \
@@ -151,21 +151,21 @@ static bool l_busy(int self_id)
     {                                                                                                                  \
         return loopback.maxp;                                                                                                 \
     }                                                                                                                  \
-    static bool N##_heard(uint8_t n, uint32_t* ms)                                                                     \
+    static bool N##_heard(uint8_t node, uint32_t* p_msec)                                                                     \
     {                                                                                                                  \
-        return l_heard(I, n, ms);                                                                                      \
+        return l_heard(I, node, p_msec);                                                                                      \
     }                                                                                                                  \
     static bool N##_busy(void)                                                                                         \
     {                                                                                                                  \
         return l_busy(I);                                                                                              \
     }                                                                                                                  \
-    static void N##_stats(mesh_stats_t* o)                                                                             \
+    static void N##_stats(mesh_stats_t* p_out)                                                                             \
     {                                                                                                                  \
-        *o = loopback.ends[I].stats;                                                                                                \
+        *p_out = loopback.ends[I].stats;                                                                                                \
     }                                                                                                                  \
-    static void N##_drop(float32_t r)                                                                                      \
+    static void N##_drop(float32_t rate)                                                                                      \
     {                                                                                                                  \
-        loopback.ends[I].drop = r;                                                                                               \
+        loopback.ends[I].drop = rate;                                                                                               \
     }                                                                                                                  \
     const mesh_radio_t g_loopback_##N                                                                                    \
         = { "lora", N##_send, N##_recv, N##_poll, N##_maxp, N##_heard, N##_busy, N##_stats, N##_drop };

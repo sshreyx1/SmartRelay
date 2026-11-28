@@ -114,7 +114,8 @@ static void collect(uint16_t seq, void* p_user)
 /* For random received-bitmaps, the NACK must name exactly the missing fragments, no more, no less. */
 static void test_nack_exact(void)
 {
-    int list_used = 0, bitmap_used = 0;
+    int list_used = 0;
+    int bitmap_used = 0;
     for (int trial = 0; trial < 3000; trial++)
     {
         uint16_t count = (uint16_t)(1 + rnd() % ALFP_MAX_FRAGS);
@@ -187,7 +188,8 @@ static void test_crc_catches_bit_flips(void)
     }
     uint16_t len = alfp_enc_data_finish(buf, 241);
     alfp_pkt_t pkt;
-    int caught = 0, total = 0;
+    int caught = 0;
+    int total = 0;
     for (int bit = 0; bit < len * 8; bit++)
     {
         buf[bit / 8] ^= (uint8_t)(1u << (bit % 8));
@@ -197,7 +199,8 @@ static void test_crc_catches_bit_flips(void)
     }
     CHECK(caught == total);
     /* and every double-bit flip in the first 64 bytes */
-    int dcaught = 0, dtotal = 0;
+    int dcaught = 0;
+    int dtotal = 0;
     for (int idx_a = 0; idx_a < 512; idx_a++)
     {
         for (int idx_b = idx_a + 1; idx_b < 512; idx_b += 7)
