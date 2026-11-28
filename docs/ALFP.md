@@ -89,7 +89,7 @@ itself is unchanged, and `alfp_outbox_set_size_threshold(ob, 0)` turns the new r
 Even the smallest size this table measures (2,000 B) already costs 21 s over LoRa against under a
 second over WiFi -- the "prefer LoRa below the threshold" side of the rule is not about LoRa being
 fast, it is about keeping WiFi free for the image while a telemetry-sized payload's extra latency
-is tolerable and does not need the faster radio. The 27-byte capture record (`capture_meta_t`)
+is tolerable and does not need the faster radio. The 31-byte capture record (`capture_meta_t`)
 plus the small name-tail telemetry transfers actually send are two orders of
 magnitude under even the cheapest row in this table, so 1,024 B comfortably separates "telemetry"
 from "image" for every image this firmware has ever produced (`sd_card/samples/*.jpg` run
@@ -108,7 +108,7 @@ raise the constant; nothing else needs to change.
 rung is sendable on whichever radio the size rule or a fallback picks.
 
 **Telemetry and the image as two transfers.** One capture used to be one ALFP job (image path +
-the 27-byte meta as the job's header). It is now two independent jobs sharing the same
+the capture record as the job's header). It is now two independent jobs sharing the same
 `capture_id`: a tiny telemetry job (the packed meta record as its own "file", tagged with
 `APP_TELEMETRY_MARKER` in the meta's filename-tail instead of an image name) and the image job
 exactly as before. The size rule sends the telemetry job over LoRa and the image job over WiFi.

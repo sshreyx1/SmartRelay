@@ -2,7 +2,10 @@
 
 **A dual-radio, multi-hop sensor mesh for trail wildlife monitoring, on five Raspberry Pi Pico W nodes.**
 
-![The SmartRelay trail mesh: node 5 sends telemetry over LoRa and a photo over WiFi, relayed by node 4](docs/media/mesh.gif)
+![The SmartRelay trail mesh: node 5's telemetry floods over LoRa through nodes 3 and 4, and its photo goes over WiFi, relayed by node 4](docs/media/mesh.gif)
+
+<sub>On the trail, node 5 is out of node 1's range, so both meshes relay. On a bench every LoRa node
+hears every other (LoRa has no topology filter), so node 1 also hears node 5's LoRa directly.</sub>
 
 [Overview](#overview) ·
 [Architecture](#architecture) ·
@@ -250,23 +253,31 @@ Details: **[docs/SENSORS.md](docs/SENSORS.md)** and the
 
 ## Dashboard
 
+![A photo from node 5 arriving live: fragments relayed by nodes 3 and 4, one NACK, then verified](docs/media/dashboard/live-transfer.gif)
+
 The bridge writes text lines over USB. A FastAPI backend parses them, re-checks every file's
 CRC-32, stores captures in SQLite and pushes updates to a React dashboard over a WebSocket.
 
 | Page | Shows |
 | --- | --- |
-| Overview | recent captures, node activity and the mesh log |
-| Captures | every capture, with its image, readings, radio and CRC status |
-| Species | a tally of the sound labels reported by the nodes |
-| Node | one node's captures and its temperature, humidity and light history |
-| Review | placeholder: the review workflow is not built |
+| Overview | headline numbers, the mesh with files arriving live, insights and the latest captures |
+| Image gallery | the latest photos, each with its radio, fragments, hops and CRC result |
+| Captures | every capture; its detail page shows each fragment, the relay that carried it, and the CRC-32 checked on the node, the bridge and the laptop |
+| Nodes | per node: transfers, resends, relays used and readings over time; node 1 shows the USB link |
+| Sound classes | what the nodes' classifiers reported |
+| Bridge log | the bridge's console, filterable to errors, NACKs and failures |
+| **Tests** | runs the project's automated tests on the laptop and shows the results live |
 
-The FreeRTOS bridge also reports each transfer **while it is arriving** (`@EVT` lines: fragments,
-relay, hops, NACK rounds). The backend stores and serves these
-(`/api/transfers`); the dashboard in this repository does not draw them yet.
+| | |
+| --- | --- |
+| ![Image gallery](docs/media/dashboard/gallery.png) | ![Capture detail](docs/media/dashboard/capture-detail.png) |
+
+Every view filters by date, radio, node and data source (real or simulated) and exports CSV or JSON.
+Files arrive fragment by fragment with the FreeRTOS images, which print live `@EVT` transfer events;
+with the dual-core images, completed files appear and the live panels say "Data unavailable".
 
 No hardware? `simulator/demo_feed.py` feeds the backend simulated captures, which are stored and
-shown with a **simulated** badge. How to run it and the full API:
+shown with a **SIMULATED** badge and never counted as real. Pages, API and demo mode:
 **[docs/DASHBOARD.md](docs/DASHBOARD.md)**.
 
 ## Build, flash and run
@@ -305,11 +316,8 @@ firmware_smp/buildglue/build_smp.sh        # dual-core images for all five nodes
 
 ```bash
 pip install -r backend/requirements.txt
-cd backend && uvicorn app:app --port 8000  # finds the bridge's USB port, or set SMARTRELAY_BRIDGE_PORT
-```
-
-```bash
-cd dashboard && npm install && npm run dev # http://localhost:5173
+cd dashboard && npm install && npm run build && cd ..
+cd backend && uvicorn app:app --port 8000  # http://127.0.0.1:8000; finds the bridge's USB port, or set SMARTRELAY_BRIDGE_PORT
 ```
 
 ```bash
@@ -335,15 +343,22 @@ Open the node's USB serial port at 115200 baud.
 tools/run_all_tests.sh     # style check, host unit tests, mesh integration, backend and ML tests
 ```
 
+Or open the dashboard's **Tests** tab and press **Run**: each suite's output and result appear live.
+
+![Running the live pipeline check from the dashboard's Tests page](docs/media/dashboard/tests-page.gif)
+
 | Level | What it proves |
 | --- | --- |
 | Host unit tests | packet formats, CRCs, loss, corruption, radio choice, outbox, uplink, classifier |
 | Mesh integration | the real LoRa and WiFi mesh C code, as separate processes with 20% loss: the file arrives byte-for-byte identical, including E → C → A multi-hop |
+| Backend and pipeline | parser, telemetry and photo joining, transfer events, dashboard API; simulated transfers checked end to end |
 | Simulator experiments | the timing values in the protocol (`docs/results/`, `docs/figures/`) |
-| Hardware, 19 Nov | two nodes on the dual-core build: a 60-minute soak delivered 107 of 107 files |
+| Hardware, 19 Nov | nodes 1 and 2 on the dual-core build: a 60-minute soak delivered 107 of 107 files |
+| Hardware, 25 Nov | all five nodes on the dual-core build: 256 file transfers, none lost, through multi-hop relaying, 30% packet loss, bridge outages and LoRa fallback |
 
-The hardware results predate the live-transfer feature and the coding-standard rewrite. What was
-and was not tested: **[docs/TESTING.md](docs/TESTING.md)**.
+Every requirement mapped to its test and evidence, the hardware procedure, and the five-node
+results: **[docs/testing/](docs/testing/README.md)**. How faults are detected and recovered:
+**[docs/FAULTS.md](docs/FAULTS.md)**. Suites and known gaps: **[docs/TESTING.md](docs/TESTING.md)**.
 
 ## Coding standard: BARR-C:2018
 
@@ -385,9 +400,11 @@ docs/            detailed documentation, results and evidence
 | [PROTOCOLS.md](docs/PROTOCOLS.md) | WiFi and LoRa meshes, serial link, capture record, USB uplink |
 | [ALFP.md](docs/ALFP.md) | transfer protocol design and measurements |
 | [SENSORS.md](docs/SENSORS.md) | sensors, trigger, audio features, classifier |
-| [DASHBOARD.md](docs/DASHBOARD.md) | backend, API, dashboard, demo mode |
+| [DASHBOARD.md](docs/DASHBOARD.md) | backend, API, dashboard, Tests page, demo mode |
 | [BRINGUP.md](docs/BRINGUP.md) | wiring, SD cards, flashing, staged tests, troubleshooting |
+| [FAULTS.md](docs/FAULTS.md) | fault detection, response and recovery; queue and buffer sizes |
 | [TESTING.md](docs/TESTING.md) | test suites, results and known gaps |
+| [testing/](docs/testing/README.md) | requirements traceability, hardware test procedure, five-node results |
 | [CODING_STANDARD.md](docs/CODING_STANDARD.md) | BARR-C:2018 compliance |
 
 ## Team

@@ -1,0 +1,74 @@
+   0.000 
+   0.000 
+   0.000 microT-Kernel Version 3.00
+   0.000 
+   0.011 msgq selftest: wanted 64, sent 64, extra accepted 0, drained 64 - ok
+   0.011 
+   0.012 CSC09 trail mesh, node 4, ALFP v1 (uT-Kernel 3 SMP build, dual core)
+   0.012 clocks (measured): sys 125000000 peri 125000000 usb 48000000 adc 48000000 Hz
+   0.012 msgq selftest: wanted 4, sent 4, extra accepted 0, drained 4 - ok
+   0.012 sensors: core 1
+   0.012 comms: core 0
+   0.013 sd: mounted, 35 sample images in 19 groups: ambient 2 bird 2 cat 2 cow 1 cricket 2 crow 2 dog 2 frog 2 hen 2 human 1 insect_buzz 2 insect_frog 2 mammal 2 pig 2 rooster 2 sheep 2 songbird 2 vehicle 2 weather 1
+   0.013 sd: 0 test payload file(s) in test_payloads/
+   0.014 capture id: next is N4-000091 (saved next 91, highest on card 0)
+   0.014 lora_radio: LR1121 firmware 0x0101, hardware 0x22
+   0.014 lora_radio: 924200000 Hz, SF7 BW125 CR4/5, 14 dBm, CRC on
+   0.015 wifi: ESP-01 MAC AC:0B:FB:C7:E2:FD = WST-4
+   0.015 node 4 ready (field node), outbox has 0 queued, radio size threshold 1024 B
+   0.016 sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20
+   0.016 
+   0.016 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+   0.017 usb_owner: core 0
+   0.018 keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 captures fast | z T8: stall the console 5 s | k measure the 1 ms
+   0.018 tick (1 s) | w which ESP-01 (WST) | B reboot to BOOTSEL (reflash) | h help
+   0.887 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 31994.1 zcr 0.316 mean 2074, 80000 samples
+   0.888 [SOUND] group=BIRD label=BIRD id=1 conf=54 rms=177 zcr=5369 lost=0 feat_us=1042579 maxcall_us=4922 model_us=1235
+   0.888 [ENV] DHT22: no reading (0 fails) | Light: 1072 | Weather: unknown | PIR 0 Sound 1
+   0.994 capture N4-000091: heard BIRD (54%) -> samples/bird_00.jpg
+   1.042 capture N4-000091 telemetry queued (tel/N4_000091.bin)
+   1.043 capture N4-000091 queued (samples/bird_00.jpg), outbox 2
+   1.043 tx tel/N4_000091.bin size=27 thr=1024 radio=lora reason=size
+   2.154 tx tel/N4_000091.bin: done via lora, 1 frags, 1 rounds, 0 resent, 1.1 s
+   2.154 tx samples/bird_00.jpg size=8430 thr=1024 radio=wifi reason=size
+   4.761 tx samples/bird_00.jpg: done via wifi, 36 frags, 2 rounds, 4 resent, 2.6 s
+   4.816 [ENV] Temp: 24.2 C | Hum: 60.4% | Light: 1069 | Weather: Cloudy | PIR 0 Sound 1
+   7.788 
+   7.788 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  12.824 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 11950.1 zcr 0.353 mean 2075, 80000 samples
+  12.825 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=44 rms=106 zcr=6228 lost=0 feat_us=1040777 maxcall_us=3612 model_us=1016
+  12.825 [ENV] Temp: 24.2 C | Hum: 60.4% | Light: 1073 | Weather: Cloudy | PIR 0 Sound 1
+  12.931 capture N4-000092: heard MAMMAL (44%) -> samples/mammal_00.jpg
+  12.979 capture N4-000092 telemetry queued (tel/N4_000092.bin)
+  12.980 capture N4-000092 queued (samples/mammal_00.jpg), outbox 2
+  12.980 tx tel/N4_000092.bin size=27 thr=1024 radio=lora reason=size
+  14.828 [ENV] Temp: 24.2 C | Hum: 60.4% | Light: 1074 | Weather: Cloudy | PIR 0 Sound 1
+  18.192 
+  18.227 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  23.232 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 14744.3 zcr 0.306 mean 2077, 80000 samples
+  23.233 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=58 rms=118 zcr=5284 lost=0 feat_us=1037471 maxcall_us=3588 model_us=1010
+  23.233 [ENV] Temp: 24.2 C | Hum: 60.4% | Light: 1073 | Weather: Cloudy | PIR 0 Sound 1
+  23.342 capture N4-000093: heard MAMMAL (58%) -> samples/mammal_01.jpg
+  23.365 capture N4-000093 telemetry queued (tel/N4_000093.bin)
+  23.366 capture N4-000093 queued (samples/mammal_01.jpg), outbox 4
+  24.378 tx tel/N4_000092.bin: done via lora, 1 frags, 1 rounds, 0 resent, 11.3 s
+  24.379 tx samples/mammal_00.jpg size=9223 thr=1024 radio=wifi reason=size
+  24.829 [ENV] Temp: 24.2 C | Hum: 60.4% | Light: 1078 | Weather: Cloudy | PIR 1 Sound 1
+  25.068 node 4 | alfp in 4 badcrc 0 | tx ok 3 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 3
+  25.069   wifi: tx 54 rx 215 delivered 2 relayed 157 dup 56 rxerr 0
+  25.069   lora: tx 10 rx 31 delivered 2 relayed 14 dup 15 rxerr 4
+  25.069   dht22 good 8 fail 0 | lora up | wifi up
+  25.069   bridge last heard on wifi 2238 ms ago
+  25.070   bridge last heard on lora 661 ms ago
+  25.070   task comms: core 0 prio 10 stack free 5224 of 8192 B
+  25.070   task usb_owner: core 0 prio 20 stack free 2088 of 3072 B
+  25.070   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  25.071   longest comms loop 155 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  25.071   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  25.071   sd handles in use 1/8 | no SD errors
+  25.072   slowest SD call (ms): open_r 8 open_w 11 read 5 write 9 size 0 close 18 remove 17 rename 23 list 6 mkdir 0 | worst rename 23 ms on meta/next_id
+  25.072   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 31 | captures 135 | outbox 27 | uplink 0
+  27.129 tx samples/mammal_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 2.7 s
+  27.130 tx tel/N4_000093.bin size=27 thr=1024 radio=lora reason=size
+  29.256 
+  29.256 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...

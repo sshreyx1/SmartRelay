@@ -1,0 +1,70 @@
+   1.017 node 5 | alfp in 184 badcrc 0 | tx ok 94 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   1.017   wifi: tx 2313 rx 3749 delivered 121 relayed 1649 dup 1979 rxerr 0
+   1.017   lora: tx 331 rx 552 delivered 63 relayed 318 dup 171 rxerr 15
+   1.017   dht22 good 304 fail 0 | lora up | wifi up
+   1.017   bridge last heard on wifi 74723 ms ago
+   1.045   bridge last heard on lora 74742 ms ago
+   1.045   task comms: core 0 prio 10 stack free 5048 of 8192 B
+   1.045   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   1.045   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   1.045   longest comms loop 601 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+   1.045   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   1.045   sd handles in use 0/8 | no SD errors
+   1.045   slowest SD call (ms): open_r 10 open_w 18 read 6 write 10 size 1 close 20 remove 50 rename 31 list 13 mkdir 119 | worst mkdir 119 ms on tel
+   1.045   slowest comms step (ms): wifi poll 5 | lora poll 2 | alfp service 66 | captures 578 | outbox 36 | uplink 0
+   3.355 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3783860.2 zcr 0.000 mean 102, 80000 samples
+   3.520 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=53 rms=2 zcr=2836 lost=0 feat_us=1048698 maxcall_us=4054 model_us=1119
+   3.521 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1385 | Weather: Cloudy | PIR 0 Sound 0
+   3.521 capture N5-000048: heard INSECT_FROG (53%) -> samples/insect_frog_00.jpg
+   3.521 capture N5-000048 telemetry queued (tel/N5_000048.bin)
+   3.521 capture N5-000048 queued (samples/insect_frog_00.jpg), outbox 2
+   7.350 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1390 | Weather: Cloudy | PIR 0 Sound 0
+   9.800 
+   9.836 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  14.841 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3783600.0 zcr 0.000 mean 102, 80000 samples
+  14.842 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=53 rms=2 zcr=3022 lost=0 feat_us=1049110 maxcall_us=4246 model_us=1129
+  14.842 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1366 | Weather: Cloudy | PIR 1 Sound 0
+  14.996 capture N5-000049: heard INSECT_FROG (53%) -> samples/insect_frog_01.jpg
+  14.997 capture N5-000049 telemetry queued (tel/N5_000049.bin)
+  14.997 capture N5-000049 queued (samples/insect_frog_01.jpg), outbox 4
+  16.018 
+  16.018 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  21.045 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3783429.2 zcr 0.000 mean 102, 80000 samples
+  21.046 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=3130 lost=0 feat_us=1051143 maxcall_us=4496 model_us=955
+  21.046 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1437 | Weather: Cloudy | PIR 0 Sound 0
+  21.189 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1428 | Weather: Cloudy | PIR 0 Sound 0
+  21.190 capture N5-000050: heard AMBIENT (60%) -> samples/ambient_00.jpg
+  21.190 capture N5-000050 telemetry queued (tel/N5_000050.bin)
+  21.190 capture N5-000050 queued (samples/ambient_00.jpg), outbox 6
+  26.939 
+  26.976 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  31.979 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3783716.5 zcr 0.000 mean 102, 80000 samples
+  32.145 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=2842 lost=0 feat_us=1051649 maxcall_us=4426 model_us=938
+  32.148 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1446 | Weather: Cloudy | PIR 0 Sound 0
+  32.148 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1457 | Weather: Cloudy | PIR 0 Sound 0
+  32.148 
+  32.148 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+  32.149 capture N5-000051: heard AMBIENT (60%) -> samples/ambient_01.jpg
+  32.149 capture N5-000051 telemetry queued (tel/N5_000051.bin)
+  32.149 capture N5-000051 queued (samples/ambient_01.jpg), outbox 8
+  37.033 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784081.0 zcr 0.000 mean 102, 80000 samples
+  37.034 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=3074 lost=0 feat_us=1058616 maxcall_us=4646 model_us=937
+  37.034 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1498 | Weather: Cloudy | PIR 0 Sound 1
+  37.177 capture N5-000052: heard AMBIENT (60%) -> samples/ambient_00.jpg
+  37.177 capture N5-000052 telemetry queued (tel/N5_000052.bin)
+  37.178 capture N5-000052 queued (samples/ambient_00.jpg), outbox 10
+  41.996 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1453 | Weather: Cloudy | PIR 0 Sound 0
+  43.024 node 5 | alfp in 184 badcrc 0 | tx ok 94 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 10
+  43.025   wifi: tx 2313 rx 3749 delivered 121 relayed 1649 dup 1979 rxerr 0
+  43.025   lora: tx 331 rx 552 delivered 63 relayed 318 dup 171 rxerr 15
+  43.026   dht22 good 316 fail 0 | lora up | wifi up
+  43.026   bridge last heard on wifi 116718 ms ago
+  43.026   bridge last heard on lora 116736 ms ago
+  43.026   task comms: core 0 prio 10 stack free 5048 of 8192 B
+  43.026   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  43.027   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  43.027   longest comms loop 601 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+  43.027   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  43.027   sd handles in use 0/8 | no SD errors
+  43.028   slowest SD call (ms): open_r 10 open_w 18 read 6 write 10 size 1 close 20 remove 50 rename 32 list 13 mkdir 119 | worst mkdir 119 ms on tel
+  43.028   slowest comms step (ms): wifi poll 5 | lora poll 2 | alfp service 66 | captures 578 | outbox 36 | uplink 0

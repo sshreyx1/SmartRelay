@@ -1,0 +1,57 @@
+   0.605 [ENV] Temp: 23.5 C | Hum: 61.2% | Light: 746 | Weather: Cloudy | PIR 1 Sound 1
+   1.048 node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   1.049   wifi: tx 11 rx 22 delivered 0 relayed 6 dup 16 rxerr 0
+   1.049   lora: tx 0 rx 1 delivered 0 relayed 0 dup 0 rxerr 56
+   1.049   dht22 good 6 fail 0 | lora up | wifi up
+   1.050   bridge last heard on wifi 2516 ms ago
+   1.050   bridge last heard on lora 16999 ms ago
+   1.050   task comms: core 0 prio 10 stack free 5276 of 8192 B
+   1.050   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   1.050   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   1.051   longest comms loop 4047 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   1.051   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   1.051   sd handles in use 0/8 | 7 SD errors, last: open_w FR=1 on outbox/q00000040.job
+   1.052   slowest SD call (ms): open_r 11 open_w 4004 read 12 write 0 size 0 close 0 remove 2069 rename 0 list 23 mkdir 5 | worst open_w 4004 ms on meta/next_id.tmp
+   1.052   slowest comms step (ms): wifi poll 1 | lora poll 189 | alfp service 13 | captures 4044 | outbox 52 | uplink 0
+   1.367 
+   1.367 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+   6.409 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 325996.2 zcr 0.000 mean 1477, 80000 samples
+   6.410 [SOUND] group=WEATHER label=WEATHER id=6 conf=73 rms=6 zcr=1975 lost=0 feat_us=1047886 maxcall_us=3463 model_us=1016
+   6.410 [ENV] Temp: 23.5 C | Hum: 61.2% | Light: 713 | Weather: Cloudy | PIR 0 Sound 1
+   8.533 capture N2-000459: heard WEATHER (73%) -> samples/weather_00.jpg
+   8.534 capture N2-000459: telemetry SD write failed, image still sent
+   8.534 capture N2-000459: SD write failed
+  10.584 [ENV] Temp: 23.5 C | Hum: 61.2% | Light: 754 | Weather: Cloudy | PIR 0 Sound 1
+  13.483 
+  13.483 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  18.488 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 322218.9 zcr 0.000 mean 1480, 80000 samples
+  18.489 [SOUND] group=WEATHER label=WEATHER id=6 conf=29 rms=4 zcr=1383 lost=0 feat_us=1051415 maxcall_us=3578 model_us=981
+  18.489 [ENV] Temp: 23.5 C | Hum: 61.2% | Light: 700 | Weather: Cloudy | PIR 1 Sound 1
+  22.702 capture id: could not save meta/next_id (ids may repeat after a reboot)
+  22.703 capture N2-000460: heard WEATHER (29%) -> samples/weather_00.jpg
+  22.704 capture N2-000460: telemetry SD write failed, image still sent
+  22.704 [ENV] Temp: 23.5 C | Hum: 61.2% | Light: 761 | Weather: Cloudy | PIR 1 Sound 1
+  22.704 capture N2-000460 queued (samples/weather_00.jpg), outbox 1
+  23.442 
+  23.484 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  28.500 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 325400.3 zcr 0.000 mean 1477, 80000 samples
+  28.501 [SOUND] group=WEATHER label=WEATHER id=6 conf=54 rms=8 zcr=1153 lost=0 feat_us=1044321 maxcall_us=3560 model_us=1129
+  28.502 [ENV] Temp: 23.5 C | Hum: 61.2% | Light: 700 | Weather: Cloudy | PIR 1 Sound 1
+  30.645 capture N2-000461: heard WEATHER (54%) -> samples/weather_00.jpg
+  30.646 capture N2-000461: telemetry SD write failed, image still sent
+  30.646 [ENV] Temp: 23.5 C | Hum: 61.2% | Light: 687 | Weather: Cloudy | PIR 1 Sound 1
+  30.646 capture N2-000461: SD write failed
+  30.657 node 2 | alfp in 0 badcrc 0 | tx ok 0 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  30.658   wifi: tx 11 rx 83 delivered 0 relayed 57 dup 26 rxerr 0
+  30.659   lora: tx 0 rx 1 delivered 0 relayed 0 dup 0 rxerr 1363
+  30.659   dht22 good 15 fail 0 | lora up | wifi up
+  30.659   bridge last heard on wifi 2415 ms ago
+  30.659   bridge last heard on lora 46609 ms ago
+  30.659   task comms: core 0 prio 10 stack free 5276 of 8192 B
+  30.659   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  30.660   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  30.660   longest comms loop 4212 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  30.660   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  30.661   sd handles in use 0/8 | 14 SD errors, last: open_w FR=1 on outbox/q00000043.job
+  30.661   slowest SD call (ms): open_r 11 open_w 4004 read 12 write 17 size 0 close 2018 remove 2069 rename 25 list 23 mkdir 5 | worst open_w 4004 ms on meta/next_id.tmp
+  30.661   slowest comms step (ms): wifi poll 1 | lora poll 189 | alfp service 13 | captures 4177 | outbox 52 | uplink 0

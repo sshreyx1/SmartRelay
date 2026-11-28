@@ -1,0 +1,42 @@
+   0.308 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 9451.0 zcr 0.329 mean 2035, 80000 samples
+   0.309 [SOUND] group=HUMAN label=HUMAN id=4 conf=31 rms=96 zcr=5310 lost=0 feat_us=1041135 maxcall_us=3508 model_us=1029
+   0.309 [ENV] Temp: 23.4 C | Hum: 61.9% | Light: 1067 | Weather: Cloudy | PIR 0 Sound 1
+   0.826 [ENV] Temp: 23.4 C | Hum: 61.8% | Light: 1073 | Weather: Cloudy | PIR 0 Sound 1
+   0.827 capture N2-000430: heard HUMAN (31%) -> samples/human_00.jpg
+   0.827 capture N2-000430 telemetry queued (tel/N2_000430.bin)
+   0.827 capture N2-000430 queued (samples/human_00.jpg), outbox 2
+   0.827 tx tel/N2_000430.bin size=27 thr=1024 radio=wifi reason=fallback
+   1.060 node 2 | alfp in 16 badcrc 0 | tx ok 9 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+   1.060   wifi: tx 240 rx 377 delivered 16 relayed 107 dup 254 rxerr 0
+   1.061   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   1.061   dht22 good 16 fail 0 | lora up | wifi up
+   1.061   bridge last heard on wifi 231 ms ago
+   1.061   bridge never heard on lora
+   1.061   task comms: core 0 prio 10 stack free 5224 of 8192 B
+   1.061   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   1.062   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   1.062   longest comms loop 515 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   1.062   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   1.062   sd handles in use 1/8 | no SD errors
+   1.063   slowest SD call (ms): open_r 60 open_w 187 read 9 write 6 size 0 close 19 remove 75 rename 30 list 22 mkdir 5 | worst open_w 187 ms on tel/N2_000430.bin
+   1.063   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 96 | captures 370 | outbox 145 | uplink 0
+   1.273 tx tel/N2_000430.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.3 s
+   1.273 tx samples/human_00.jpg size=10084 thr=1024 radio=wifi reason=size
+   4.035 tx samples/human_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 2.7 s
+  10.327 [ENV] Temp: 23.4 C | Hum: 61.8% | Light: 1088 | Weather: Cloudy | PIR 0 Sound 1
+  20.299 [ENV] Temp: 23.4 C | Hum: 61.7% | Light: 1091 | Weather: Cloudy | PIR 0 Sound 1
+  30.042 node 2 | alfp in 19 badcrc 0 | tx ok 11 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  30.043   wifi: tx 285 rx 489 delivered 19 relayed 157 dup 313 rxerr 0
+  30.043   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  30.043   dht22 good 30 fail 0 | lora up | wifi up
+  30.043   bridge last heard on wifi 913 ms ago
+  30.043   bridge never heard on lora
+  30.043   task comms: core 0 prio 10 stack free 5224 of 8192 B
+  30.044   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  30.044   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  30.044   longest comms loop 515 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  30.045   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  30.045   sd handles in use 0/8 | no SD errors
+  30.045   slowest SD call (ms): open_r 60 open_w 187 read 9 write 6 size 0 close 19 remove 75 rename 30 list 22 mkdir 5 | worst open_w 187 ms on tel/N2_000430.bin
+  30.046   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 96 | captures 370 | outbox 145 | uplink 0
+  30.314 [ENV] Temp: 23.4 C | Hum: 61.8% | Light: 1170 | Weather: Cloudy | PIR 0 Sound 1

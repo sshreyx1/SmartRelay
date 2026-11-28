@@ -1,0 +1,39 @@
+   1.012 node 3 | alfp in 38 badcrc 0 | tx ok 30 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   1.012   wifi: tx 633 rx 100 delivered 23 relayed 77 dup 0 rxerr 0
+   1.024   lora: tx 31 rx 94 delivered 15 relayed 79 dup 0 rxerr 0
+   1.024   dht22 good 92 fail 0 | lora up | wifi up
+   1.025   bridge last heard on wifi 397 ms ago
+   1.025   bridge last heard on lora 334 ms ago
+   1.025   task comms: core 0 prio 10 stack free 5224 of 8192 B
+   1.025   task usb_owner: core 0 prio 20 stack free 2064 of 3072 B
+   1.025   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   1.026   longest comms loop 567 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   1.026   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   1.026   sd handles in use 0/8 | no SD errors
+   1.027   slowest SD call (ms): open_r 8 open_w 13 read 6 write 17 size 1 close 20 remove 28 rename 32 list 10 mkdir 2 | worst rename 32 ms on meta/next_id
+   1.027   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 43 | captures 544 | outbox 29 | uplink 0
+   8.070 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 10329.3 zcr 0.323 mean 2072, 80000 samples
+   8.071 [SOUND] group=BIRD label=BIRD id=1 conf=33 rms=99 zcr=5457 lost=0 feat_us=1040759 maxcall_us=3657 model_us=1235
+   8.072 [ENV] Temp: 23.4 C | Hum: 61.1% | Light: 1025 | Weather: Cloudy | PIR 0 Sound 0
+   8.072 capture N3-000025: heard BIRD (33%) -> samples/bird_01.jpg
+   8.072 capture N3-000025 telemetry queued (tel/N3_000025.bin)
+   8.072 capture N3-000025 queued (samples/bird_01.jpg), outbox 2
+   8.073 tx tel/N3_000025.bin size=27 thr=1024 radio=lora reason=size
+   8.073 tx tel/N3_000025.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+   8.073 tx samples/bird_01.jpg size=8976 thr=1024 radio=wifi reason=size
+   8.073 tx samples/bird_01.jpg: done via wifi, 39 frags, 1 rounds, 0 resent, 2.3 s
+   8.713 [ENV] Temp: 23.3 C | Hum: 61.1% | Light: 1158 | Weather: Cloudy | PIR 0 Sound 0
+  12.049 node 3 | alfp in 40 badcrc 0 | tx ok 32 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  12.050   wifi: tx 674 rx 104 delivered 24 relayed 80 dup 0 rxerr 0
+  12.050   lora: tx 33 rx 98 delivered 16 relayed 82 dup 0 rxerr 0
+  12.050   dht22 good 96 fail 0 | lora up | wifi up
+  12.051   bridge last heard on wifi 2425 ms ago
+  12.051   bridge last heard on lora 2359 ms ago
+  12.051   task comms: core 0 prio 10 stack free 5224 of 8192 B
+  12.051   task usb_owner: core 0 prio 20 stack free 2064 of 3072 B
+  12.051   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  12.052   longest comms loop 567 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  12.052   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  12.052   sd handles in use 0/8 | no SD errors
+  12.053   slowest SD call (ms): open_r 8 open_w 13 read 6 write 17 size 1 close 20 remove 28 rename 32 list 10 mkdir 2 | worst rename 32 ms on meta/next_id
+  12.053   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 43 | captures 544 | outbox 29 | uplink 0

@@ -1,0 +1,131 @@
+   0.176 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1404 | Weather: Cloudy | PIR 0 Sound 0
+   0.445 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 6 resent, 3.3 s
+   2.054 
+   2.054 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+   7.070 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3785028.2 zcr 0.000 mean 102, 80000 samples
+   7.071 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=66 rms=2 zcr=4222 lost=0 feat_us=1042190 maxcall_us=3539 model_us=922
+   7.071 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1406 | Weather: Cloudy | PIR 0 Sound 0
+   7.174 capture N5-000003: heard AMBIENT (66%) -> samples/ambient_00.jpg
+   7.174 capture N5-000003 telemetry queued (tel/N5_000003.bin)
+   7.174 capture N5-000003 queued (samples/ambient_00.jpg), outbox 2
+   7.217 tx tel/N5_000003.bin size=27 thr=1024 radio=lora reason=size
+   8.117 tx tel/N5_000003.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.8 s
+   8.117 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  10.185 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1426 | Weather: Cloudy | PIR 0 Sound 1
+  11.208 tx samples/ambient_00.jpg: done via wifi, 41 frags, 2 rounds, 4 resent, 3.1 s
+  15.700 
+  15.707 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  20.713 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784536.0 zcr 0.000 mean 102, 80000 samples
+  20.714 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=4034 lost=0 feat_us=1046294 maxcall_us=3490 model_us=945
+  20.714 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1275 | Weather: Cloudy | PIR 0 Sound 0
+  20.857 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1271 | Weather: Cloudy | PIR 0 Sound 1
+  20.857 
+  20.858 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+  20.858 capture N5-000004: heard AMBIENT (60%) -> samples/ambient_01.jpg
+  20.858 capture N5-000004 telemetry queued (tel/N5_000004.bin)
+  20.858 capture N5-000004 queued (samples/ambient_01.jpg), outbox 2
+  20.859 tx tel/N5_000004.bin size=27 thr=1024 radio=lora reason=size
+  21.772 tx tel/N5_000004.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.8 s
+  21.773 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  24.886 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 3.1 s
+  25.755 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784042.8 zcr 0.000 mean 102, 80000 samples
+  25.756 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=47 rms=2 zcr=3952 lost=0 feat_us=1063833 maxcall_us=4600 model_us=954
+  25.756 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1243 | Weather: Cloudy | PIR 0 Sound 0
+  25.899 capture N5-000005: heard AMBIENT (47%) -> samples/ambient_00.jpg
+  25.899 capture N5-000005 telemetry queued (tel/N5_000005.bin)
+  25.899 capture N5-000005 queued (samples/ambient_00.jpg), outbox 2
+  25.900 tx tel/N5_000005.bin size=27 thr=1024 radio=lora reason=size
+  26.813 tx tel/N5_000005.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  26.813 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  30.070 tx samples/ambient_00.jpg: done via wifi, 41 frags, 2 rounds, 4 resent, 3.2 s
+  30.741 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1212 | Weather: Cloudy | PIR 0 Sound 0
+  31.223 
+  31.223 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  36.270 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784306.8 zcr 0.000 mean 102, 80000 samples
+  36.271 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=4062 lost=0 feat_us=1043729 maxcall_us=3519 model_us=935
+  36.271 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1226 | Weather: Cloudy | PIR 0 Sound 0
+  36.374 
+  36.415 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+  36.415 capture N5-000006: heard AMBIENT (60%) -> samples/ambient_01.jpg
+  36.415 capture N5-000006 telemetry queued (tel/N5_000006.bin)
+  36.415 capture N5-000006 queued (samples/ambient_01.jpg), outbox 2
+  36.415 tx tel/N5_000006.bin size=27 thr=1024 radio=lora reason=size
+  37.350 tx tel/N5_000006.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  37.350 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  40.783 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 3.4 s
+  41.311 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784142.8 zcr 0.000 mean 102, 80000 samples
+  41.312 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=42 rms=2 zcr=3611 lost=0 feat_us=1059773 maxcall_us=4520 model_us=1113
+  41.312 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1218 | Weather: Cloudy | PIR 0 Sound 0
+  41.455 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1222 | Weather: Cloudy | PIR 0 Sound 1
+  41.456 capture N5-000007: heard INSECT_FROG (42%) -> samples/insect_frog_00.jpg
+  41.456 capture N5-000007 telemetry queued (tel/N5_000007.bin)
+  41.456 capture N5-000007 queued (samples/insect_frog_00.jpg), outbox 2
+  41.456 tx tel/N5_000007.bin size=27 thr=1024 radio=lora reason=size
+  43.579 tx tel/N5_000007.bin: done via lora, 1 frags, 2 rounds, 1 resent, 2.1 s
+  43.580 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  47.028 
+  47.028 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+  47.149 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 8 resent, 3.5 s
+  52.055 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784495.0 zcr 0.000 mean 102, 80000 samples
+  52.056 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=66 rms=2 zcr=3758 lost=0 feat_us=1042036 maxcall_us=3428 model_us=1052
+  52.056 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1177 | Weather: Cloudy | PIR 0 Sound 1
+  52.188 [ENV] Temp: 23.3 C | Hum: 58.9% | Light: 1170 | Weather: Cloudy | PIR 0 Sound 1
+  52.189 capture N5-000008: heard AMBIENT (66%) -> samples/ambient_00.jpg
+  52.189 capture N5-000008 telemetry queued (tel/N5_000008.bin)
+  52.189 capture N5-000008 queued (samples/ambient_00.jpg), outbox 2
+  52.189 tx tel/N5_000008.bin size=27 thr=1024 radio=lora reason=size
+  53.113 tx tel/N5_000008.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  53.113 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  56.237 tx samples/ambient_00.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 3.1 s
+  61.123 
+  61.154 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  66.161 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784037.5 zcr 0.000 mean 102, 80000 samples
+  66.162 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=63 rms=2 zcr=3313 lost=0 feat_us=1046240 maxcall_us=3519 model_us=965
+  66.162 [ENV] Temp: 23.3 C | Hum: 58.9% | Light: 1174 | Weather: Cloudy | PIR 1 Sound 0
+  66.305 [ENV] Temp: 23.3 C | Hum: 58.9% | Light: 1170 | Weather: Cloudy | PIR 1 Sound 0
+  66.305 
+  66.307 [ALERT] Manual capture (PIR 1, sound 0). Recording 5s of audio...
+  66.307 capture N5-000009: heard AMBIENT (63%) -> samples/ambient_01.jpg
+  66.308 capture N5-000009 telemetry queued (tel/N5_000009.bin)
+  66.308 capture N5-000009 queued (samples/ambient_01.jpg), outbox 2
+  66.309 tx tel/N5_000009.bin size=27 thr=1024 radio=lora reason=size
+  67.244 tx tel/N5_000009.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  67.244 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  70.368 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 3.1 s
+  71.205 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784271.5 zcr 0.000 mean 102, 80000 samples
+  71.205 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=47 rms=2 zcr=3375 lost=0 feat_us=1070138 maxcall_us=5440 model_us=1048
+  71.206 [ENV] Temp: 23.3 C | Hum: 58.9% | Light: 1148 | Weather: Cloudy | PIR 0 Sound 0
+  71.349 capture N5-000010: heard AMBIENT (47%) -> samples/ambient_00.jpg
+  71.349 capture N5-000010 telemetry queued (tel/N5_000010.bin)
+  71.349 capture N5-000010 queued (samples/ambient_00.jpg), outbox 2
+  71.349 tx tel/N5_000010.bin size=27 thr=1024 radio=lora reason=size
+  72.273 tx tel/N5_000010.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  72.274 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  75.618 tx samples/ambient_00.jpg: done via wifi, 41 frags, 2 rounds, 6 resent, 3.3 s
+  76.179 [ENV] Temp: 23.3 C | Hum: 59.1% | Light: 1182 | Weather: Cloudy | PIR 0 Sound 0
+  81.062 
+  81.074 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  85.056 node 5 | alfp in 40 badcrc 0 | tx ok 20 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  85.057   wifi: tx 489 rx 628 delivered 29 relayed 138 dup 461 rxerr 0
+  85.058   lora: tx 22 rx 55 delivered 11 relayed 44 dup 0 rxerr 0
+  85.058   dht22 good 45 fail 0 | lora up | wifi up
+  85.058   bridge last heard on wifi 817 ms ago
+  85.058   bridge last heard on lora 842 ms ago
+  85.058   task comms: core 0 prio 10 stack free 5096 of 8192 B
+  85.059   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  85.059   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  85.059   longest comms loop 145 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+  85.059   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  85.060   sd handles in use 0/8 | no SD errors
+  85.060   slowest SD call (ms): open_r 9 open_w 8 read 6 write 10 size 1 close 20 remove 24 rename 25 list 13 mkdir 119 | worst mkdir 119 ms on tel
+  85.060   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 40 | captures 125 | outbox 29 | uplink 0
+  86.084 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784629.5 zcr 0.000 mean 102, 80000 samples
+  86.084 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=53 rms=2 zcr=2988 lost=0 feat_us=1046129 maxcall_us=3645 model_us=1130
+  86.085 [ENV] Temp: 23.4 C | Hum: 59.0% | Light: 1168 | Weather: Cloudy | PIR 0 Sound 0
+  86.228 capture N5-000011: heard INSECT_FROG (53%) -> samples/insect_frog_01.jpg
+  86.229 [ENV] Temp: 23.4 C | Hum: 59.0% | Light: 1163 | Weather: Cloudy | PIR 0 Sound 0
+  86.229 capture N5-000011 telemetry queued (tel/N5_000011.bin)
+  86.229 capture N5-000011 queued (samples/insect_frog_01.jpg), outbox 2
+  86.229 tx tel/N5_000011.bin size=27 thr=1024 radio=lora reason=size
+  87.175 tx tel/N5_000011.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  87.175 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size

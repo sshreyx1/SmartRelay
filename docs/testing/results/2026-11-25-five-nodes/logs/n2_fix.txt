@@ -1,0 +1,53 @@
+   0.554 node 2 | alfp in 8 badcrc 0 | tx ok 4 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   0.555   wifi: tx 92 rx 136 delivered 8 relayed 26 dup 102 rxerr 0
+   0.556   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   0.556   dht22 good 6 fail 0 | lora DOWN | wifi up
+   0.556   bridge last heard on wifi 596 ms ago
+   0.556   bridge never heard on lora
+   0.556   task comms: core 0 prio 10 stack free 5276 of 8192 B
+   0.556   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   0.557   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   0.557   longest comms loop 516 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   0.558   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   0.558   sd handles in use 0/8 | no SD errors
+   0.560   slowest SD call (ms): open_r 60 open_w 186 read 5 write 16 size 1 close 19 remove 74 rename 25 list 20 mkdir 5 | worst open_w 186 ms on tel/N2_000439.bin
+   0.560   slowest comms step (ms): wifi poll 0 | lora poll 0 | alfp service 90 | captures 371 | outbox 145 | uplink 0
+   3.167 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 11288.5 zcr 0.314 mean 2014, 80000 samples
+   3.168 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=59 rms=101 zcr=5665 lost=0 feat_us=1008106 maxcall_us=3646 model_us=989
+   3.169 [ENV] Temp: 23.6 C | Hum: 61.7% | Light: 1011 | Weather: Cloudy | PIR 0 Sound 1
+   3.641 capture N2-000440: heard MAMMAL (59%) -> samples/mammal_01.jpg
+   3.685 capture N2-000440 telemetry queued (tel/N2_000440.bin)
+   3.686 capture N2-000440 queued (samples/mammal_01.jpg), outbox 2
+   3.686 tx tel/N2_000440.bin size=27 thr=1024 radio=wifi reason=fallback
+   3.972 tx tel/N2_000440.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.1 s
+   3.973 tx samples/mammal_01.jpg size=9098 thr=1024 radio=wifi reason=size
+   6.623 tx samples/mammal_01.jpg: done via wifi, 39 frags, 2 rounds, 2 resent, 2.6 s
+   7.459 [ENV] Temp: 23.6 C | Hum: 61.6% | Light: 1009 | Weather: Cloudy | PIR 0 Sound 0
+  12.004 
+  12.004 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  17.020 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 5836.9 zcr 0.286 mean 2015, 80000 samples
+  17.021 [SOUND] group=WEATHER label=WEATHER id=6 conf=70 rms=69 zcr=5473 lost=0 feat_us=1008304 maxcall_us=3548 model_us=990
+  17.021 [ENV] Temp: 23.6 C | Hum: 61.5% | Light: 1011 | Weather: Cloudy | PIR 0 Sound 1
+  17.539 capture N2-000441: heard WEATHER (70%) -> samples/weather_00.jpg
+  17.539 capture N2-000441 telemetry queued (tel/N2_000441.bin)
+  17.539 capture N2-000441 queued (samples/weather_00.jpg), outbox 2
+  17.540 [ENV] Temp: 23.6 C | Hum: 61.5% | Light: 1010 | Weather: Cloudy | PIR 0 Sound 1
+  17.540 tx tel/N2_000441.bin size=27 thr=1024 radio=wifi reason=fallback
+  17.869 tx tel/N2_000441.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.2 s
+  17.869 tx samples/weather_00.jpg size=9894 thr=1024 radio=wifi reason=size
+  20.960 tx samples/weather_00.jpg: done via wifi, 42 frags, 2 rounds, 2 resent, 3.1 s
+  27.473 [ENV] Temp: 23.6 C | Hum: 61.4% | Light: 1007 | Weather: Cloudy | PIR 0 Sound 1
+  30.046 node 2 | alfp in 15 badcrc 0 | tx ok 8 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  30.046   wifi: tx 190 rx 341 delivered 15 relayed 115 dup 210 rxerr 0
+  30.047   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  30.047   dht22 good 18 fail 0 | lora DOWN | wifi up
+  30.047   bridge last heard on wifi 1 ms ago
+  30.047   bridge never heard on lora
+  30.047   task comms: core 0 prio 10 stack free 5224 of 8192 B
+  30.047   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  30.048   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  30.048   longest comms loop 516 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  30.048   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  30.048   sd handles in use 0/8 | no SD errors
+  30.049   slowest SD call (ms): open_r 60 open_w 187 read 5 write 16 size 1 close 19 remove 75 rename 25 list 20 mkdir 5 | worst open_w 187 ms on tel/N2_000441.bin
+  30.049   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 90 | captures 371 | outbox 146 | uplink 0

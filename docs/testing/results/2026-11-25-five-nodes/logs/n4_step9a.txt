@@ -1,0 +1,125 @@
+   1.005 [T6] capture request 1: queued
+   1.005 [T6] capture request 2: queued
+   1.017 [T6] capture request 3: queued
+   1.017 [T6] capture request 4: queued
+   1.017 [T6] capture request 5: refused
+   1.501 capture N4-000013: heard unknown (recording failed) -> samples/ambient_00.jpg
+   1.502 capture N4-000013 telemetry queued (tel/N4_000013.bin)
+   1.503 capture N4-000013 queued (samples/ambient_00.jpg), outbox 2
+   1.503 capture N4-000014: heard unknown (recording failed) -> samples/bird_01.jpg
+   1.503 capture N4-000014 telemetry queued (tel/N4_000014.bin)
+   1.503 capture N4-000014 queued (samples/bird_01.jpg), outbox 4
+   1.504 capture N4-000015: heard unknown (recording failed) -> samples/cat_00.jpg
+   1.504 capture N4-000015 telemetry queued (tel/N4_000015.bin)
+   1.504 capture N4-000015 queued (samples/cat_00.jpg), outbox 6
+   1.504 capture N4-000016: heard unknown (recording failed) -> samples/cow_00.jpg
+   1.504 capture N4-000016 telemetry queued (tel/N4_000016.bin)
+   1.504 capture N4-000016 queued (samples/cow_00.jpg), outbox 8
+   1.505 tx tel/N4_000013.bin size=27 thr=1024 radio=lora reason=size
+   2.473 tx tel/N4_000013.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+   2.473 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+   3.387 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 13345.6 zcr 0.178 mean 2126, 80000 samples
+   3.388 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=52 rms=85 zcr=5035 lost=0 feat_us=1061249 maxcall_us=4387 model_us=1017
+   3.388 [ENV] Temp: 24.1 C | Hum: 60.8% | Light: 1214 | Weather: Cloudy | PIR 0 Sound 1
+   3.520 capture N4-000017: heard VEHICLE (52%) -> samples/vehicle_01.jpg
+   3.520 capture N4-000017 telemetry queued (tel/N4_000017.bin)
+   3.520 capture N4-000017 queued (samples/vehicle_01.jpg), outbox 9
+   5.402 tx samples/ambient_00.jpg: done via wifi, 41 frags, 2 rounds, 2 resent, 2.9 s
+   5.402 tx tel/N4_000014.bin size=27 thr=1024 radio=lora reason=size
+   6.348 tx tel/N4_000014.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+   6.348 tx samples/bird_01.jpg size=8976 thr=1024 radio=wifi reason=size
+   7.184 [ENV] Temp: 24.1 C | Hum: 60.8% | Light: 1504 | Weather: Cloudy | PIR 0 Sound 1
+   8.779 tx samples/bird_01.jpg: done via wifi, 39 frags, 2 rounds, 2 resent, 2.4 s
+   8.779 tx tel/N4_000015.bin size=27 thr=1024 radio=lora reason=size
+   9.410 
+   9.450 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+   9.725 tx tel/N4_000015.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+   9.725 tx samples/cat_00.jpg size=9598 thr=1024 radio=wifi reason=size
+  12.355 tx samples/cat_00.jpg: done via wifi, 41 frags, 1 rounds, 0 resent, 2.6 s
+  12.356 tx tel/N4_000016.bin size=27 thr=1024 radio=lora reason=size
+  13.303 tx tel/N4_000016.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  13.303 tx samples/cow_00.jpg size=9180 thr=1024 radio=wifi reason=size
+  14.447 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 11531.3 zcr 0.232 mean 2103, 80000 samples
+  14.448 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=61 rms=92 zcr=4817 lost=0 feat_us=1066537 maxcall_us=5315 model_us=1007
+  14.448 [ENV] Temp: 24.1 C | Hum: 60.8% | Light: 1167 | Weather: Cloudy | PIR 0 Sound 1
+  14.580 capture N4-000018: heard VEHICLE (61%) -> samples/vehicle_00.jpg
+  14.580 capture N4-000018 telemetry queued (tel/N4_000018.bin)
+  14.580 capture N4-000018 queued (samples/vehicle_00.jpg), outbox 5
+  15.967 tx samples/cow_00.jpg: done via wifi, 39 frags, 1 rounds, 0 resent, 2.6 s
+  15.967 tx tel/N4_000017.bin size=27 thr=1024 radio=lora reason=size
+  16.957 tx tel/N4_000017.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  16.957 tx samples/vehicle_01.jpg size=10029 thr=1024 radio=wifi reason=size
+  17.199 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1150 | Weather: Cloudy | PIR 0 Sound 1
+  19.707 tx samples/vehicle_01.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 2.7 s
+  19.707 tx tel/N4_000018.bin size=27 thr=1024 radio=lora reason=size
+  20.664 tx tel/N4_000018.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  20.664 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+  22.366 
+  22.413 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  23.215 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 2.5 s
+  27.419 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 8238.3 zcr 0.251 mean 2094, 80000 samples
+  27.420 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=52 rms=78 zcr=5174 lost=0 feat_us=1041926 maxcall_us=3865 model_us=1001
+  27.420 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1159 | Weather: Cloudy | PIR 0 Sound 1
+  27.563 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1159 | Weather: Cloudy | PIR 0 Sound 1
+  27.564 capture N4-000019: heard VEHICLE (52%) -> samples/vehicle_01.jpg
+  27.564 capture N4-000019 telemetry queued (tel/N4_000019.bin)
+  27.564 capture N4-000019 queued (samples/vehicle_01.jpg), outbox 2
+  27.564 tx tel/N4_000019.bin size=27 thr=1024 radio=lora reason=size
+  29.731 tx tel/N4_000019.bin: done via lora, 1 frags, 2 rounds, 1 resent, 2.1 s
+  29.731 tx samples/vehicle_01.jpg size=10029 thr=1024 radio=wifi reason=size
+  32.569 tx samples/vehicle_01.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 2.8 s
+  34.366 
+  34.366 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  39.389 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 8622.2 zcr 0.237 mean 2096, 80000 samples
+  39.533 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=47 rms=79 zcr=4977 lost=0 feat_us=1044176 maxcall_us=3556 model_us=993
+  39.534 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1132 | Weather: Cloudy | PIR 0 Sound 1
+  39.534 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1124 | Weather: Cloudy | PIR 0 Sound 1
+  39.534 capture N4-000020: heard VEHICLE (47%) -> samples/vehicle_00.jpg
+  39.535 capture N4-000020 telemetry queued (tel/N4_000020.bin)
+  39.535 capture N4-000020 queued (samples/vehicle_00.jpg), outbox 2
+  39.535 tx tel/N4_000020.bin size=27 thr=1024 radio=lora reason=size
+  40.492 tx tel/N4_000020.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  40.492 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+  42.957 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 2.4 s
+  46.455 
+  46.477 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  51.482 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 11232.9 zcr 0.255 mean 2099, 80000 samples
+  51.482 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=27 rms=93 zcr=5329 lost=0 feat_us=1041246 maxcall_us=3494 model_us=1026
+  51.483 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1132 | Weather: Cloudy | PIR 0 Sound 1
+  51.636 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1137 | Weather: Cloudy | PIR 0 Sound 1
+  51.637 capture N4-000021: heard VEHICLE (27%) -> samples/vehicle_01.jpg
+  51.638 capture N4-000021 telemetry queued (tel/N4_000021.bin)
+  51.638 capture N4-000021 queued (samples/vehicle_01.jpg), outbox 2
+  51.638 tx tel/N4_000021.bin size=27 thr=1024 radio=lora reason=size
+  52.616 tx tel/N4_000021.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  52.617 tx samples/vehicle_01.jpg size=10029 thr=1024 radio=wifi reason=size
+  55.256 tx samples/vehicle_01.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 2.6 s
+  58.599 
+  58.599 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  63.616 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 10544.8 zcr 0.267 mean 2100, 80000 samples
+  63.617 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=47 rms=88 zcr=5352 lost=0 feat_us=1045471 maxcall_us=3573 model_us=1183
+  63.617 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1128 | Weather: Cloudy | PIR 0 Sound 1
+  63.760 [ENV] Temp: 24.1 C | Hum: 60.6% | Light: 1125 | Weather: Cloudy | PIR 0 Sound 1
+  63.761 capture N4-000022: heard VEHICLE (47%) -> samples/vehicle_00.jpg
+  63.762 capture N4-000022 telemetry queued (tel/N4_000022.bin)
+  63.762 capture N4-000022 queued (samples/vehicle_00.jpg), outbox 2
+  63.762 tx tel/N4_000022.bin size=27 thr=1024 radio=lora reason=size
+  64.729 tx tel/N4_000022.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  64.730 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+  67.083 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 2.4 s
+  70.753 
+  70.768 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  72.051 node 4 | alfp in 62 badcrc 0 | tx ok 44 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  72.052   wifi: tx 1011 rx 115 delivered 39 relayed 76 dup 0 rxerr 0
+  72.053   lora: tx 46 rx 97 delivered 23 relayed 74 dup 0 rxerr 0
+  72.053   dht22 good 82 fail 0 | lora up | wifi up
+  72.053   bridge last heard on wifi 1423 ms ago
+  72.053   bridge last heard on lora 1393 ms ago
+  72.054   task comms: core 0 prio 10 stack free 5104 of 8192 B
+  72.055   task usb_owner: core 0 prio 20 stack free 2008 of 3072 B
+  72.055   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  72.056   longest comms loop 474 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  72.056   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  72.056   sd handles in use 0/8 | no SD errors
+  72.057   slowest SD call (ms): open_r 14 open_w 13 read 6 write 9 size 1 close 19 remove 22 rename 27 list 13 mkdir 33 | worst mkdir 33 ms on tel
+  72.057   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 40 | captures 451 | outbox 39 | uplink 0

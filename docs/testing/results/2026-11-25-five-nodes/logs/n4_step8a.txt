@@ -1,0 +1,72 @@
+   1.036 node 4 | alfp in 87 badcrc 0 | tx ok 58 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 2
+   1.037   wifi: tx 1322 rx 158 delivered 54 relayed 104 dup 0 rxerr 0
+   1.037   lora: tx 75 rx 132 delivered 33 relayed 99 dup 0 rxerr 0
+   1.037   dht22 good 113 fail 0 | lora up | wifi up
+   1.037   bridge last heard on wifi 14669 ms ago
+   1.038   bridge last heard on lora 14661 ms ago
+   1.038   task comms: core 0 prio 10 stack free 5104 of 8192 B
+   1.038   task usb_owner: core 0 prio 20 stack free 2008 of 3072 B
+   1.039   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   1.039   longest comms loop 474 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   1.040   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   1.040   sd handles in use 1/8 | no SD errors
+   1.041   slowest SD call (ms): open_r 14 open_w 13 read 6 write 9 size 1 close 27 remove 22 rename 28 list 13 mkdir 33 | worst mkdir 33 ms on tel
+   1.042   slowest comms step (ms): wifi poll 3 | lora poll 1 | alfp service 40 | captures 451 | outbox 39 | uplink 0
+   1.823 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 11919.3 zcr 0.170 mean 2114, 80000 samples
+   1.824 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=52 rms=86 zcr=5420 lost=0 feat_us=1042807 maxcall_us=5148 model_us=1006
+   1.824 [ENV] Temp: 24.2 C | Hum: 60.6% | Light: 1216 | Weather: Cloudy | PIR 0 Sound 1
+   1.945 [ENV] Temp: 24.2 C | Hum: 60.8% | Light: 1217 | Weather: Cloudy | PIR 0 Sound 1
+   1.946 capture N4-000031: heard VEHICLE (52%) -> samples/vehicle_00.jpg
+   1.946 capture N4-000031 telemetry queued (tel/N4_000031.bin)
+   1.946 capture N4-000031 queued (samples/vehicle_00.jpg), outbox 4
+   8.795 
+   8.843 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  13.837 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 12245.1 zcr 0.196 mean 2115, 80000 samples
+  13.849 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=50 rms=88 zcr=5950 lost=0 feat_us=1045871 maxcall_us=3569 model_us=999
+  13.849 [ENV] Temp: 24.2 C | Hum: 60.8% | Light: 1225 | Weather: Cloudy | PIR 0 Sound 1
+  13.971 [ENV] Temp: 24.2 C | Hum: 60.7% | Light: 1221 | Weather: Cloudy | PIR 0 Sound 1
+  13.972 capture N4-000032: heard VEHICLE (50%) -> samples/vehicle_01.jpg
+  13.972 capture N4-000032 telemetry queued (tel/N4_000032.bin)
+  13.972 capture N4-000032 queued (samples/vehicle_01.jpg), outbox 6
+  16.036 
+  16.036 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  21.063 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 11606.4 zcr 0.170 mean 2116, 80000 samples
+  21.064 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=46 rms=83 zcr=5795 lost=0 feat_us=1040634 maxcall_us=3452 model_us=1018
+  21.064 [ENV] Temp: 24.3 C | Hum: 60.7% | Light: 1188 | Weather: Cloudy | PIR 1 Sound 1
+  21.185 capture N4-000033: heard VEHICLE (46%) -> samples/vehicle_00.jpg
+  21.185 capture N4-000033 telemetry queued (tel/N4_000033.bin)
+  21.185 capture N4-000033 queued (samples/vehicle_00.jpg), outbox 8
+  23.859 [ENV] Temp: 24.2 C | Hum: 60.6% | Light: 1192 | Weather: Cloudy | PIR 0 Sound 1
+  26.846 
+  26.895 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  31.895 [AUDIO] legacy mic.c: AMBIENT_NOISE energy 11288.4 zcr 0.120 mean 2116, 80000 samples
+  31.895 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=48 rms=81 zcr=4585 lost=0 feat_us=1042696 maxcall_us=3506 model_us=1028
+  31.896 [ENV] Temp: 24.2 C | Hum: 60.6% | Light: 1261 | Weather: Cloudy | PIR 0 Sound 1
+  32.001 
+  32.039 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  32.039 capture N4-000034: heard MAMMAL (48%) -> samples/mammal_01.jpg
+  32.039 capture N4-000034 telemetry queued (tel/N4_000034.bin)
+  32.039 capture N4-000034 queued (samples/mammal_01.jpg), outbox 10
+  36.946 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 18578.1 zcr 0.162 mean 2134, 80000 samples
+  36.946 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=61 rms=105 zcr=5260 lost=0 feat_us=1050254 maxcall_us=4120 model_us=1009
+  36.947 [ENV] Temp: 24.2 C | Hum: 60.5% | Light: 1196 | Weather: Cloudy | PIR 0 Sound 1
+  37.068 [ENV] Temp: 24.2 C | Hum: 60.5% | Light: 1197 | Weather: Cloudy | PIR 0 Sound 1
+  37.068 capture N4-000035: heard MAMMAL (61%) -> samples/mammal_00.jpg
+  37.068 capture N4-000035 telemetry queued (tel/N4_000035.bin)
+  37.069 capture N4-000035 queued (samples/mammal_00.jpg), outbox 12
+  43.045 node 4 | alfp in 87 badcrc 0 | tx ok 58 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 12
+  43.046   wifi: tx 1322 rx 158 delivered 54 relayed 104 dup 0 rxerr 0
+  43.047   lora: tx 96 rx 132 delivered 33 relayed 99 dup 0 rxerr 0
+  43.047   dht22 good 126 fail 0 | lora up | wifi up
+  43.047   bridge last heard on wifi 56682 ms ago
+  43.047   bridge last heard on lora 56673 ms ago
+  43.047   task comms: core 0 prio 10 stack free 5104 of 8192 B
+  43.048   task usb_owner: core 0 prio 20 stack free 2008 of 3072 B
+  43.048   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  43.048   longest comms loop 474 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  43.048   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  43.049   sd handles in use 1/8 | no SD errors
+  43.049   slowest SD call (ms): open_r 14 open_w 14 read 6 write 9 size 1 close 27 remove 22 rename 28 list 13 mkdir 33 | worst mkdir 33 ms on tel
+  43.049   slowest comms step (ms): wifi poll 3 | lora poll 1 | alfp service 40 | captures 451 | outbox 39 | uplink 0
+  44.906 
+  44.906 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...

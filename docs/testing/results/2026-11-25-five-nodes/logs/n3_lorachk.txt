@@ -1,0 +1,45 @@
+   0.671 tx samples/mammal_00.jpg: done via wifi, 40 frags, 2 rounds, 2 resent, 2.7 s
+   1.055 node 3 | alfp in 5 badcrc 0 | tx ok 4 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   1.056   wifi: tx 87 rx 386 delivered 3 relayed 275 dup 107 rxerr 0
+   1.056   lora: tx 4 rx 32 delivered 2 relayed 30 dup 0 rxerr 0
+   1.056   dht22 good 38 fail 0 | lora up | wifi up
+   1.056   bridge last heard on wifi 408 ms ago
+   1.057   bridge last heard on lora 1055 ms ago
+   1.057   task comms: core 0 prio 10 stack free 5224 of 8192 B
+   1.057   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   1.057   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   1.058   longest comms loop 170 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   1.058   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   1.058   sd handles in use 0/8 | no SD errors
+   1.058   slowest SD call (ms): open_r 9 open_w 11 read 4 write 17 size 0 close 18 remove 19 rename 26 list 11 mkdir 3 | worst rename 26 ms on meta/next_id
+   1.059   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 35 | captures 150 | outbox 30 | uplink 0
+   6.842 [ENV] Temp: 23.5 C | Hum: 61.0% | Light: 1064 | Weather: Cloudy | PIR 0 Sound 0
+  16.814 
+  16.814 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  21.849 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 13268.2 zcr 0.334 mean 2067, 80000 samples
+  22.015 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=25 rms=113 zcr=5702 lost=0 feat_us=1036866 maxcall_us=3539 model_us=1025
+  22.016 [ENV] Temp: 23.5 C | Hum: 60.9% | Light: 1045 | Weather: Cloudy | PIR 0 Sound 0
+  22.017 [ENV] Temp: 23.5 C | Hum: 60.9% | Light: 1049 | Weather: Cloudy | PIR 0 Sound 1
+  22.017 capture N3-000070: heard MAMMAL (25%) -> samples/mammal_01.jpg
+  22.017 capture N3-000070 telemetry queued (tel/N3_000070.bin)
+  22.017 capture N3-000070 queued (samples/mammal_01.jpg), outbox 2
+  22.017 tx tel/N3_000070.bin size=27 thr=1024 radio=lora reason=size
+  22.941 tx tel/N3_000070.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  22.941 tx samples/mammal_01.jpg size=9098 thr=1024 radio=wifi reason=size
+  25.263 tx samples/mammal_01.jpg: done via wifi, 39 frags, 1 rounds, 0 resent, 2.3 s
+  26.961 
+  26.961 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  30.053 node 3 | alfp in 7 badcrc 0 | tx ok 6 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  30.055   wifi: tx 128 rx 492 delivered 4 relayed 334 dup 154 rxerr 0
+  30.055   lora: tx 6 rx 43 delivered 3 relayed 39 dup 0 rxerr 0
+  30.055   dht22 good 49 fail 0 | lora up | wifi up
+  30.056   bridge last heard on wifi 919 ms ago
+  30.056   bridge last heard on lora 49 ms ago
+  30.056   task comms: core 0 prio 10 stack free 5224 of 8192 B
+  30.056   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  30.056   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  30.057   longest comms loop 170 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  30.057   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  30.057   sd handles in use 0/8 | no SD errors
+  30.058   slowest SD call (ms): open_r 9 open_w 11 read 4 write 17 size 0 close 18 remove 24 rename 26 list 11 mkdir 3 | worst rename 26 ms on meta/next_id
+  30.058   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 42 | captures 150 | outbox 30 | uplink 0

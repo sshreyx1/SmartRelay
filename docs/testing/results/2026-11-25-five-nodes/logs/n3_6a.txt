@@ -1,0 +1,86 @@
+   0.538 node 3 | alfp in 11 badcrc 0 | tx ok 10 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   0.538   wifi: tx 215 rx 596 delivered 6 relayed 341 dup 249 rxerr 0
+   0.539   lora: tx 10 rx 53 delivered 5 relayed 48 dup 0 rxerr 0
+   0.539   dht22 good 59 fail 0 | lora up | wifi up
+   0.539   bridge last heard on wifi 639 ms ago
+   0.539   bridge last heard on lora 94 ms ago
+   0.540   task comms: core 0 prio 10 stack free 5224 of 8192 B
+   0.540   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   0.540   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   0.540   longest comms loop 170 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   0.541   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   0.541   sd handles in use 0/8 | no SD errors
+   0.541   slowest SD call (ms): open_r 10 open_w 11 read 4 write 17 size 0 close 19 remove 24 rename 26 list 11 mkdir 3 | worst rename 26 ms on meta/next_id
+   0.541   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 42 | captures 150 | outbox 33 | uplink 0
+   6.498 
+   6.498 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  11.519 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 6921.1 zcr 0.357 mean 2063, 80000 samples
+  11.520 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=37 rms=82 zcr=5876 lost=0 feat_us=1044678 maxcall_us=3765 model_us=1001
+  11.520 [ENV] Temp: 23.6 C | Hum: 60.9% | Light: 988 | Weather: Cloudy | PIR 0 Sound 0
+  11.696 [ENV] Temp: 23.6 C | Hum: 60.9% | Light: 987 | Weather: Cloudy | PIR 0 Sound 0
+  11.696 
+  11.697 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+  11.697 capture N3-000073: heard VEHICLE (37%) -> samples/vehicle_00.jpg
+  11.697 capture N3-000073 telemetry queued (tel/N3_000073.bin)
+  11.697 capture N3-000073 queued (samples/vehicle_00.jpg), outbox 2
+  11.698 tx tel/N3_000073.bin size=27 thr=1024 radio=lora reason=size
+  13.832 tx tel/N3_000073.bin: done via lora, 1 frags, 2 rounds, 1 resent, 2.1 s
+  13.833 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+  16.298 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 2.4 s
+  16.562 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 7395.1 zcr 0.276 mean 2065, 80000 samples
+  16.563 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=40 rms=84 zcr=4725 lost=0 feat_us=1068950 maxcall_us=4753 model_us=1012
+  16.563 [ENV] Temp: 23.6 C | Hum: 60.9% | Light: 1560 | Weather: Cloudy | PIR 0 Sound 1
+  16.721 capture N3-000074: heard MAMMAL (40%) -> samples/mammal_01.jpg
+  16.728 capture N3-000074 telemetry queued (tel/N3_000074.bin)
+  16.728 capture N3-000074 queued (samples/mammal_01.jpg), outbox 2
+  16.729 tx tel/N3_000074.bin size=27 thr=1024 radio=lora reason=size
+  17.664 tx tel/N3_000074.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  17.664 tx samples/mammal_01.jpg size=9098 thr=1024 radio=wifi reason=size
+  20.128 tx samples/mammal_01.jpg: done via wifi, 39 frags, 1 rounds, 0 resent, 2.4 s
+  21.547 [ENV] Temp: 23.6 C | Hum: 60.8% | Light: 1441 | Weather: Cloudy | PIR 0 Sound 1
+  26.823 
+  26.823 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  31.876 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 19995.9 zcr 0.349 mean 2062, 80000 samples
+  31.877 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=49 rms=141 zcr=5681 lost=0 feat_us=1032793 maxcall_us=3445 model_us=1010
+  31.877 [ENV] Temp: 23.6 C | Hum: 60.9% | Light: 1337 | Weather: Cloudy | PIR 0 Sound 0
+  32.042 [ENV] Temp: 23.6 C | Hum: 60.8% | Light: 1332 | Weather: Cloudy | PIR 0 Sound 0
+  32.043 capture N3-000075: heard MAMMAL (49%) -> samples/mammal_00.jpg
+  32.043 capture N3-000075 telemetry queued (tel/N3_000075.bin)
+  32.043 capture N3-000075 queued (samples/mammal_00.jpg), outbox 2
+  32.043 tx tel/N3_000075.bin size=27 thr=1024 radio=lora reason=size
+  32.978 tx tel/N3_000075.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  32.978 tx samples/mammal_00.jpg size=9223 thr=1024 radio=wifi reason=size
+  35.182 
+  35.182 [ALERT] Manual capture (PIR 1, sound 1). Recording 5s of audio...
+  37.597 tx samples/mammal_00.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 4.6 s
+  40.193 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 18865.0 zcr 0.187 mean 2138, 80000 samples
+  40.194 [SOUND] group=HUMAN label=HUMAN id=4 conf=27 rms=103 zcr=5037 lost=0 feat_us=1052040 maxcall_us=4196 model_us=1018
+  40.194 [ENV] Temp: 23.6 C | Hum: 60.8% | Light: 1286 | Weather: Cloudy | PIR 0 Sound 0
+  40.357 capture N3-000076: heard HUMAN (27%) -> samples/human_00.jpg
+  40.359 capture N3-000076 telemetry queued (tel/N3_000076.bin)
+  40.360 capture N3-000076 queued (samples/human_00.jpg), outbox 2
+  40.360 tx tel/N3_000076.bin size=27 thr=1024 radio=lora reason=size
+  41.900 [ENV] Temp: 23.6 C | Hum: 60.8% | Light: 1309 | Weather: Cloudy | PIR 0 Sound 0
+  50.783 
+  50.832 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  55.837 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 8904.0 zcr 0.226 mean 2099, 80000 samples
+  55.838 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=54 rms=79 zcr=6194 lost=0 feat_us=1045046 maxcall_us=3500 model_us=994
+  55.838 [ENV] Temp: 23.6 C | Hum: 61.1% | Light: 1292 | Weather: Cloudy | PIR 1 Sound 0
+  55.970 [ENV] Temp: 23.6 C | Hum: 60.9% | Light: 1285 | Weather: Cloudy | PIR 0 Sound 0
+  55.970 capture N3-000077: heard VEHICLE (54%) -> samples/vehicle_01.jpg
+  55.970 capture N3-000077 telemetry queued (tel/N3_000077.bin)
+  55.971 capture N3-000077 queued (samples/vehicle_01.jpg), outbox 4
+  60.035 node 3 | alfp in 19 badcrc 0 | tx ok 16 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 4
+  60.036   wifi: tx 342 rx 980 delivered 10 relayed 577 dup 393 rxerr 0
+  60.036   lora: tx 18 rx 68 delivered 9 relayed 59 dup 0 rxerr 0
+  60.036   dht22 good 77 fail 0 | lora up | wifi up
+  60.036   bridge last heard on wifi 380 ms ago
+  60.037   bridge last heard on lora 26576 ms ago
+  60.037   task comms: core 0 prio 10 stack free 5224 of 8192 B
+  60.037   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  60.037   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  60.038   longest comms loop 190 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  60.038   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  60.038   sd handles in use 1/8 | no SD errors
+  60.039   slowest SD call (ms): open_r 10 open_w 11 read 4 write 17 size 0 close 19 remove 24 rename 29 list 11 mkdir 3 | worst rename 29 ms on meta/next_id
+  60.039   slowest comms step (ms): wifi poll 1 | lora poll 190 | alfp service 42 | captures 150 | outbox 33 | uplink 0
