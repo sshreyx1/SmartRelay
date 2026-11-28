@@ -27,25 +27,25 @@ static uint16_t s_buf[MAX_SAMPLES];
 static sf_t s_sf;
 
 /* Returns the number of samples read, or -1 with a message on stderr. */
-static long read_npy(const char* path, uint16_t* out, uint32_t max)
+static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
 {
-    FILE* f = fopen(path, "rb");
-    if (!f)
+    FILE* p_file = fopen(p_path, "rb");
+    if (!p_file)
     {
-        fprintf(stderr, "%s: cannot open\n", path);
+        fprintf(stderr, "%s: cannot open\n", p_path);
         return -1;
     }
     unsigned char pre[12];
     long result = -1;
-    if (fread(pre, 1, 10, f) != 10 || memcmp(pre, "\x93NUMPY", 6) != 0)
+    if (fread(pre, 1, 10, p_file) != 10 || memcmp(pre, "\x93NUMPY", 6) != 0)
     {
-        fprintf(stderr, "%s: not a .npy file\n", path);
+        fprintf(stderr, "%s: not a .npy file\n", p_path);
         goto done;
     }
     uint32_t hlen = (uint32_t)pre[8] | ((uint32_t)pre[9] << 8);
     if (pre[6] >= 2)
     {
-        if (fread(pre + 10, 1, 2, f) != 2)
+        if (fread(pre + 10, 1, 2, p_file) != 2)
         {
             goto done;
         }
@@ -53,66 +53,66 @@ static long read_npy(const char* path, uint16_t* out, uint32_t max)
     }
     if (hlen == 0 || hlen > 4096)
     {
-        fprintf(stderr, "%s: bad header length\n", path);
+        fprintf(stderr, "%s: bad header length\n", p_path);
         goto done;
     }
     char header[4097];
-    if (fread(header, 1, hlen, f) != hlen)
+    if (fread(header, 1, hlen, p_file) != hlen)
     {
         goto done;
     }
     header[hlen] = '\0';
     if (!strstr(header, "'<u2'") || !strstr(header, "'fortran_order': False"))
     {
-        fprintf(stderr, "%s: need a 1-D '<u2' (uint16 little-endian) array, header: %s\n", path, header);
+        fprintf(stderr, "%s: need a 1-D '<u2' (uint16 little-endian) array, header: %s\n", p_path, header);
         goto done;
     }
-    const char* shape = strstr(header, "'shape': (");
-    if (!shape)
+    const char* p_shape = strstr(header, "'shape': (");
+    if (!p_shape)
     {
         goto done;
     }
-    unsigned long n = strtoul(shape + 10, NULL, 10);
-    if (n > max)
+    unsigned long count = strtoul(p_shape + 10, NULL, 10);
+    if (count > max)
     {
-        fprintf(stderr, "%s: %lu samples, more than %u\n", path, n, max);
+        fprintf(stderr, "%s: %lu samples, more than %u\n", p_path, count, max);
         goto done;
     }
-    unsigned char* bytes = (unsigned char*)out;
-    if (fread(bytes, 2, n, f) != n)
+    unsigned char* p_bytes = (unsigned char*)p_out;
+    if (fread(p_bytes, 2, count, p_file) != count)
     {
-        fprintf(stderr, "%s: file shorter than its header says\n", path);
+        fprintf(stderr, "%s: file shorter than its header says\n", p_path);
         goto done;
     }
-    for (unsigned long i = 0; i < n; i++) /* little-endian on disk, whatever this machine is */
+    for (unsigned long idx = 0; idx < count; idx++) /* little-endian on disk, whatever this machine is */
     {
-        out[i] = (uint16_t)(bytes[2 * i] | (bytes[2 * i + 1] << 8));
+        p_out[idx] = (uint16_t)(p_bytes[2 * idx] | (p_bytes[2 * idx + 1] << 8));
     }
-    result = (long)n;
+    result = (long)count;
 done:
-    fclose(f);
+    fclose(p_file);
     return result;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char** pp_argv)
 {
     int header = 0, failed = 0, files = 0;
     uint32_t chunk = 4096;
-    for (int i = 1; i < argc; i++)
+    for (int idx = 1; idx < argc; idx++)
     {
-        if (strcmp(argv[i], "--header") == 0)
+        if (strcmp(pp_argv[idx], "--header") == 0)
         {
             header = 1;
         }
-        else if (strcmp(argv[i], "--chunk") == 0 && i + 1 < argc)
+        else if (strcmp(pp_argv[idx], "--chunk") == 0 && idx + 1 < argc)
         {
-            chunk = (uint32_t)strtoul(argv[++i], NULL, 10);
+            chunk = (uint32_t)strtoul(pp_argv[++idx], NULL, 10);
             if (!chunk)
             {
                 chunk = 1;
             }
         }
-        else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
+        else if (strcmp(pp_argv[idx], "--help") == 0 || strcmp(pp_argv[idx], "-h") == 0)
         {
             printf("usage: sound_featx [--header] [--chunk N] file.npy ...\n"
                    "CSV of the %d sound features (v%d) + legacy mic.c energy/zcr per file\n",
@@ -127,26 +127,26 @@ int main(int argc, char** argv)
     if (header)
     {
         printf("file");
-        for (int k = 0; k < SF_N_FEATURES; k++)
+        for (int kdx = 0; kdx < SF_N_FEATURES; kdx++)
         {
-            printf(",%s", SF_FEATURE_NAMES[k]);
+            printf(",%s", g_sf_feature_names[kdx]);
         }
         printf(",legacy_energy,legacy_zcr\n");
     }
-    for (int i = 1; i < argc; i++)
+    for (int idx = 1; idx < argc; idx++)
     {
-        if (strcmp(argv[i], "--header") == 0)
+        if (strcmp(pp_argv[idx], "--header") == 0)
         {
             continue;
         }
-        if (strcmp(argv[i], "--chunk") == 0)
+        if (strcmp(pp_argv[idx], "--chunk") == 0)
         {
-            i++;
+            idx++;
             continue;
         }
         files++;
-        long n = read_npy(argv[i], s_buf, MAX_SAMPLES);
-        if (n < 0)
+        long count = read_npy(pp_argv[idx], s_buf, MAX_SAMPLES);
+        if (count < 0)
         {
             failed = 1;
             continue;
@@ -154,22 +154,22 @@ int main(int argc, char** argv)
         sf_reset(&s_sf);
         audio_feat_t legacy;
         audio_feat_reset(&legacy);
-        for (uint32_t off = 0; off < (uint32_t)n; off += chunk)
+        for (uint32_t off = 0; off < (uint32_t)count; off += chunk)
         {
-            uint32_t len = (uint32_t)n - off < chunk ? (uint32_t)n - off : chunk;
+            uint32_t len = (uint32_t)count - off < chunk ? (uint32_t)count - off : chunk;
             sf_add(&s_sf, s_buf + off, len);
             audio_feat_add(&legacy, s_buf + off, len);
         }
-        float f[SF_N_FEATURES];
-        sf_finish(&s_sf, f);
-        audio_result_t a;
-        audio_feat_finish(&legacy, SF_SAMPLE_RATE, &a);
-        printf("%s", argv[i]);
-        for (int k = 0; k < SF_N_FEATURES; k++)
+        float features[SF_N_FEATURES];
+        sf_finish(&s_sf, features);
+        audio_result_t audio;
+        audio_feat_finish(&legacy, SF_SAMPLE_RATE, &audio);
+        printf("%s", pp_argv[idx]);
+        for (int kdx = 0; kdx < SF_N_FEATURES; kdx++)
         {
-            printf(",%.9g", (double)f[k]);
+            printf(",%.9g", (double)features[kdx]);
         }
-        printf(",%.9g,%.9g\n", (double)a.energy, (double)a.zcr);
+        printf(",%.9g,%.9g\n", (double)audio.energy, (double)audio.zcr);
     }
     if (!files && !header)
     {

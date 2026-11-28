@@ -28,18 +28,18 @@ void log_init(void);
 /* Round 2 review fix A4: call once, right after log_init(), before any
  * log_write_line - confirms the ring really holds LOG_RING_DEPTH lines, no
  * more, no less, and leaves it empty afterward. */
-bool log_selftest(char* out_line, uint32_t out_line_max);
+bool log_selftest(char* p_out_line, uint32_t out_line_max);
 
 /* Never blocks. Drops the line and counts it if the ring is full - a
  * stalled terminal/dashboard must never stall comms or sensors (3.6). */
-void log_write_line(const char* line);
+void log_write_line(const char* p_line);
 
 /* See the header comment. Safe from any task on either core; from an interrupt handler the line
  * is queued without waiting. */
-void log_putc(char c);
+void log_putc(char chr);
 
 /* How long a finished log_putc() line may wait for room (default 500 ms). */
-void log_set_wait_ms(uint32_t ms);
+void log_set_wait_ms(uint32_t msec);
 
 /* The task that drains the ring: its own output is never made to wait for itself. */
 void log_set_drainer(int32_t task_id);

@@ -4,24 +4,24 @@
  */
 #include "alfp_crc.h"
 
-extern const uint16_t alfp_crc16_table[256];
-extern const uint32_t alfp_crc32_table[256];
+extern const uint16_t g_alfp_crc16_table[256];
+extern const uint32_t g_alfp_crc32_table[256];
 
-uint16_t alfp_crc16(uint16_t crc, const uint8_t* data, size_t len)
+uint16_t alfp_crc16(uint16_t crc, const uint8_t* p_data, size_t len)
 {
     while (len--)
     {
-        crc = (uint16_t)((crc << 8) ^ alfp_crc16_table[((crc >> 8) ^ *data++) & 0xFFu]);
+        crc = (uint16_t)((crc << 8) ^ g_alfp_crc16_table[((crc >> 8) ^ *p_data++) & 0xFFu]);
     }
     return crc;
 }
 
-uint32_t alfp_crc32(uint32_t crc, const uint8_t* data, size_t len)
+uint32_t alfp_crc32(uint32_t crc, const uint8_t* p_data, size_t len)
 {
     crc = ~crc; /* undo the final xor so the running value can be continued */
     while (len--)
     {
-        crc = (crc >> 8) ^ alfp_crc32_table[(crc ^ *data++) & 0xFFu];
+        crc = (crc >> 8) ^ g_alfp_crc32_table[(crc ^ *p_data++) & 0xFFu];
     }
     return ~crc;
 }

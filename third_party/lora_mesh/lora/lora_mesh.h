@@ -2,7 +2,7 @@
  * lora_mesh.h - Flooding mesh over LoRa (CSC09, Member 1).
  *
  * Implements the shared mesh_radio_t interface (mesh/mesh_radio.h). The
- * fragmentation layer should normally use `lora_mesh_radio` rather than calling
+ * fragmentation layer should normally use `g_lora_mesh_radio` rather than calling
  * the functions below directly, so it can swap in the WiFi mesh unchanged.
  */
 #ifndef LORA_MESH_H
@@ -24,13 +24,13 @@
 // Set up the LR1121 and the mesh. node_id is 1-5 (A-E). Returns false if the radio does not answer.
 bool lora_mesh_init( uint8_t node_id );
 
-bool     lora_mesh_send( uint8_t dst, const uint8_t* payload, uint16_t len );
-int      lora_mesh_recv( uint8_t* src, uint8_t* buf, uint16_t buf_size );
+bool     lora_mesh_send( uint8_t dst, const uint8_t* p_payload, uint16_t len );
+int      lora_mesh_recv( uint8_t* p_src, uint8_t* p_buf, uint16_t buf_size );
 void     lora_mesh_poll( void );
 uint16_t lora_mesh_max_payload( void );
-bool     lora_mesh_last_heard( uint8_t node_id, uint32_t* ms_since_boot );
+bool     lora_mesh_last_heard( uint8_t node_id, uint32_t* p_ms_since_boot );
 bool     lora_mesh_tx_busy( void );
-void     lora_mesh_get_stats( mesh_stats_t* out );
+void     lora_mesh_get_stats( mesh_stats_t* p_out );
 void     lora_mesh_set_drop_rate( float rate );
 
 // Proposal for the "who sends the bridge heartbeat" open question: the bridge node
@@ -39,16 +39,16 @@ void     lora_mesh_set_drop_rate( float rate );
 void lora_mesh_set_heartbeat( uint32_t interval_ms );
 
 // RSSI/SNR of the last packet heard directly (any hop), for debugging.
-void lora_mesh_last_link_quality( int8_t* rssi_dbm, int8_t* snr_db );
+void lora_mesh_last_link_quality( int8_t* p_rssi_dbm, int8_t* p_snr_db );
 
 // Route of the packet lora_mesh_recv() returned most recently (not part of mesh_radio_t).
 // *hops = links it travelled (1 = heard straight from its source). *prev_hop is always 0
 // (unknown): the LoRa header has no relay field. Returns false if recv() has not returned a packet yet.
-bool lora_mesh_last_recv_info( uint8_t* hops, uint8_t* prev_hop );
+bool lora_mesh_last_recv_info( uint8_t* p_hops, uint8_t* p_prev_hop );
 
 // Packets from node src (1-5) this node has queued for relaying since boot (wraps; use differences).
 uint16_t lora_mesh_relayed_from( uint8_t src );
 
-extern const mesh_radio_t lora_mesh_radio;
+extern const mesh_radio_t g_lora_mesh_radio;
 
 #endif  // LORA_MESH_H

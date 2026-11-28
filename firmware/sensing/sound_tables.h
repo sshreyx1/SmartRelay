@@ -10,8 +10,8 @@
 #define SOUND_FFT_N 256
 #define SOUND_FFT_LOG2N 8
 
-extern const int16_t sound_twiddle_cos[SOUND_FFT_N / 2];
-extern const int16_t sound_twiddle_sin[SOUND_FFT_N / 2];
-extern const int16_t sound_hann_q15[SOUND_FFT_N];
+extern const int16_t g_sound_twiddle_cos[SOUND_FFT_N / 2];
+extern const int16_t g_sound_twiddle_sin[SOUND_FFT_N / 2];
+extern const int16_t g_sound_hann_q15[SOUND_FFT_N];
 
 #endif

@@ -39,7 +39,7 @@ static uint32_t wm_rand(void)   { return get_rand_32(); }
 #define H_ID_HI 3
 #define H_HOPS  4
 
-typedef struct { uint8_t src; uint16_t id; uint32_t t; } dup_entry_t;
+typedef struct { uint8_t src; uint16_t msg_id; uint32_t seen_ms; } dup_entry_t;
 
 typedef struct {
     uint32_t due;                   /* relays: when to transmit        */
@@ -56,10 +56,10 @@ typedef struct {
 } in_pkt_t;
 
 typedef struct {
-    bool     up;
-    uint8_t  me;
+    bool     b_link_up;
+    uint8_t  self_id;
     uint16_t next_id;
-    bool     filter_on;
+    bool     b_filter_on;
     float    drop_rate;
     uint32_t next_heartbeat;
 
@@ -76,18 +76,18 @@ typedef struct {
     in_pkt_t  recvq[WIFI_MESH_RECV_QUEUE];     /* waiting for recv()    */
     uint8_t   rcv_head, rcv_count;
 
-    mesh_stats_t st;
+    mesh_stats_t stats;
     uint32_t filtered;
     uint32_t malformed;
 
     /* route of the packet recv() returned last (wifi_mesh_last_recv_info) */
-    bool     last_valid;
+    bool     b_last_valid;
     uint8_t  last_hops, last_prev;
     uint16_t relayed_from[6];   /* relays queued, per original source */
 } wm_state_t;
 
 static wm_state_t wm_default;
-static wm_state_t *S = &wm_default;
+static wm_state_t *p_state = &wm_default;
 
 #ifdef WIFI_MESH_HOST_TEST
 /* The PC simulation runs 5 nodes in one program and swaps state. */
@@ -96,113 +96,113 @@ void     wifi_mesh_test_use(void *state) { S = (wm_state_t *)state; }
 #endif
 
 /* ---------- Duplicate cache ---------- */
-static bool dup_seen(uint8_t src, uint16_t id, uint32_t now) {
-    for (int i = 0; i < WIFI_MESH_DUP_CACHE; i++) {
-        const dup_entry_t *e = &S->dup[i];
-        if (e->src == src && e->id == id && now - e->t <= WIFI_MESH_DUP_WINDOW_MS)
+static bool dup_seen(uint8_t src, uint16_t msg_id, uint32_t now) {
+    for (int idx = 0; idx < WIFI_MESH_DUP_CACHE; idx++) {
+        const dup_entry_t *p_entry = &p_state->dup[idx];
+        if (p_entry->src == src && p_entry->msg_id == msg_id && now - p_entry->seen_ms <= WIFI_MESH_DUP_WINDOW_MS)
             return true;
     }
     return false;
 }
 
-static void dup_add(uint8_t src, uint16_t id, uint32_t now) {
-    dup_entry_t *e = &S->dup[S->dup_next];
-    e->src = src; e->id = id; e->t = now;
-    S->dup_next = (S->dup_next + 1) % WIFI_MESH_DUP_CACHE;
+static void dup_add(uint8_t src, uint16_t msg_id, uint32_t now) {
+    dup_entry_t *p_entry = &p_state->dup[p_state->dup_next];
+    p_entry->src = src; p_entry->msg_id = msg_id; p_entry->seen_ms = now;
+    p_state->dup_next = (p_state->dup_next + 1) % WIFI_MESH_DUP_CACHE;
 }
 
 /* ---------- Helpers ---------- */
 static int node_from_mac(const uint8_t mac[6]) {
-    for (int n = 1; n <= 5; n++)
-        if (memcmp(WIFI_MESH_MACS[n], mac, 6) == 0) return n;
+    for (int node = 1; node <= 5; node++)
+        if (memcmp(wifi_mesh_macs[node], mac, 6) == 0) return node;
     return 0;
 }
 
-static bool queue_own(uint8_t dst, const uint8_t *payload, uint16_t len) {
-    if (S->sq_count == WIFI_MESH_SEND_QUEUE) return false;
+static bool queue_own(uint8_t dst, const uint8_t *p_payload, uint16_t len) {
+    if (p_state->sq_count == WIFI_MESH_SEND_QUEUE) return false;
     uint32_t now = wm_now_ms();
-    out_pkt_t *p = &S->sendq[(S->sq_head + S->sq_count) % WIFI_MESH_SEND_QUEUE];
-    uint16_t id = S->next_id++;
-    p->bytes[H_SRC]   = S->me;
-    p->bytes[H_DST]   = dst;
-    p->bytes[H_ID_LO] = (uint8_t)(id & 0xFF);
-    p->bytes[H_ID_HI] = (uint8_t)(id >> 8);
-    p->bytes[H_HOPS]  = WIFI_MESH_HOP_LIMIT;
-    if (len) memcpy(&p->bytes[MESH_HEADER_LEN], payload, len);
-    p->len = (uint8_t)(MESH_HEADER_LEN + len);
-    p->due = now;
-    S->sq_count++;
-    dup_add(S->me, id, now);          /* so our own echo is never relayed */
+    out_pkt_t *p_slot = &p_state->sendq[(p_state->sq_head + p_state->sq_count) % WIFI_MESH_SEND_QUEUE];
+    uint16_t msg_id = p_state->next_id++;
+    p_slot->bytes[H_SRC]   = p_state->self_id;
+    p_slot->bytes[H_DST]   = dst;
+    p_slot->bytes[H_ID_LO] = (uint8_t)(msg_id & 0xFF);
+    p_slot->bytes[H_ID_HI] = (uint8_t)(msg_id >> 8);
+    p_slot->bytes[H_HOPS]  = WIFI_MESH_HOP_LIMIT;
+    if (len) memcpy(&p_slot->bytes[MESH_HEADER_LEN], p_payload, len);
+    p_slot->len = (uint8_t)(MESH_HEADER_LEN + len);
+    p_slot->due = now;
+    p_state->sq_count++;
+    dup_add(p_state->self_id, msg_id, now);          /* so our own echo is never relayed */
     return true;
 }
 
-static void handle_packet(const wst_rx_pkt_t *rx) {
+static void handle_packet(const wst_rx_pkt_t *p_rx_pkt) {
     uint32_t now = wm_now_ms();
 
     /* 1. Sanity check */
-    if (rx->len < MESH_HEADER_LEN) { S->malformed++; return; }
-    uint8_t  src  = rx->data[H_SRC];
-    uint8_t  dst  = rx->data[H_DST];
-    uint16_t id   = (uint16_t)(rx->data[H_ID_LO] | (rx->data[H_ID_HI] << 8));
-    uint8_t  hops = rx->data[H_HOPS];
-    bool dst_ok = (dst >= 1 && dst <= 5) || dst == MESH_BROADCAST || dst == MESH_INTERNAL;
-    if (src < 1 || src > 5 || !dst_ok) { S->malformed++; return; }
+    if (p_rx_pkt->len < MESH_HEADER_LEN) { p_state->malformed++; return; }
+    uint8_t  src  = p_rx_pkt->data[H_SRC];
+    uint8_t  dst  = p_rx_pkt->data[H_DST];
+    uint16_t msg_id   = (uint16_t)(p_rx_pkt->data[H_ID_LO] | (p_rx_pkt->data[H_ID_HI] << 8));
+    uint8_t  hops = p_rx_pkt->data[H_HOPS];
+    bool b_dst_ok = (dst >= 1 && dst <= 5) || dst == MESH_BROADCAST || dst == MESH_INTERNAL;
+    if (src < 1 || src > 5 || !b_dst_ok) { p_state->malformed++; return; }
 
     /* 2. Topology filter: only listen to neighbours */
-    if (S->filter_on) {
-        int from = node_from_mac(rx->mac);
-        if (from == 0 || !(WIFI_MESH_NEIGHBOURS[S->me] & (1u << from))) {
-            S->filtered++;
+    if (p_state->b_filter_on) {
+        int from = node_from_mac(p_rx_pkt->mac);
+        if (from == 0 || !(wifi_mesh_neighbours[p_state->self_id] & (1u << from))) {
+            p_state->filtered++;
             return;
         }
     }
 
     /* 3. Simulated packet loss (demo) */
-    if (S->drop_rate > 0.0f &&
-        (float)(wm_rand() % 10000) < S->drop_rate * 10000.0f) {
-        S->st.drop_injected++;
+    if (p_state->drop_rate > 0.0f &&
+        (float)(wm_rand() % 10000) < p_state->drop_rate * 10000.0f) {
+        p_state->stats.drop_injected++;
         return;
     }
 
-    S->st.rx++;
+    p_state->stats.rx_count++;
 
     /* 4. Already seen it (or it's our own echo)? */
-    if (src == S->me || dup_seen(src, id, now)) { S->st.dup_dropped++; return; }
-    dup_add(src, id, now);
+    if (src == p_state->self_id || dup_seen(src, msg_id, now)) { p_state->stats.dup_dropped++; return; }
+    dup_add(src, msg_id, now);
 
     /* 5. We heard from src */
-    S->heard[src] = true;
-    S->heard_ms[src] = now;
+    p_state->heard[src] = true;
+    p_state->heard_ms[src] = now;
 
     /* 6. Deliver if it's for us or for everyone */
-    uint8_t plen = (uint8_t)(rx->len - MESH_HEADER_LEN);
-    if (dst == S->me || dst == MESH_BROADCAST) {
-        if (S->rcv_count == WIFI_MESH_RECV_QUEUE) {
-            S->st.rx_overflow++;
+    uint8_t plen = (uint8_t)(p_rx_pkt->len - MESH_HEADER_LEN);
+    if (dst == p_state->self_id || dst == MESH_BROADCAST) {
+        if (p_state->rcv_count == WIFI_MESH_RECV_QUEUE) {
+            p_state->stats.rx_overflow++;
         } else {
-            in_pkt_t *q = &S->recvq[(S->rcv_head + S->rcv_count) % WIFI_MESH_RECV_QUEUE];
-            q->src = src;
-            q->len = plen;
-            q->hops = hops <= WIFI_MESH_HOP_LIMIT          /* 0 = out of range */
+            in_pkt_t *p_queue = &p_state->recvq[(p_state->rcv_head + p_state->rcv_count) % WIFI_MESH_RECV_QUEUE];
+            p_queue->src = src;
+            p_queue->len = plen;
+            p_queue->hops = hops <= WIFI_MESH_HOP_LIMIT          /* 0 = out of range */
                     ? (uint8_t)(WIFI_MESH_HOP_LIMIT - hops + 1) : 0;
-            q->prev = (uint8_t)node_from_mac(rx->mac);
-            memcpy(q->data, &rx->data[MESH_HEADER_LEN], plen);
-            S->rcv_count++;
-            S->st.delivered++;
+            p_queue->prev = (uint8_t)node_from_mac(p_rx_pkt->mac);
+            memcpy(p_queue->data, &p_rx_pkt->data[MESH_HEADER_LEN], plen);
+            p_state->rcv_count++;
+            p_state->stats.delivered++;
         }
     }
 
     /* 7. Relay unless it was only for us */
-    if (dst == S->me) return;
-    if (hops == 0) { S->st.hop_dropped++; return; }
-    if (S->rq_count == WIFI_MESH_RELAY_QUEUE) { S->st.relay_overflow++; return; }
-    out_pkt_t *r = &S->relayq[S->rq_count++];
-    memcpy(r->bytes, rx->data, rx->len);
-    r->bytes[H_HOPS] = hops - 1;
-    r->len = rx->len;
-    S->relayed_from[src]++;
+    if (dst == p_state->self_id) return;
+    if (hops == 0) { p_state->stats.hop_dropped++; return; }
+    if (p_state->rq_count == WIFI_MESH_RELAY_QUEUE) { p_state->stats.relay_overflow++; return; }
+    out_pkt_t *p_slot = &p_state->relayq[p_state->rq_count++];
+    memcpy(p_slot->bytes, p_rx_pkt->data, p_rx_pkt->len);
+    p_slot->bytes[H_HOPS] = hops - 1;
+    p_slot->len = p_rx_pkt->len;
+    p_state->relayed_from[src]++;
     uint32_t span = WIFI_MESH_RELAY_DELAY_MAX - WIFI_MESH_RELAY_DELAY_MIN + 1;
-    r->due = now + WIFI_MESH_RELAY_DELAY_MIN + wm_rand() % span;
+    p_slot->due = now + WIFI_MESH_RELAY_DELAY_MIN + wm_rand() % span;
 }
 
 /* Hand the next packet to the WST, if the WST is free. */
@@ -212,59 +212,59 @@ static void transmit_next(void) {
 
     /* Relays first (oldest due time), so the mesh keeps flowing */
     int best = -1;
-    for (int i = 0; i < S->rq_count; i++)
-        if ((int32_t)(now - S->relayq[i].due) >= 0 &&
-            (best < 0 || (int32_t)(S->relayq[i].due - S->relayq[best].due) < 0))
-            best = i;
+    for (int idx = 0; idx < p_state->rq_count; idx++)
+        if ((int32_t)(now - p_state->relayq[idx].due) >= 0 &&
+            (best < 0 || (int32_t)(p_state->relayq[idx].due - p_state->relayq[best].due) < 0))
+            best = idx;
     if (best >= 0) {
-        wst_link_send(S->relayq[best].bytes, S->relayq[best].len);
-        S->st.relayed++;
-        S->relayq[best] = S->relayq[--S->rq_count];   /* remove (order doesn't matter) */
+        wst_link_send(p_state->relayq[best].bytes, p_state->relayq[best].len);
+        p_state->stats.relayed++;
+        p_state->relayq[best] = p_state->relayq[--p_state->rq_count];   /* remove (order doesn't matter) */
         return;
     }
 
-    if (S->sq_count) {
-        out_pkt_t *p = &S->sendq[S->sq_head];
-        wst_link_send(p->bytes, p->len);
-        if (p->bytes[H_DST] != MESH_INTERNAL) S->st.tx++;
-        S->sq_head = (S->sq_head + 1) % WIFI_MESH_SEND_QUEUE;
-        S->sq_count--;
+    if (p_state->sq_count) {
+        out_pkt_t *p_slot = &p_state->sendq[p_state->sq_head];
+        wst_link_send(p_slot->bytes, p_slot->len);
+        if (p_slot->bytes[H_DST] != MESH_INTERNAL) p_state->stats.tx_count++;
+        p_state->sq_head = (p_state->sq_head + 1) % WIFI_MESH_SEND_QUEUE;
+        p_state->sq_count--;
     }
 }
 
 /* ---------- mesh_radio_t functions ---------- */
-static bool wm_send(uint8_t dst, const uint8_t *payload, uint16_t len) {
-    if (!S->up) return false;
-    if (len == 0 || len > WIFI_MESH_MAX_PAYLOAD || payload == NULL) return false;
-    if (!((dst >= 1 && dst <= 5) || dst == MESH_BROADCAST) || dst == S->me) return false;
-    return queue_own(dst, payload, len);
+static bool wm_send(uint8_t dst, const uint8_t *p_payload, uint16_t len) {
+    if (!p_state->b_link_up) return false;
+    if (len == 0 || len > WIFI_MESH_MAX_PAYLOAD || p_payload == NULL) return false;
+    if (!((dst >= 1 && dst <= 5) || dst == MESH_BROADCAST) || dst == p_state->self_id) return false;
+    return queue_own(dst, p_payload, len);
 }
 
-static int wm_recv(uint8_t *src, uint8_t *buf, uint16_t buf_size) {
-    if (S->rcv_count == 0) return MESH_RECV_NONE;
-    in_pkt_t *q = &S->recvq[S->rcv_head];
-    S->rcv_head = (S->rcv_head + 1) % WIFI_MESH_RECV_QUEUE;
-    S->rcv_count--;
-    if (buf_size < q->len) return MESH_RECV_BUF_TOO_SMALL;
-    S->last_valid = true;
-    S->last_hops  = q->hops;
-    S->last_prev  = q->prev;
-    if (src) *src = q->src;
-    memcpy(buf, q->data, q->len);
-    return q->len;
+static int wm_recv(uint8_t *p_src, uint8_t *p_buf, uint16_t buf_size) {
+    if (p_state->rcv_count == 0) return MESH_RECV_NONE;
+    in_pkt_t *p_queue = &p_state->recvq[p_state->rcv_head];
+    p_state->rcv_head = (p_state->rcv_head + 1) % WIFI_MESH_RECV_QUEUE;
+    p_state->rcv_count--;
+    if (buf_size < p_queue->len) return MESH_RECV_BUF_TOO_SMALL;
+    p_state->b_last_valid = true;
+    p_state->last_hops  = p_queue->hops;
+    p_state->last_prev  = p_queue->prev;
+    if (p_src) *p_src = p_queue->src;
+    memcpy(p_buf, p_queue->data, p_queue->len);
+    return p_queue->len;
 }
 
 static void wm_poll(void) {
-    if (!S->up) return;
+    if (!p_state->b_link_up) return;
     wst_link_poll();
 
-    wst_rx_pkt_t rx;
-    while (wst_link_recv(&rx)) handle_packet(&rx);
+    wst_rx_pkt_t rx_pkt;
+    while (wst_link_recv(&rx_pkt)) handle_packet(&rx_pkt);
 
     uint32_t now = wm_now_ms();
-    if (S->me == WIFI_MESH_BRIDGE_NODE && (int32_t)(now - S->next_heartbeat) >= 0) {
+    if (p_state->self_id == WIFI_MESH_BRIDGE_NODE && (int32_t)(now - p_state->next_heartbeat) >= 0) {
         queue_own(MESH_INTERNAL, NULL, 0);     /* if queue is full, skip this beat */
-        S->next_heartbeat = now + WIFI_MESH_HEARTBEAT_MS;
+        p_state->next_heartbeat = now + WIFI_MESH_HEARTBEAT_MS;
     }
 
     transmit_next();
@@ -273,47 +273,47 @@ static void wm_poll(void) {
 
 static uint16_t wm_max_payload(void) { return WIFI_MESH_MAX_PAYLOAD; }
 
-static bool wm_last_heard(uint8_t node_id, uint32_t *ms) {
-    if (node_id < 1 || node_id > 5 || !S->heard[node_id]) return false;
-    if (ms) *ms = S->heard_ms[node_id];
+static bool wm_last_heard(uint8_t node_id, uint32_t *p_msec) {
+    if (node_id < 1 || node_id > 5 || !p_state->heard[node_id]) return false;
+    if (p_msec) *p_msec = p_state->heard_ms[node_id];
     return true;
 }
 
 static bool wm_tx_busy(void) {
-    return S->sq_count > 0 || S->rq_count > 0 || wst_link_tx_busy();
+    return p_state->sq_count > 0 || p_state->rq_count > 0 || wst_link_tx_busy();
 }
 
-static void wm_get_stats(mesh_stats_t *out) {
-    wst_link_stats_t l;
-    wst_link_get_stats(&l);
-    *out = S->st;
-    out->tx_fail  = l.tx_fail + l.tx_timeout;
-    out->rx_error = S->malformed + l.rx_crc_err + l.rx_queue_full + l.uart_overflow;
+static void wm_get_stats(mesh_stats_t *p_out) {
+    wst_link_stats_t link_stats;
+    wst_link_get_stats(&link_stats);
+    *p_out = p_state->stats;
+    p_out->tx_fail  = link_stats.tx_fail + link_stats.tx_timeout;
+    p_out->rx_error = p_state->malformed + link_stats.rx_crc_err + link_stats.rx_queue_full + link_stats.uart_overflow;
 }
 
 static void wm_set_drop_rate(float rate) {
     if (rate < 0.0f) rate = 0.0f;
     if (rate > 1.0f) rate = 1.0f;
-    S->drop_rate = rate;
+    p_state->drop_rate = rate;
 }
 
-const mesh_radio_t wifi_mesh = {
-    .name          = "wifi",
-    .send          = wm_send,
-    .recv          = wm_recv,
-    .poll          = wm_poll,
-    .max_payload   = wm_max_payload,
-    .last_heard    = wm_last_heard,
-    .tx_busy       = wm_tx_busy,
-    .get_stats     = wm_get_stats,
-    .set_drop_rate = wm_set_drop_rate,
+const mesh_radio_t g_wifi_mesh = {
+    .p_name          = "wifi",
+    .p_send          = wm_send,
+    .p_recv          = wm_recv,
+    .p_poll          = wm_poll,
+    .p_max_payload   = wm_max_payload,
+    .p_last_heard    = wm_last_heard,
+    .p_tx_busy       = wm_tx_busy,
+    .p_get_stats     = wm_get_stats,
+    .p_set_drop_rate = wm_set_drop_rate,
 };
 
 /* ---------- Extra functions ---------- */
 bool wifi_mesh_init(uint8_t node_id) {
-    memset(S, 0, sizeof *S);
-    S->filter_on = true;
-    S->next_id = (uint16_t)wm_rand();    /* random start: a reboot won't reuse
+    memset(p_state, 0, sizeof *p_state);
+    p_state->b_filter_on = true;
+    p_state->next_id = (uint16_t)wm_rand();    /* random start: a reboot won't reuse
                                             IDs other nodes still remember */
     wst_link_init();
 
@@ -328,22 +328,22 @@ bool wifi_mesh_init(uint8_t node_id) {
     }
     if (node_id < 1 || node_id > 5) return false;
 
-    S->me = node_id;
-    S->next_heartbeat = wm_now_ms();
-    S->up = true;
+    p_state->self_id = node_id;
+    p_state->next_heartbeat = wm_now_ms();
+    p_state->b_link_up = true;
     return true;
 }
 
-uint8_t  wifi_mesh_node_id(void)               { return S->up ? S->me : 0; }
-void     wifi_mesh_set_topology_filter(bool on) { S->filter_on = on; }
-uint32_t wifi_mesh_filtered_count(void)         { return S->filtered; }
+uint8_t  wifi_mesh_node_id(void)               { return p_state->b_link_up ? p_state->self_id : 0; }
+void     wifi_mesh_set_topology_filter(bool b_enable) { p_state->b_filter_on = b_enable; }
+uint32_t wifi_mesh_filtered_count(void)         { return p_state->filtered; }
 
-bool wifi_mesh_last_recv_info(uint8_t *hops, uint8_t *prev_hop) {
-    if (hops)     *hops     = S->last_valid ? S->last_hops : 0;
-    if (prev_hop) *prev_hop = S->last_valid ? S->last_prev : 0;
-    return S->last_valid;
+bool wifi_mesh_last_recv_info(uint8_t *p_hops, uint8_t *p_prev_hop) {
+    if (p_hops)     *p_hops     = p_state->b_last_valid ? p_state->last_hops : 0;
+    if (p_prev_hop) *p_prev_hop = p_state->b_last_valid ? p_state->last_prev : 0;
+    return p_state->b_last_valid;
 }
 
 uint16_t wifi_mesh_relayed_from(uint8_t src) {
-    return src <= 5 ? S->relayed_from[src] : 0;
+    return src <= 5 ? p_state->relayed_from[src] : 0;
 }

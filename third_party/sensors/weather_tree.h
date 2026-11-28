@@ -3,20 +3,20 @@
 
 // f[0] = temperature, f[1] = humidity, f[2] = light (12-bit ADC, 0-4095)
 // Returns: 0 = Cloudy, 1 = Hot_Dry, 2 = Humid_Rainy
-static inline int weather_predict(const float *f) {
-    if (f[2] <= 2307.4012f) {
-        if (f[2] <= 850.9608f) {
-            if (f[1] <= 69.0876f) {
+static inline int weather_predict(const float *p_features) {
+    if (p_features[2] <= 2307.4012f) {
+        if (p_features[2] <= 850.9608f) {
+            if (p_features[1] <= 69.0876f) {
                 return 0;
             }
             return 2;
         }
-        if (f[0] <= 28.3f) {
+        if (p_features[0] <= 28.3f) {
             return 0;
         }
         return 1;
     }
-    if (f[0] <= 27.55f) {
+    if (p_features[0] <= 27.55f) {
         return 0;
     }
     return 1;

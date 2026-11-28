@@ -8,121 +8,121 @@
 
 #include "sound_classes.h"
 
-void sip_reset(sip_table_t* t)
+void sip_reset(sip_table_t* p_table)
 {
-    memset(t, 0, sizeof(*t));
+    memset(p_table, 0, sizeof(*p_table));
 }
 
-static sip_prefix_t* find(sip_table_t* t, const char* prefix, size_t len)
+static sip_prefix_t* find(sip_table_t* p_table, const char* p_prefix, size_t len)
 {
-    for (uint32_t i = 0; i < t->n; i++)
+    for (uint32_t idx = 0; idx < p_table->count; idx++)
     {
-        if (strlen(t->p[i].prefix) == len && strncmp(t->p[i].prefix, prefix, len) == 0)
+        if (strlen(p_table->prefixes[idx].prefix) == len && strncmp(p_table->prefixes[idx].prefix, p_prefix, len) == 0)
         {
-            return &t->p[i];
+            return &p_table->prefixes[idx];
         }
     }
     return NULL;
 }
 
-static int lower(int c)
+static int lower(int chr)
 {
-    return c >= 'A' && c <= 'Z' ? c + 32 : c;
+    return chr >= 'A' && chr <= 'Z' ? chr + 32 : chr;
 }
 
-bool sip_add_file(sip_table_t* t, const char* name)
+bool sip_add_file(sip_table_t* p_table, const char* p_name)
 {
     /* Hidden files are never images: macOS writes "._<name>" AppleDouble files next to every file
      * it copies onto a FAT card (follow-up F1), and those would otherwise count as their own
      * "._dog" group and could be picked and sent as if they were JPEGs. */
-    if (name[0] == '.')
+    if (p_name[0] == '.')
     {
         return false;
     }
     /* <prefix>_NN.jpg: the last '_' must be followed by exactly two digits and ".jpg" */
-    const char* us = strrchr(name, '_');
-    if (!us || us == name || (size_t)(us - name) > SIP_PREFIX_MAX)
+    const char* p_uscore = strrchr(p_name, '_');
+    if (!p_uscore || p_uscore == p_name || (size_t)(p_uscore - p_name) > SIP_PREFIX_MAX)
     {
         return false;
     }
-    if (us[1] < '0' || us[1] > '9' || us[2] < '0' || us[2] > '9' || us[3] != '.' || lower(us[4]) != 'j'
-        || lower(us[5]) != 'p' || lower(us[6]) != 'g' || us[7] != '\0')
+    if (p_uscore[1] < '0' || p_uscore[1] > '9' || p_uscore[2] < '0' || p_uscore[2] > '9' || p_uscore[3] != '.' || lower(p_uscore[4]) != 'j'
+        || lower(p_uscore[5]) != 'p' || lower(p_uscore[6]) != 'g' || p_uscore[7] != '\0')
     {
         return false;
     }
-    const unsigned nn = (unsigned)(us[1] - '0') * 10u + (unsigned)(us[2] - '0');
-    const size_t len = (size_t)(us - name);
-    sip_prefix_t* p = find(t, name, len);
-    if (!p)
+    const unsigned image_num = (unsigned)(p_uscore[1] - '0') * 10u + (unsigned)(p_uscore[2] - '0');
+    const size_t len = (size_t)(p_uscore - p_name);
+    sip_prefix_t* p_prefix_ent = find(p_table, p_name, len);
+    if (!p_prefix_ent)
     {
-        if (t->n >= SIP_MAX_PREFIXES)
+        if (p_table->count >= SIP_MAX_PREFIXES)
         {
             return false;
         }
-        p = &t->p[t->n++];
-        memcpy(p->prefix, name, len);
-        p->prefix[len] = '\0';
+        p_prefix_ent = &p_table->prefixes[p_table->count++];
+        memcpy(p_prefix_ent->prefix, p_name, len);
+        p_prefix_ent->prefix[len] = '\0';
     }
-    if (!(p->present[nn / 8u] & (1u << (nn % 8u))))
+    if (!(p_prefix_ent->present[image_num / 8u] & (1u << (image_num % 8u))))
     {
-        p->present[nn / 8u] = (uint8_t)(p->present[nn / 8u] | (1u << (nn % 8u)));
-        p->count++;
+        p_prefix_ent->present[image_num / 8u] = (uint8_t)(p_prefix_ent->present[image_num / 8u] | (1u << (image_num % 8u)));
+        p_prefix_ent->count++;
     }
     return true;
 }
 
-unsigned sip_count(const sip_table_t* t, const char* prefix)
+unsigned sip_count(const sip_table_t* p_table, const char* p_prefix)
 {
-    for (uint32_t i = 0; i < t->n; i++)
+    for (uint32_t idx = 0; idx < p_table->count; idx++)
     {
-        if (strcmp(t->p[i].prefix, prefix) == 0)
+        if (strcmp(p_table->prefixes[idx].prefix, p_prefix) == 0)
         {
-            return t->p[i].count;
+            return p_table->prefixes[idx].count;
         }
     }
     return 0;
 }
 
-static int take(sip_prefix_t* p, char* name, size_t cap)
+static int take(sip_prefix_t* p_prefix_ent, char* p_name, size_t cap)
 {
-    for (unsigned k = 0; k < SIP_MAX_INDEX; k++)
+    for (unsigned kdx = 0; kdx < SIP_MAX_INDEX; kdx++)
     {
-        const unsigned nn = (p->next + k) % SIP_MAX_INDEX;
-        if (p->present[nn / 8u] & (1u << (nn % 8u)))
+        const unsigned image_num = (p_prefix_ent->next + kdx) % SIP_MAX_INDEX;
+        if (p_prefix_ent->present[image_num / 8u] & (1u << (image_num % 8u)))
         {
-            p->next = (uint8_t)((nn + 1u) % SIP_MAX_INDEX);
-            snprintf(name, cap, "%s_%02u.jpg", p->prefix, nn);
-            return (int)nn;
+            p_prefix_ent->next = (uint8_t)((image_num + 1u) % SIP_MAX_INDEX);
+            snprintf(p_name, cap, "%s_%02u.jpg", p_prefix_ent->prefix, image_num);
+            return (int)image_num;
         }
     }
     return -1;
 }
 
-int sip_pick(sip_table_t* t, uint8_t label_id, char* name, size_t cap)
+int sip_pick(sip_table_t* p_table, uint8_t label_id, char* p_name, size_t cap)
 {
     const char* chain[3]
         = { sound_class_prefix(label_id), sound_class_prefix(sound_class_group(label_id)), SIP_GENERIC };
-    for (int i = 0; i < 3; i++)
+    for (int idx = 0; idx < 3; idx++)
     {
-        if (!chain[i])
+        if (!chain[idx])
         {
             continue;
         }
-        sip_prefix_t* p = find(t, chain[i], strlen(chain[i]));
-        if (p && p->count)
+        sip_prefix_t* p_prefix_ent = find(p_table, chain[idx], strlen(chain[idx]));
+        if (p_prefix_ent && p_prefix_ent->count)
         {
-            return take(p, name, cap);
+            return take(p_prefix_ent, p_name, cap);
         }
     }
     /* Follow-up F6: nothing for this label, its group or "img" (e.g. an unknown sound on a card
      * with no img_NN.jpg). Any image beats dropping the capture: take the groups in turn. */
-    for (uint32_t k = 0; k < t->n; k++)
+    for (uint32_t kdx = 0; kdx < p_table->count; kdx++)
     {
-        sip_prefix_t* p = &t->p[(t->any_next + k) % t->n];
-        if (p->count)
+        sip_prefix_t* p_prefix_ent = &p_table->prefixes[(p_table->any_next + kdx) % p_table->count];
+        if (p_prefix_ent->count)
         {
-            t->any_next = (uint8_t)((t->any_next + k + 1u) % t->n);
-            return take(p, name, cap);
+            p_table->any_next = (uint8_t)((p_table->any_next + kdx + 1u) % p_table->count);
+            return take(p_prefix_ent, p_name, cap);
         }
     }
     return -1;

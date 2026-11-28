@@ -35,14 +35,14 @@ typedef enum
 bool lora_radio_init( void );
 
 // Start transmitting one packet (1..255 bytes). Returns false if busy or the radio rejected it.
-bool lora_radio_start_tx( const uint8_t* buf, uint8_t len );
+bool lora_radio_start_tx( const uint8_t* p_buf, uint8_t len );
 
 // True between lora_radio_start_tx() and TX_DONE/TX_FAIL.
 bool lora_radio_tx_active( void );
 
 // Check the radio IRQ and handle at most one event. For LORA_EVT_RX_DONE, buf (>= 255 bytes)
 // receives the packet and *len/*rssi_dbm/*snr_db are filled. Returns LORA_EVT_NONE quickly when idle.
-lora_radio_event_t lora_radio_service( uint8_t* buf, uint8_t* len, int8_t* rssi_dbm, int8_t* snr_db );
+lora_radio_event_t lora_radio_service( uint8_t* p_buf, uint8_t* p_len, int8_t* p_rssi_dbm, int8_t* p_snr_db );
 
 // Time on air for a packet of len bytes with the settings above.
 uint32_t lora_radio_time_on_air_ms( uint8_t len );

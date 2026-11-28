@@ -37,7 +37,7 @@ typedef struct
     float link_loss;        /* per-hop random loss 0..1 */
     float corrupt_rate;     /* chance a delivered payload has one bit flipped (after radio CRC) */
     uint16_t relay_min_ms, relay_max_ms;
-    bool carrier_sense;
+    bool b_carrier_sense;
     uint16_t max_payload;   /* 250 LoRa, 245 WiFi */
     uint32_t uart_baud;     /* WiFi only: Pico <-> ESP8266 link */
 } sim_kind_cfg_t;
@@ -53,16 +53,16 @@ typedef struct
 } sim_cfg_t;
 
 /* Defaults matching the agreed contract numbers. */
-void sim_default_cfg(sim_cfg_t* cfg, uint8_t n_nodes);
+void sim_default_cfg(sim_cfg_t* p_cfg, uint8_t n_nodes);
 /* Topology helpers (both radios unless kind >= 0). */
-void sim_link(sim_cfg_t* cfg, int kind, uint8_t a, uint8_t b);
-void sim_topology_chain(sim_cfg_t* cfg, int kind);   /* 1-2-3-...-n */
-void sim_topology_full(sim_cfg_t* cfg, int kind);    /* everyone hears everyone */
-void sim_topology_trail(sim_cfg_t* cfg, int kind);   /* chain + skip links (redundant paths) */
+void sim_link(sim_cfg_t* p_cfg, int kind, uint8_t node_a, uint8_t node_b);
+void sim_topology_chain(sim_cfg_t* p_cfg, int kind);   /* 1-2-3-...-n */
+void sim_topology_full(sim_cfg_t* p_cfg, int kind);    /* everyone hears everyone */
+void sim_topology_trail(sim_cfg_t* p_cfg, int kind);   /* chain + skip links (redundant paths) */
 
-void sim_init(const sim_cfg_t* cfg);
+void sim_init(const sim_cfg_t* p_cfg);
 /* Change a link while running (a node walks out of range, a link comes back). */
-void sim_set_link(int kind, uint8_t a, uint8_t b, bool up);
+void sim_set_link(int kind, uint8_t node_a, uint8_t node_b, bool b_link_up);
 void sim_set_link_loss(int kind, float loss);
 void sim_set_corrupt_rate(int kind, float rate);
 void sim_set_current(uint8_t node_id);
@@ -72,16 +72,16 @@ void sim_tick(void);
 uint32_t sim_rand(void);
 float sim_frand(void);
 
-extern const mesh_radio_t sim_lora;
-extern const mesh_radio_t sim_wifi;
+extern const mesh_radio_t g_sim_lora;
+extern const mesh_radio_t g_sim_wifi;
 
 /* Per-node stats access for experiments. */
-void sim_get_stats(uint8_t node_id, int kind, mesh_stats_t* out);
+void sim_get_stats(uint8_t node_id, int kind, mesh_stats_t* p_out);
 void sim_set_drop_rate(uint8_t node_id, int kind, float rate);
 /* Total ms any node spent transmitting on this radio (channel usage). */
 uint32_t sim_airtime_used(int kind);
 
 /* LoRa time on air (ms) for a payload of n bytes at SF7/125 kHz/CR4/5, 8 preamble, header+CRC on. */
-double sim_lora_airtime_ms(uint16_t n);
+double sim_lora_airtime_ms(uint16_t len);
 
 #endif

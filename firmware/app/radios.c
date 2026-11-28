@@ -7,18 +7,18 @@
 
 /* ---- offline stand-in, used until the real mesh sources are linked ---------------------- */
 
-static bool off_send(uint8_t d, const uint8_t* p, uint16_t l)
+static bool off_send(uint8_t dst, const uint8_t* p_buf, uint16_t len)
 {
-    (void)d;
-    (void)p;
-    (void)l;
+    (void)dst;
+    (void)p_buf;
+    (void)len;
     return false;
 }
-static int off_recv(uint8_t* s, uint8_t* b, uint16_t c)
+static int off_recv(uint8_t* p_src, uint8_t* p_buf, uint16_t cap)
 {
-    (void)s;
-    (void)b;
-    (void)c;
+    (void)p_src;
+    (void)p_buf;
+    (void)cap;
     return MESH_RECV_NONE;
 }
 static void off_poll(void)
@@ -32,23 +32,23 @@ static __attribute__((unused)) uint16_t off_maxp_wifi(void)
 {
     return 245;
 }
-static bool off_heard(uint8_t n, uint32_t* ms)
+static bool off_heard(uint8_t node, uint32_t* p_msec)
 {
-    (void)n;
-    (void)ms;
+    (void)node;
+    (void)p_msec;
     return false;
 }
 static bool off_busy(void)
 {
     return false;
 }
-static void off_stats(mesh_stats_t* o)
+static void off_stats(mesh_stats_t* p_out)
 {
-    *o = (mesh_stats_t) { 0 };
+    *p_out = (mesh_stats_t) { 0 };
 }
-static void off_drop(float r)
+static void off_drop(float rate)
 {
-    (void)r;
+    (void)rate;
 }
 
 /* used when LoRa is not linked OR its init failed: a dead LR1121 must never be polled, because
@@ -58,7 +58,7 @@ static const mesh_radio_t lora_offline
 
 #ifdef HAVE_LORA_MESH
 #include "lora_mesh.h" /* Mridula: exports lora_mesh_radio, lora_mesh_init, lora_mesh_set_heartbeat */
-#define lora_mesh lora_mesh_radio
+#define lora_mesh g_lora_mesh_radio
 #else
 #define lora_mesh lora_offline
 #endif
@@ -75,7 +75,7 @@ static const mesh_radio_t wifi_mesh
 #include "board.h"
 #include "pico/stdlib.h"
 
-static bool s_lora_ok, s_wifi_ok, s_wst_seen;
+static bool b_s_lora_ok, b_s_wifi_ok, b_s_wst_seen;
 static int s_wst_owner = -1; /* radios_wst_owner() */
 static uint8_t s_wst_mac[6];
 
@@ -85,35 +85,35 @@ static uint8_t s_wst_mac[6];
 static void check_wst(uint8_t node_id)
 {
     uint8_t mac[6];
-    uint32_t t0 = to_ms_since_boot(get_absolute_time());
+    uint32_t start_t = to_ms_since_boot(get_absolute_time());
     while (!wst_link_get_mac(mac))
     {
-        wifi_mesh.poll();
-        if (to_ms_since_boot(get_absolute_time()) - t0 > 2000)
+        g_wifi_mesh.p_poll();
+        if (to_ms_since_boot(get_absolute_time()) - start_t > 2000)
         {
             printf("wifi: the ESP-01 did not answer (seated in the ESP-01 socket? GP16/GP17). LoRa will be used.\n");
             return;
         }
         sleep_ms(5);
     }
-    s_wst_seen = true;
+    b_s_wst_seen = true;
     int owner = 0;
-    for (int n = 1; n <= 5; n++)
+    for (int node = 1; node <= 5; node++)
     {
-        bool same = true;
-        for (int i = 0; i < 6; i++)
+        bool b_same = true;
+        for (int idx = 0; idx < 6; idx++)
         {
-            same = same && WIFI_MESH_MACS[n][i] == mac[i];
+            b_same = b_same && wifi_mesh_macs[node][idx] == mac[idx];
         }
-        if (same)
+        if (b_same)
         {
-            owner = n;
+            owner = node;
         }
     }
     s_wst_owner = owner;
-    for (int i = 0; i < 6; i++)
+    for (int idx = 0; idx < 6; idx++)
     {
-        s_wst_mac[i] = mac[i];
+        s_wst_mac[idx] = mac[idx];
     }
     printf("wifi: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X = WST-%d\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
            owner);
@@ -137,9 +137,9 @@ static void check_wst(uint8_t node_id)
 bool radios_init(uint8_t node_id)
 {
 #ifdef HAVE_LORA_MESH
-    s_lora_ok = lora_mesh_init(node_id);
+    b_s_lora_ok = lora_mesh_init(node_id);
     board_spi1_after_lora(); /* her driver set SPI1 to 1 MHz; put it back to the shared speed */
-    if (!s_lora_ok)
+    if (!b_s_lora_ok)
     {
         printf("lora: init FAILED (check the Core1121 wiring and power, BUSY GP%d, DIO9 GP%d). "
                "Continuing with WiFi only.\n",
@@ -160,8 +160,8 @@ bool radios_init(uint8_t node_id)
 #endif
 #ifdef HAVE_WIFI_MESH
     /* node 1 sends its own 3 s WiFi heartbeat inside wifi_mesh.c */
-    s_wifi_ok = wifi_mesh_init(node_id);
-    if (s_wifi_ok)
+    b_s_wifi_ok = wifi_mesh_init(node_id);
+    if (b_s_wifi_ok)
     {
         check_wst(node_id);
     }
@@ -173,24 +173,24 @@ bool radios_init(uint8_t node_id)
     printf("radios: WiFi mesh not linked (offline stub)\n");
 #endif
     (void)node_id;
-    return s_lora_ok || s_wifi_ok;
+    return b_s_lora_ok || b_s_wifi_ok;
 }
 
 bool radios_lora_ok(void)
 {
-    return s_lora_ok;
+    return b_s_lora_ok;
 }
 
 bool radios_wifi_ok(void)
 {
     /* the mesh keeps running either way, so a late ESP-01 still works; this is for the status line */
-    return s_wifi_ok && s_wst_seen;
+    return b_s_wifi_ok && b_s_wst_seen;
 }
 
-void radios_set_wifi_topology_filter(bool on)
+void radios_set_wifi_topology_filter(bool b_enable)
 {
 #ifdef HAVE_WIFI_MESH
-    wifi_mesh_set_topology_filter(on);
+    wifi_mesh_set_topology_filter(b_enable);
 #else
     (void)on;
 #endif
@@ -198,49 +198,49 @@ void radios_set_wifi_topology_filter(bool on)
 
 const mesh_radio_t* radio_lora(void)
 {
-    return s_lora_ok ? &lora_mesh : &lora_offline;
+    return b_s_lora_ok ? &lora_mesh : &lora_offline;
 }
 
 const mesh_radio_t* radio_wifi(void)
 {
-    return &wifi_mesh;
+    return &g_wifi_mesh;
 }
 
-bool radios_last_recv_info(const mesh_radio_t* r, uint8_t* hops, uint8_t* prev)
+bool radios_last_recv_info(const mesh_radio_t* p_radio, uint8_t* p_hops, uint8_t* p_prev)
 {
-    *hops = 0;
-    *prev = 0;
+    *p_hops = 0;
+    *p_prev = 0;
 #ifdef HAVE_LORA_MESH
-    if (s_lora_ok && r == &lora_mesh)
+    if (b_s_lora_ok && p_radio == &lora_mesh)
     {
-        return lora_mesh_last_recv_info(hops, prev);
+        return lora_mesh_last_recv_info(p_hops, p_prev);
     }
 #endif
 #ifdef HAVE_WIFI_MESH
-    if (r == &wifi_mesh)
+    if (p_radio == &g_wifi_mesh)
     {
-        return wifi_mesh_last_recv_info(hops, prev);
+        return wifi_mesh_last_recv_info(p_hops, p_prev);
     }
 #endif
-    (void)r;
+    (void)p_radio;
     return false;
 }
 
-uint16_t radios_relayed_from(const mesh_radio_t* r, uint8_t src)
+uint16_t radios_relayed_from(const mesh_radio_t* p_radio, uint8_t src)
 {
 #ifdef HAVE_LORA_MESH
-    if (s_lora_ok && r == &lora_mesh)
+    if (b_s_lora_ok && p_radio == &lora_mesh)
     {
         return lora_mesh_relayed_from(src);
     }
 #endif
 #ifdef HAVE_WIFI_MESH
-    if (r == &wifi_mesh)
+    if (p_radio == &g_wifi_mesh)
     {
         return wifi_mesh_relayed_from(src);
     }
 #endif
-    (void)r;
+    (void)p_radio;
     (void)src;
     return 0;
 }
@@ -249,9 +249,9 @@ int radios_wst_owner(uint8_t mac[6])
 {
     if (mac != NULL && s_wst_owner >= 0)
     {
-        for (int i = 0; i < 6; i++)
+        for (int idx = 0; idx < 6; idx++)
         {
-            mac[i] = s_wst_mac[i];
+            mac[idx] = s_wst_mac[idx];
         }
     }
     return s_wst_owner;

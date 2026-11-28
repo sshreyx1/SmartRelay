@@ -7,7 +7,7 @@
 #define DHT_PIN 4
 #define MIN_INTERVAL 2000
 
-static uint32_t expectPulse(bool level);
+static uint32_t expectPulse(bool b_level);
 
 /* Default: nothing (the FreeRTOS build and the bench test programs). A firmware that needs the
  * bit-timing part protected defines its own non-weak versions. */
@@ -20,14 +20,14 @@ void DHT_init() {
     gpio_pull_up(DHT_PIN);
 }
 
-bool DHT_read(float *temperature, float *humidity) {
-    uint32_t currentMillis = to_ms_since_boot(get_absolute_time());
-    static uint32_t lastReadTime = 0;
+bool DHT_read(float *p_temperature, float *p_humidity) {
+    uint32_t current_millis = to_ms_since_boot(get_absolute_time());
+    static uint32_t last_read_time = 0;
 
-    if ((currentMillis - lastReadTime) < MIN_INTERVAL) {
+    if ((current_millis - last_read_time) < MIN_INTERVAL) {
         return false;
     }
-    lastReadTime = currentMillis;
+    last_read_time = current_millis;
 
     uint32_t pulses[80] = {0};
 
@@ -41,47 +41,47 @@ bool DHT_read(float *temperature, float *humidity) {
     sleep_us(40);
     gpio_set_dir(DHT_PIN, GPIO_IN);
 
-    bool ok = expectPulse(0) != UINT32_MAX && expectPulse(1) != UINT32_MAX;
+    bool b_is_ok = expectPulse(0) != UINT32_MAX && expectPulse(1) != UINT32_MAX;
 
-    for (int i = 0; ok && i < 80; i += 2) {
-        pulses[i] = expectPulse(0);
-        pulses[i + 1] = expectPulse(1);
+    for (int idx = 0; b_is_ok && idx < 80; idx += 2) {
+        pulses[idx] = expectPulse(0);
+        pulses[idx + 1] = expectPulse(1);
 
-        if (pulses[i] == UINT32_MAX || pulses[i + 1] == UINT32_MAX) {
-            ok = false;
+        if (pulses[idx] == UINT32_MAX || pulses[idx + 1] == UINT32_MAX) {
+            b_is_ok = false;
         }
     }
     DHT_timing_exit();
-    if (!ok) {
+    if (!b_is_ok) {
         return false;
     }
 
     uint8_t bits[5] = {0};
-    for (int i = 0; i < 40; ++i) {
-        uint32_t lowCycles = pulses[2 * i];
-        uint32_t highCycles = pulses[2 * i + 1];
-        bits[i / 8] <<= 1;
-        if (highCycles > lowCycles) {
-            bits[i / 8] |= 1;
+    for (int idx = 0; idx < 40; ++idx) {
+        uint32_t low_cycles = pulses[2 * idx];
+        uint32_t high_cycles = pulses[2 * idx + 1];
+        bits[idx / 8] <<= 1;
+        if (high_cycles > low_cycles) {
+            bits[idx / 8] |= 1;
         }
     }
 
-    uint16_t rawHumidity = (bits[0] << 8) | bits[1];
-    uint16_t rawTemperature = (bits[2] << 8) | bits[3];
-    uint8_t checkSum = bits[4];
+    uint16_t raw_humidity = (bits[0] << 8) | bits[1];
+    uint16_t raw_temperature = (bits[2] << 8) | bits[3];
+    uint8_t check_sum = bits[4];
 
-    *humidity = rawHumidity * 0.1f;
-    *temperature = rawTemperature * 0.1f;
+    *p_humidity = raw_humidity * 0.1f;
+    *p_temperature = raw_temperature * 0.1f;
 
-    if (checkSum == ((bits[0] + bits[1] + bits[2] + bits[3]) & 0xFF)) {
+    if (check_sum == ((bits[0] + bits[1] + bits[2] + bits[3]) & 0xFF)) {
         return true;
     }
     return false;
 }
 
-static uint32_t expectPulse(bool level) {
+static uint32_t expectPulse(bool b_level) {
     uint32_t count = 0;
-    while (gpio_get(DHT_PIN) == level) {
+    while (gpio_get(DHT_PIN) == b_level) {
         if (++count >= 10000) {
             return UINT32_MAX;
         }

@@ -77,7 +77,7 @@ typedef struct
     uint32_t file_crc32;
     uint8_t radio_id;
     uint8_t meta_len;
-    const uint8_t* meta; /* points into the packet buffer */
+    const uint8_t* p_meta; /* points into the packet buffer */
 } alfp_manifest_t;
 
 typedef struct
@@ -85,7 +85,7 @@ typedef struct
     uint16_t seq;
     uint16_t frag_count;
     uint16_t len;
-    const uint8_t* payload; /* points into the packet buffer */
+    const uint8_t* p_payload; /* points into the packet buffer */
 } alfp_data_t;
 
 typedef struct
@@ -94,12 +94,12 @@ typedef struct
     uint8_t round;
     uint8_t fmt;
     /* LIST */
-    uint8_t n;
-    const uint8_t* list; /* n x little-endian uint16 */
+    uint8_t count;
+    const uint8_t* p_list; /* n x little-endian uint16 */
     /* BITMAP */
     uint16_t base;
     uint16_t nbits;
-    const uint8_t* bitmap;
+    const uint8_t* p_bitmap;
 } alfp_nack_t;
 
 typedef struct
@@ -113,7 +113,7 @@ typedef struct
         uint8_t round; /* POLL */
         alfp_nack_t nack;
         uint8_t status; /* ACK */
-    } u;
+    } body;
 } alfp_pkt_t;
 
 typedef enum
@@ -127,20 +127,20 @@ typedef enum
 } alfp_dec_t;
 
 /* Encoders write into out (capacity cap) and return the packet length, or 0 if it does not fit. */
-uint16_t alfp_enc_manifest(uint8_t* out, uint16_t cap, uint16_t sid, const alfp_manifest_t* m);
-uint16_t alfp_enc_data_header(uint8_t* out, uint16_t sid, uint16_t seq, uint16_t count);
-uint16_t alfp_enc_data_finish(uint8_t* out, uint16_t payload_len); /* appends CRC, returns total */
-uint16_t alfp_enc_poll(uint8_t* out, uint16_t cap, uint16_t sid, uint8_t round);
-uint16_t alfp_enc_ack(uint8_t* out, uint16_t cap, uint16_t sid, uint8_t status);
+uint16_t alfp_enc_manifest(uint8_t* p_out, uint16_t cap, uint16_t sid, const alfp_manifest_t* p_manifest);
+uint16_t alfp_enc_data_header(uint8_t* p_out, uint16_t sid, uint16_t seq, uint16_t count);
+uint16_t alfp_enc_data_finish(uint8_t* p_out, uint16_t payload_len); /* appends CRC, returns total */
+uint16_t alfp_enc_poll(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t round);
+uint16_t alfp_enc_ack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t status);
 
 /* NACK: pass the receiver's bitmap (bit set = RECEIVED) and let the encoder pick the shortest form. */
-uint16_t alfp_enc_nack(uint8_t* out, uint16_t cap, uint16_t sid, uint8_t flags, uint8_t round,
-                       const uint8_t* have_bitmap, uint16_t frag_count, bool all);
+uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags, uint8_t round,
+                       const uint8_t* p_have_bitmap, uint16_t frag_count, bool b_all);
 
 /* Decode and validate one packet. On success fills *p (pointers reference buf). */
-alfp_dec_t alfp_decode(const uint8_t* buf, uint16_t len, alfp_pkt_t* p);
+alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt);
 
 /* Helper: iterate the fragments a decoded NACK asks for. Calls fn(seq, user) for each. */
-void alfp_nack_for_each(const alfp_nack_t* n, uint16_t frag_count, void (*fn)(uint16_t seq, void* user), void* user);
+void alfp_nack_for_each(const alfp_nack_t* p_count, uint16_t frag_count, void (*p_callback)(uint16_t seq, void* p_user), void* p_user);
 
 #endif

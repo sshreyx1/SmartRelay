@@ -30,7 +30,7 @@
 #define WIFI_MESH_MAX_PAYLOAD 245   /* 250 ESP-NOW bytes - 5 header bytes */
 
 /* The radio object the fragmentation layer uses. */
-extern const mesh_radio_t wifi_mesh;
+extern const mesh_radio_t g_wifi_mesh;
 
 /* Start the mesh. Call once, before anything else.
  *   node_id 1-5 : use this ID.
@@ -44,7 +44,7 @@ uint8_t wifi_mesh_node_id(void);
 
 /* Topology filter: ON (default) = only accept packets from neighbours in
  * wifi_mesh_config.h, to force multi-hop in a small room.               */
-void wifi_mesh_set_topology_filter(bool on);
+void wifi_mesh_set_topology_filter(bool b_enable);
 
 /* Packets ignored by the topology filter (for debugging). */
 uint32_t wifi_mesh_filtered_count(void);
@@ -53,7 +53,7 @@ uint32_t wifi_mesh_filtered_count(void);
  *   hops     links it travelled (1 = heard straight from its source)
  *   prev_hop node we heard it from, from the sender WST's MAC (0 = not in the table)
  * Returns false (and zeros) if recv() has not returned a packet yet.            */
-bool wifi_mesh_last_recv_info(uint8_t *hops, uint8_t *prev_hop);
+bool wifi_mesh_last_recv_info(uint8_t *p_hops, uint8_t *p_prev_hop);
 
 /* Packets from node src (1-5) this node has queued for relaying since boot
  * (wraps at 65536; use differences).                                        */

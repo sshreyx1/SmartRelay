@@ -24,9 +24,9 @@
 
 /* ---- small helpers --------------------------------------------------------------------- */
 
-static uint32_t now(alfp_ctx_t* c)
+static uint32_t now(alfp_ctx_t* p_ctx)
 {
-    return c->cfg.platform->now_ms(c->cfg.platform->ctx);
+    return p_ctx->cfg.p_platform->p_now_ms(p_ctx->cfg.p_platform->p_ctx);
 }
 
 static bool reached(uint32_t t_now, uint32_t deadline)
@@ -34,49 +34,49 @@ static bool reached(uint32_t t_now, uint32_t deadline)
     return (int32_t)(t_now - deadline) >= 0; /* wrap-safe */
 }
 
-static void logf_(alfp_ctx_t* c, const char* msg)
+static void logf_(alfp_ctx_t* p_ctx, const char* p_msg)
 {
-    if (c->cfg.platform->log)
+    if (p_ctx->cfg.p_platform->p_log)
     {
-        c->cfg.platform->log(c->cfg.platform->ctx, msg);
+        p_ctx->cfg.p_platform->p_log(p_ctx->cfg.p_platform->p_ctx, p_msg);
     }
 }
 
-static const alfp_storage_t* st(alfp_ctx_t* c)
+static const alfp_storage_t* st(alfp_ctx_t* p_ctx)
 {
-    return c->cfg.storage;
+    return p_ctx->cfg.p_storage;
 }
 
 /* Optional progress callbacks (alfp_cfg_t.on_rx_fail ...): report only, never change state. */
-static void ev_rx_fail(alfp_ctx_t* c, uint8_t src, uint16_t sid, const char* why)
+static void ev_rx_fail(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, const char* p_why)
 {
-    if (c->cfg.on_rx_fail)
+    if (p_ctx->cfg.p_on_rx_fail)
     {
-        c->cfg.on_rx_fail(c, src, sid, why);
+        p_ctx->cfg.p_on_rx_fail(p_ctx, src, sid, p_why);
     }
 }
 
-static void bset(uint8_t* bm, uint16_t i)
+static void bset(uint8_t* p_bitmap, uint16_t idx)
 {
-    bm[i >> 3] = (uint8_t)(bm[i >> 3] | (1u << (i & 7u)));
+    p_bitmap[idx >> 3] = (uint8_t)(p_bitmap[idx >> 3] | (1u << (idx & 7u)));
 }
 
-static void bclr(uint8_t* bm, uint16_t i)
+static void bclr(uint8_t* p_bitmap, uint16_t idx)
 {
-    bm[i >> 3] = (uint8_t)(bm[i >> 3] & ~(1u << (i & 7u)));
+    p_bitmap[idx >> 3] = (uint8_t)(p_bitmap[idx >> 3] & ~(1u << (idx & 7u)));
 }
 
-static bool bget(const uint8_t* bm, uint16_t i)
+static bool bget(const uint8_t* p_bitmap, uint16_t idx)
 {
-    return (bm[i >> 3] >> (i & 7u)) & 1u;
+    return (p_bitmap[idx >> 3] >> (idx & 7u)) & 1u;
 }
 
-static void bfill(uint8_t* bm, uint16_t n)
+static void bfill(uint8_t* p_bitmap, uint16_t chunk_len)
 {
-    memset(bm, 0, ALFP_BITMAP_BYTES);
-    for (uint16_t i = 0; i < n; i++)
+    memset(p_bitmap, 0, ALFP_BITMAP_BYTES);
+    for (uint16_t idx = 0; idx < chunk_len; idx++)
     {
-        bset(bm, i);
+        bset(p_bitmap, idx);
     }
 }
 
@@ -87,8 +87,8 @@ static uint16_t frag_len(uint32_t file_size, uint16_t frag_size, uint16_t seq)
     return (uint16_t)(left < frag_size ? left : frag_size);
 }
 
-static alfp_pace_t* pace_for(alfp_ctx_t* c, const mesh_radio_t* radio);
-static void pace_update(alfp_ctx_t* c, uint16_t missing);
+static alfp_pace_t* pace_for(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio);
+static void pace_update(alfp_ctx_t* p_ctx, uint16_t missing);
 
 /* ---- init --------------------------------------------------------------------------------- */
 
@@ -100,91 +100,91 @@ static void pace_update(alfp_ctx_t* c, uint16_t missing);
 typedef struct
 {
     char names[STALE_BATCH][24];
-    unsigned n;
-    bool more;
+    unsigned len;
+    bool b_more;
 } stale_list_t;
 
-static void stale_part_cb(const char* name, void* user)
+static void stale_part_cb(const char* p_name, void* p_user)
 {
-    stale_list_t* l = (stale_list_t*)user;
-    size_t len = strlen(name);
-    if (len < 6u || strcmp(name + len - 5u, ".part") != 0 || len >= sizeof(l->names[0]))
+    stale_list_t* p_stale = (stale_list_t*)p_user;
+    size_t len = strlen(p_name);
+    if (len < 6u || strcmp(p_name + len - 5u, ".part") != 0 || len >= sizeof(p_stale->names[0]))
     {
         return;
     }
-    if (l->n < STALE_BATCH)
+    if (p_stale->len < STALE_BATCH)
     {
-        memcpy(l->names[l->n++], name, len + 1u);
+        memcpy(p_stale->names[p_stale->len++], p_name, len + 1u);
     }
     else
     {
-        l->more = true;
+        p_stale->b_more = true;
     }
 }
 
-static void remove_stale_parts(alfp_ctx_t* ctx)
+static void remove_stale_parts(alfp_ctx_t* p_ctx)
 {
-    if (!st(ctx)->list || !st(ctx)->remove)
+    if (!st(p_ctx)->p_list || !st(p_ctx)->p_remove)
     {
         return;
     }
     unsigned removed = 0;
     for (unsigned pass = 0; pass < 64u; pass++)
     {
-        stale_list_t l;
-        memset(&l, 0, sizeof(l));
-        st(ctx)->list(st(ctx)->ctx, ctx->cfg.tmp_dir, stale_part_cb, &l);
+        stale_list_t stale;
+        memset(&stale, 0, sizeof(stale));
+        st(p_ctx)->p_list(st(p_ctx)->p_ctx, p_ctx->cfg.p_tmp_dir, stale_part_cb, &stale);
         unsigned gone = 0;
-        for (unsigned i = 0; i < l.n; i++)
+        for (unsigned idx = 0; idx < stale.len; idx++)
         {
-            char p[ALFP_PATH_MAX + 24];
-            snprintf(p, sizeof(p), "%s/%s", ctx->cfg.tmp_dir, l.names[i]);
-            if (st(ctx)->remove(st(ctx)->ctx, p) >= 0)
+            char path[ALFP_PATH_MAX + 24];
+            snprintf(path, sizeof(path), "%s/%s", p_ctx->cfg.p_tmp_dir, stale.names[idx]);
+            if (st(p_ctx)->p_remove(st(p_ctx)->p_ctx, path) >= 0)
             {
                 gone++;
             }
         }
         removed += gone;
-        if (!l.more || gone == 0u)
+        if (!stale.b_more || gone == 0u)
         {
             break;
         }
     }
-    if (removed && ctx->cfg.platform->log)
+    if (removed && p_ctx->cfg.p_platform->p_log)
     {
         char line[64];
-        snprintf(line, sizeof(line), "alfp: removed %u stale .part file(s) from %s/", removed, ctx->cfg.tmp_dir);
-        ctx->cfg.platform->log(ctx->cfg.platform->ctx, line);
+        snprintf(line, sizeof(line), "alfp: removed %u stale .part file(s) from %s/", removed, p_ctx->cfg.p_tmp_dir);
+        p_ctx->cfg.p_platform->p_log(p_ctx->cfg.p_platform->p_ctx, line);
     }
 }
 
-void alfp_init(alfp_ctx_t* ctx, const alfp_cfg_t* cfg)
+void alfp_init(alfp_ctx_t* p_ctx, const alfp_cfg_t* p_cfg)
 {
-    memset(ctx, 0, sizeof(*ctx));
-    ctx->cfg = *cfg;
-    if (!ctx->cfg.inbox_dir)
+    memset(p_ctx, 0, sizeof(*p_ctx));
+    p_ctx->cfg = *p_cfg;
+    if (!p_ctx->cfg.p_inbox_dir)
     {
-        ctx->cfg.inbox_dir = "inbox";
+        p_ctx->cfg.p_inbox_dir = "inbox";
     }
-    if (!ctx->cfg.tmp_dir)
+    if (!p_ctx->cfg.p_tmp_dir)
     {
-        ctx->cfg.tmp_dir = "rx";
+        p_ctx->cfg.p_tmp_dir = "rx";
     }
-    ctx->tx.fh = -1;
-    for (unsigned i = 0; i < ALFP_RX_SESSIONS; i++)
+    p_ctx->tx_session.file_handle = -1;
+    for (unsigned idx = 0; idx < ALFP_RX_SESSIONS; idx++)
     {
-        ctx->rx[i].fh = -1;
+        p_ctx->rx_sessions[idx].file_handle = -1;
     }
     /* Random start so a rebooted node does not reuse a session id the bridge still remembers. */
-    ctx->next_sid = (uint16_t)cfg->platform->rand32(cfg->platform->ctx);
-    if (ctx->cfg.node_id == ctx->cfg.bridge_id && st(ctx)->mkdir)
+    p_ctx->next_sid = (uint16_t)p_cfg->p_platform->p_rand32(p_cfg->p_platform->p_ctx);
+    if (p_ctx->cfg.node_id == p_ctx->cfg.bridge_id && st(p_ctx)->p_mkdir)
     {
-        st(ctx)->mkdir(st(ctx)->ctx, ctx->cfg.inbox_dir);
-        st(ctx)->mkdir(st(ctx)->ctx, ctx->cfg.tmp_dir);
+        st(p_ctx)->p_mkdir(st(p_ctx)->p_ctx, p_ctx->cfg.p_inbox_dir);
+        st(p_ctx)->p_mkdir(st(p_ctx)->p_ctx, p_ctx->cfg.p_tmp_dir);
     }
-    if (ctx->cfg.node_id == ctx->cfg.bridge_id)
+    if (p_ctx->cfg.node_id == p_ctx->cfg.bridge_id)
     {
-        remove_stale_parts(ctx);
+        remove_stale_parts(p_ctx);
     }
 }
 
@@ -192,140 +192,140 @@ void alfp_init(alfp_ctx_t* ctx, const alfp_cfg_t* cfg)
  * SENDER
  * ========================================================================================= */
 
-bool alfp_tx_active(const alfp_ctx_t* ctx)
+bool alfp_tx_active(const alfp_ctx_t* p_ctx)
 {
-    return ctx->tx.state != TX_IDLE;
+    return p_ctx->tx_session.state != TX_IDLE;
 }
 
-static void tx_finish(alfp_ctx_t* c, alfp_tx_result_t res, uint8_t ack_status)
+static void tx_finish(alfp_ctx_t* p_ctx, alfp_tx_result_t res, uint8_t ack_status)
 {
-    alfp_tx_t* t = &c->tx;
-    if (t->fh >= 0)
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    if (p_xfer->file_handle >= 0)
     {
-        st(c)->close(st(c)->ctx, t->fh);
-        t->fh = -1;
+        st(p_ctx)->p_close(st(p_ctx)->p_ctx, p_xfer->file_handle);
+        p_xfer->file_handle = -1;
     }
-    t->rep.result = res;
-    t->rep.ack_status = ack_status;
-    t->rep.rounds = t->round;
-    t->rep.gap_ms_end = t->gap_ms;
-    t->rep.file_crc32 = t->state == TX_HASHING ? 0 : t->crc32;
-    if (res == ALFP_TX_DONE && t->round == 1 && t->radio)
+    p_xfer->rep.result = res;
+    p_xfer->rep.ack_status = ack_status;
+    p_xfer->rep.rounds = p_xfer->round;
+    p_xfer->rep.gap_ms_end = p_xfer->gap_ms;
+    p_xfer->rep.file_crc32 = p_xfer->state == TX_HASHING ? 0 : p_xfer->crc32;
+    if (res == ALFP_TX_DONE && p_xfer->round == 1 && p_xfer->p_radio)
     {
-        pace_update(c, 0); /* a clean first round: allow the gap to shrink */
+        pace_update(p_ctx, 0); /* a clean first round: allow the gap to shrink */
     }
-    t->rep.finished_ms = now(c);
-    t->state = TX_IDLE;
+    p_xfer->rep.finished_ms = now(p_ctx);
+    p_xfer->state = TX_IDLE;
     if (res == ALFP_TX_DONE)
     {
-        c->stats.tx_ok++;
+        p_ctx->stats.tx_ok++;
     }
     else
     {
-        c->stats.tx_failed++;
+        p_ctx->stats.tx_failed++;
     }
-    if (c->cfg.on_tx_done)
+    if (p_ctx->cfg.p_on_tx_done)
     {
-        alfp_tx_report_t r = t->rep; /* callback may start the next transfer */
-        c->cfg.on_tx_done(c, &r);
+        alfp_tx_report_t rep = p_xfer->rep; /* callback may start the next transfer */
+        p_ctx->cfg.p_on_tx_done(p_ctx, &rep);
     }
 }
 
-alfp_err_t alfp_send_file(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t dst, const char* path,
-                          const uint8_t* meta, uint8_t meta_len)
+alfp_err_t alfp_send_file(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t dst, const char* p_path,
+                          const uint8_t* p_meta, uint8_t meta_len)
 {
-    alfp_tx_t* t = &ctx->tx;
-    if (t->state != TX_IDLE)
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    if (p_xfer->state != TX_IDLE)
     {
         return ALFP_E_BUSY;
     }
-    if (!radio || !path || meta_len > ALFP_MAX_META || (meta_len && !meta) || strlen(path) >= ALFP_PATH_MAX)
+    if (!p_radio || !p_path || meta_len > ALFP_MAX_META || (meta_len && !p_meta) || strlen(p_path) >= ALFP_PATH_MAX)
     {
         return ALFP_E_ARG;
     }
-    uint16_t mp = radio->max_payload();
-    if (mp > ALFP_MAX_PKT)
+    uint16_t meta_path = p_radio->p_max_payload();
+    if (meta_path > ALFP_MAX_PKT)
     {
-        mp = ALFP_MAX_PKT;
+        meta_path = ALFP_MAX_PKT;
     }
-    if (mp < ALFP_MANIFEST_OVERHEAD + meta_len || mp <= ALFP_DATA_OVERHEAD)
+    if (meta_path < ALFP_MANIFEST_OVERHEAD + meta_len || meta_path <= ALFP_DATA_OVERHEAD)
     {
         return ALFP_E_ARG;
     }
 
-    int fh = st(ctx)->open_read(st(ctx)->ctx, path);
-    if (fh < 0)
+    int file_handle = st(p_ctx)->p_open_read(st(p_ctx)->p_ctx, p_path);
+    if (file_handle < 0)
     {
         return ALFP_E_OPEN;
     }
-    int32_t size = st(ctx)->size(st(ctx)->ctx, fh);
+    int32_t size = st(p_ctx)->p_size(st(p_ctx)->p_ctx, file_handle);
     if (size <= 0)
     {
-        st(ctx)->close(st(ctx)->ctx, fh);
+        st(p_ctx)->p_close(st(p_ctx)->p_ctx, file_handle);
         return size < 0 ? ALFP_E_OPEN : ALFP_E_EMPTY;
     }
-    uint16_t fsize = (uint16_t)(mp - ALFP_DATA_OVERHEAD);
+    uint16_t fsize = (uint16_t)(meta_path - ALFP_DATA_OVERHEAD);
     uint32_t count = ((uint32_t)size + fsize - 1u) / fsize;
     if (count > ALFP_MAX_FRAGS)
     {
-        st(ctx)->close(st(ctx)->ctx, fh);
+        st(p_ctx)->p_close(st(p_ctx)->p_ctx, file_handle);
         return ALFP_E_TOO_BIG;
     }
 
-    memset(t, 0, sizeof(*t));
-    t->radio = radio;
-    t->prof = alfp_profile_for(ctx, radio);
-    t->dst = dst;
-    t->fh = fh;
-    strcpy(t->path, path);
+    memset(p_xfer, 0, sizeof(*p_xfer));
+    p_xfer->p_radio = p_radio;
+    p_xfer->p_prof = alfp_profile_for(p_ctx, p_radio);
+    p_xfer->dst = dst;
+    p_xfer->file_handle = file_handle;
+    strcpy(p_xfer->path, p_path);
     if (meta_len)
     {
-        memcpy(t->meta, meta, meta_len);
+        memcpy(p_xfer->meta, p_meta, meta_len);
     }
-    t->meta_len = meta_len;
-    t->sid = ctx->next_sid++;
-    t->file_size = (uint32_t)size;
-    t->frag_size = fsize;
-    t->frag_count = (uint16_t)count;
-    t->crc32 = ALFP_CRC32_INIT;
-    t->hash_off = 0;
-    t->state = TX_HASHING;
+    p_xfer->meta_len = meta_len;
+    p_xfer->sid = p_ctx->next_sid++;
+    p_xfer->file_size = (uint32_t)size;
+    p_xfer->frag_size = fsize;
+    p_xfer->frag_count = (uint16_t)count;
+    p_xfer->crc32 = ALFP_CRC32_INIT;
+    p_xfer->hash_off = 0;
+    p_xfer->state = TX_HASHING;
     {
-        alfp_pace_t* pc = pace_for(ctx, radio);
-        bool adaptive = t->prof->gap_max_ms > t->prof->gap_ms;
-        t->gap_ms = (adaptive && pc->gap_ms) ? pc->gap_ms : t->prof->gap_ms;
+        alfp_pace_t* p_pace = pace_for(p_ctx, p_radio);
+        bool b_adaptive = p_xfer->p_prof->gap_max_ms > p_xfer->p_prof->gap_ms;
+        p_xfer->gap_ms = (b_adaptive && p_pace->gap_ms) ? p_pace->gap_ms : p_xfer->p_prof->gap_ms;
     }
 
-    t->rep.sid = t->sid;
-    t->rep.radio = radio->name;
-    t->rep.path = t->path;
-    t->rep.file_size = t->file_size;
-    t->rep.frag_count = t->frag_count;
-    t->rep.frag_size = t->frag_size;
-    t->rep.started_ms = now(ctx);
+    p_xfer->rep.sid = p_xfer->sid;
+    p_xfer->rep.p_radio = p_radio->p_name;
+    p_xfer->rep.p_path = p_xfer->path;
+    p_xfer->rep.file_size = p_xfer->file_size;
+    p_xfer->rep.frag_count = p_xfer->frag_count;
+    p_xfer->rep.frag_size = p_xfer->frag_size;
+    p_xfer->rep.started_ms = now(p_ctx);
     return ALFP_OK;
 }
 
 /* Try to hand one packet to the radio. Returns true if accepted. */
-static alfp_pace_t* pace_for(alfp_ctx_t* c, const mesh_radio_t* radio)
+static alfp_pace_t* pace_for(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio)
 {
-    for (unsigned i = 0; i < 2; i++)
+    for (unsigned idx = 0; idx < 2; idx++)
     {
-        if (c->pace[i].radio == radio)
+        if (p_ctx->pace[idx].p_radio == p_radio)
         {
-            return &c->pace[i];
+            return &p_ctx->pace[idx];
         }
     }
-    for (unsigned i = 0; i < 2; i++)
+    for (unsigned idx = 0; idx < 2; idx++)
     {
-        if (!c->pace[i].radio)
+        if (!p_ctx->pace[idx].p_radio)
         {
-            c->pace[i].radio = radio;
-            c->pace[i].gap_ms = 0;
-            return &c->pace[i];
+            p_ctx->pace[idx].p_radio = p_radio;
+            p_ctx->pace[idx].gap_ms = 0;
+            return &p_ctx->pace[idx];
         }
     }
-    return &c->pace[0];
+    return &p_ctx->pace[0];
 }
 
 /* Adaptive pacing, applied once per round from the NACK:
@@ -333,97 +333,97 @@ static alfp_pace_t* pace_for(alfp_ctx_t* c, const mesh_radio_t* radio)
  *   under 5% missing                                -> shrink it by a quarter
  * bounded by the profile's [gap_ms, gap_max_ms]. Random link loss also raises it, which costs time
  * but never correctness. */
-static void pace_update(alfp_ctx_t* c, uint16_t missing)
+static void pace_update(alfp_ctx_t* p_ctx, uint16_t missing)
 {
-    alfp_tx_t* t = &c->tx;
-    if (!t->sent_round)
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    if (!p_xfer->sent_round)
     {
         return;
     }
-    uint32_t lo = t->prof->gap_ms, hi = t->prof->gap_max_ms > lo ? t->prof->gap_max_ms : lo;
-    uint32_t loss_pct = (uint32_t)missing * 100u / t->sent_round;
+    uint32_t gap_low = p_xfer->p_prof->gap_ms, gap_high = p_xfer->p_prof->gap_max_ms > gap_low ? p_xfer->p_prof->gap_max_ms : gap_low;
+    uint32_t loss_pct = (uint32_t)missing * 100u / p_xfer->sent_round;
     if (loss_pct > 25u)
     {
-        t->gap_ms = t->gap_ms * 2u > hi ? hi : t->gap_ms * 2u;
+        p_xfer->gap_ms = p_xfer->gap_ms * 2u > gap_high ? gap_high : p_xfer->gap_ms * 2u;
     }
     else if (loss_pct < 5u)
     {
-        t->gap_ms = t->gap_ms - t->gap_ms / 4u < lo ? lo : t->gap_ms - t->gap_ms / 4u;
+        p_xfer->gap_ms = p_xfer->gap_ms - p_xfer->gap_ms / 4u < gap_low ? gap_low : p_xfer->gap_ms - p_xfer->gap_ms / 4u;
     }
     else
     {
         /* 5-25% loss: keep the current gap. */
     }
-    pace_for(c, t->radio)->gap_ms = t->gap_ms;
+    pace_for(p_ctx, p_xfer->p_radio)->gap_ms = p_xfer->gap_ms;
 }
 
-static bool tx_put(alfp_ctx_t* c, const uint8_t* pkt, uint16_t len)
+static bool tx_put(alfp_ctx_t* p_ctx, const uint8_t* p_pkt, uint16_t len)
 {
-    alfp_tx_t* t = &c->tx;
-    if (!t->radio->send(t->dst, pkt, len))
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    if (!p_xfer->p_radio->p_send(p_xfer->dst, p_pkt, len))
     {
-        c->stats.send_blocked++;
-        t->next_tx_ms = now(c) + 2u;
+        p_ctx->stats.send_blocked++;
+        p_xfer->next_tx_ms = now(p_ctx) + 2u;
         return false;
     }
-    t->rep.bytes_on_air += len;
-    t->was_busy = true; /* wait for tx_busy() to clear, then the profile gap */
+    p_xfer->rep.bytes_on_air += len;
+    p_xfer->b_was_busy = true; /* wait for tx_busy() to clear, then the profile gap */
     return true;
 }
 
-static void tx_step(alfp_ctx_t* c)
+static void tx_step(alfp_ctx_t* p_ctx)
 {
-    alfp_tx_t* t = &c->tx;
-    uint32_t tnow = now(c);
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    uint32_t tnow = now(p_ctx);
 
-    switch (t->state)
+    switch (p_xfer->state)
     {
         case TX_IDLE:
             return;
 
         case TX_HASHING:
         {
-            uint32_t left = t->file_size - t->hash_off;
-            uint16_t n = (uint16_t)(left < ALFP_HASH_CHUNK ? left : ALFP_HASH_CHUNK);
-            int got = st(c)->read_at(st(c)->ctx, t->fh, t->hash_off, c->io, n);
-            if (got != (int)n)
+            uint32_t left = p_xfer->file_size - p_xfer->hash_off;
+            uint16_t chunk_len = (uint16_t)(left < ALFP_HASH_CHUNK ? left : ALFP_HASH_CHUNK);
+            int got = st(p_ctx)->p_read_at(st(p_ctx)->p_ctx, p_xfer->file_handle, p_xfer->hash_off, p_ctx->io_buf, chunk_len);
+            if (got != (int)chunk_len)
             {
-                tx_finish(c, ALFP_TX_IO_ERROR, 0);
+                tx_finish(p_ctx, ALFP_TX_IO_ERROR, 0);
                 return;
             }
-            t->crc32 = alfp_crc32(t->crc32, c->io, n);
-            t->hash_off += n;
-            if (t->hash_off >= t->file_size)
+            p_xfer->crc32 = alfp_crc32(p_xfer->crc32, p_ctx->io_buf, chunk_len);
+            p_xfer->hash_off += chunk_len;
+            if (p_xfer->hash_off >= p_xfer->file_size)
             {
-                bfill(t->todo, t->frag_count);
-                t->todo_next = 0;
-                t->send_manifest = true;
-                t->polls_left = t->prof->poll_copies ? t->prof->poll_copies : 1u;
-                t->copies = 1;
-                t->round = 1;
-                t->state = TX_SENDING;
-                t->next_tx_ms = tnow;
-                if (c->cfg.on_tx_start)
+                bfill(p_xfer->todo, p_xfer->frag_count);
+                p_xfer->todo_next = 0;
+                p_xfer->b_send_manifest = true;
+                p_xfer->polls_left = p_xfer->p_prof->poll_copies ? p_xfer->p_prof->poll_copies : 1u;
+                p_xfer->copies = 1;
+                p_xfer->round = 1;
+                p_xfer->state = TX_SENDING;
+                p_xfer->next_tx_ms = tnow;
+                if (p_ctx->cfg.p_on_tx_start)
                 {
-                    c->cfg.on_tx_start(c, t);
+                    p_ctx->cfg.p_on_tx_start(p_ctx, p_xfer);
                 }
             }
             return;
         }
 
         case TX_WAITING:
-            if (reached(tnow, t->wait_until_ms))
+            if (reached(tnow, p_xfer->wait_until_ms))
             {
-                t->polls_unanswered++;
-                if (t->polls_unanswered >= t->prof->max_polls)
+                p_xfer->polls_unanswered++;
+                if (p_xfer->polls_unanswered >= p_xfer->p_prof->max_polls)
                 {
-                    t->rep.why = 1;
-                    tx_finish(c, ALFP_TX_GAVE_UP, 0);
+                    p_xfer->rep.why = 1;
+                    tx_finish(p_ctx, ALFP_TX_GAVE_UP, 0);
                     return;
                 }
                 /* The POLL or its answer was lost: ask again (same round). */
-                t->polls_left = t->prof->poll_copies ? t->prof->poll_copies : 1u;
-                t->state = TX_SENDING;
+                p_xfer->polls_left = p_xfer->p_prof->poll_copies ? p_xfer->p_prof->poll_copies : 1u;
+                p_xfer->state = TX_SENDING;
             }
             return;
 
@@ -436,219 +436,219 @@ static void tx_step(alfp_ctx_t* c)
     }
 
     /* Pacing: wait until the radio has finished, then the profile's gap. */
-    if (t->was_busy)
+    if (p_xfer->b_was_busy)
     {
-        if (t->radio->tx_busy())
+        if (p_xfer->p_radio->p_tx_busy())
         {
             return;
         }
-        t->was_busy = false;
-        t->next_tx_ms = tnow + t->gap_ms;
+        p_xfer->b_was_busy = false;
+        p_xfer->next_tx_ms = tnow + p_xfer->gap_ms;
     }
-    if (!reached(tnow, t->next_tx_ms) || t->radio->tx_busy())
+    if (!reached(tnow, p_xfer->next_tx_ms) || p_xfer->p_radio->p_tx_busy())
     {
         return;
     }
 
-    if (t->send_manifest)
+    if (p_xfer->b_send_manifest)
     {
-        alfp_manifest_t m = {
-            .file_size = t->file_size,
-            .frag_count = t->frag_count,
-            .frag_size = t->frag_size,
-            .file_crc32 = t->crc32,
-            .radio_id = t->prof->radio_id,
-            .meta_len = t->meta_len,
-            .meta = t->meta,
+        alfp_manifest_t manifest = {
+            .file_size = p_xfer->file_size,
+            .frag_count = p_xfer->frag_count,
+            .frag_size = p_xfer->frag_size,
+            .file_crc32 = p_xfer->crc32,
+            .radio_id = p_xfer->p_prof->radio_id,
+            .meta_len = p_xfer->meta_len,
+            .p_meta = p_xfer->meta,
         };
-        uint16_t len = alfp_enc_manifest(c->pkt, sizeof(c->pkt), t->sid, &m);
-        if (tx_put(c, c->pkt, len))
+        uint16_t len = alfp_enc_manifest(p_ctx->pkt, sizeof(p_ctx->pkt), p_xfer->sid, &manifest);
+        if (tx_put(p_ctx, p_ctx->pkt, len))
         {
-            t->send_manifest = false;
-            t->rep.manifests_sent++;
+            p_xfer->b_send_manifest = false;
+            p_xfer->rep.manifests_sent++;
         }
         return;
     }
 
     /* Next fragment still to send this round. */
-    while (t->todo_next < t->frag_count && !bget(t->todo, t->todo_next))
+    while (p_xfer->todo_next < p_xfer->frag_count && !bget(p_xfer->todo, p_xfer->todo_next))
     {
-        t->todo_next++;
+        p_xfer->todo_next++;
     }
-    if (t->todo_next < t->frag_count)
+    if (p_xfer->todo_next < p_xfer->frag_count)
     {
-        uint16_t seq = t->todo_next;
-        uint16_t n = frag_len(t->file_size, t->frag_size, seq);
-        uint16_t h = alfp_enc_data_header(c->pkt, t->sid, seq, t->frag_count);
-        int got = st(c)->read_at(st(c)->ctx, t->fh, (uint32_t)seq * t->frag_size, c->pkt + h, n);
-        if (got != (int)n)
+        uint16_t seq = p_xfer->todo_next;
+        uint16_t chunk_len = frag_len(p_xfer->file_size, p_xfer->frag_size, seq);
+        uint16_t hdr_len = alfp_enc_data_header(p_ctx->pkt, p_xfer->sid, seq, p_xfer->frag_count);
+        int got = st(p_ctx)->p_read_at(st(p_ctx)->p_ctx, p_xfer->file_handle, (uint32_t)seq * p_xfer->frag_size, p_ctx->pkt + hdr_len, chunk_len);
+        if (got != (int)chunk_len)
         {
-            tx_finish(c, ALFP_TX_IO_ERROR, 0);
+            tx_finish(p_ctx, ALFP_TX_IO_ERROR, 0);
             return;
         }
-        uint16_t len = alfp_enc_data_finish(c->pkt, n);
-        if (tx_put(c, c->pkt, len))
+        uint16_t len = alfp_enc_data_finish(p_ctx->pkt, chunk_len);
+        if (tx_put(p_ctx, p_ctx->pkt, len))
         {
-            t->rep.data_sent++;
-            t->sent_round++;
-            if (t->round > 1)
+            p_xfer->rep.data_sent++;
+            p_xfer->sent_round++;
+            if (p_xfer->round > 1)
             {
-                t->rep.data_resent++;
+                p_xfer->rep.data_resent++;
             }
-            if (t->copy_left)
+            if (p_xfer->copy_left)
             {
-                t->copy_left--; /* this was the extra copy */
+                p_xfer->copy_left--; /* this was the extra copy */
             }
-            else if (t->copies > 1)
+            else if (p_xfer->copies > 1)
             {
-                t->copy_left = (uint8_t)(t->copies - 1u);
+                p_xfer->copy_left = (uint8_t)(p_xfer->copies - 1u);
             }
             else
             {
                 /* single copy per fragment: copy_left stays 0 */
             }
-            if (!t->copy_left)
+            if (!p_xfer->copy_left)
             {
-                bclr(t->todo, seq);
-                t->todo_next++;
+                bclr(p_xfer->todo, seq);
+                p_xfer->todo_next++;
             }
         }
         return;
     }
 
-    if (t->polls_left)
+    if (p_xfer->polls_left)
     {
-        uint16_t len = alfp_enc_poll(c->pkt, sizeof(c->pkt), t->sid, t->round);
-        if (tx_put(c, c->pkt, len))
+        uint16_t len = alfp_enc_poll(p_ctx->pkt, sizeof(p_ctx->pkt), p_xfer->sid, p_xfer->round);
+        if (tx_put(p_ctx, p_ctx->pkt, len))
         {
-            t->polls_left--;
-            t->rep.polls_sent++;
-            if (!t->polls_left)
+            p_xfer->polls_left--;
+            p_xfer->rep.polls_sent++;
+            if (!p_xfer->polls_left)
             {
-                t->state = TX_WAITING;
-                t->wait_until_ms = tnow + t->prof->poll_timeout_ms;
+                p_xfer->state = TX_WAITING;
+                p_xfer->wait_until_ms = tnow + p_xfer->p_prof->poll_timeout_ms;
             }
         }
         return;
     }
 
     /* Nothing left to send and no poll pending: wait for an answer. */
-    t->state = TX_WAITING;
-    t->wait_until_ms = tnow + t->prof->poll_timeout_ms;
+    p_xfer->state = TX_WAITING;
+    p_xfer->wait_until_ms = tnow + p_xfer->p_prof->poll_timeout_ms;
 }
 
-static void mark_todo(uint16_t seq, void* user)
+static void mark_todo(uint16_t seq, void* p_user)
 {
-    alfp_tx_t* t = (alfp_tx_t*)user;
-    bset(t->todo, seq);
+    alfp_tx_t* p_xfer = (alfp_tx_t*)p_user;
+    bset(p_xfer->todo, seq);
 }
 
-static void count_seq(uint16_t seq, void* user)
+static void count_seq(uint16_t seq, void* p_user)
 {
     (void)seq;
-    (*(uint16_t*)user)++;
+    (*(uint16_t*)p_user)++;
 }
 
-static bool next_round(alfp_ctx_t* c)
+static bool next_round(alfp_ctx_t* p_ctx)
 {
-    alfp_tx_t* t = &c->tx;
-    if (t->round >= t->prof->max_rounds)
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    if (p_xfer->round >= p_xfer->p_prof->max_rounds)
     {
-        t->rep.why = 3;
-        tx_finish(c, ALFP_TX_GAVE_UP, 0);
+        p_xfer->rep.why = 3;
+        tx_finish(p_ctx, ALFP_TX_GAVE_UP, 0);
         return false;
     }
-    t->round++;
+    p_xfer->round++;
     return true;
 }
 
-static void tx_on_nack(alfp_ctx_t* c, const alfp_pkt_t* p)
+static void tx_on_nack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
 {
-    alfp_tx_t* t = &c->tx;
-    const alfp_nack_t* n = &p->u.nack;
-    if (t->state != TX_WAITING || n->round != t->round)
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    const alfp_nack_t* p_nack = &p_pkt->body.nack;
+    if (p_xfer->state != TX_WAITING || p_nack->round != p_xfer->round)
     {
         return; /* stale or duplicate answer (e.g. two copies through the flood) */
     }
-    t->polls_unanswered = 0;
-    t->rep.nacks_received++;
+    p_xfer->polls_unanswered = 0;
+    p_xfer->rep.nacks_received++;
 
-    if (n->fmt == ALFP_NACK_FMT_NONE && !(n->flags & ALFP_NACK_NEED_MANIFEST))
+    if (p_nack->fmt == ALFP_NACK_FMT_NONE && !(p_nack->flags & ALFP_NACK_NEED_MANIFEST))
     {
         /* Bridge has every fragment and is verifying: wait for its ACK. */
-        t->wait_until_ms = now(c) + t->prof->poll_timeout_ms;
+        p_xfer->wait_until_ms = now(p_ctx) + p_xfer->p_prof->poll_timeout_ms;
         return;
     }
     /* Progress check: a round that recovered nothing counts towards giving up. */
     uint16_t missing = 0;
-    alfp_nack_for_each(n, t->frag_count, count_seq, &missing);
-    if (c->cfg.on_tx_nack)
+    alfp_nack_for_each(p_nack, p_xfer->frag_count, count_seq, &missing);
+    if (p_ctx->cfg.p_on_tx_nack)
     {
-        c->cfg.on_tx_nack(c, t->sid, t->round, missing);
+        p_ctx->cfg.p_on_tx_nack(p_ctx, p_xfer->sid, p_xfer->round, missing);
     }
-    if (t->round > 1 && missing >= t->last_missing)
+    if (p_xfer->round > 1 && missing >= p_xfer->last_missing)
     {
-        if (++t->stalled >= t->prof->max_stalled)
+        if (++p_xfer->stalled >= p_xfer->p_prof->max_stalled)
         {
-            t->rep.why = 2;
-            tx_finish(c, ALFP_TX_GAVE_UP, 0);
+            p_xfer->rep.why = 2;
+            tx_finish(p_ctx, ALFP_TX_GAVE_UP, 0);
             return;
         }
     }
     else
     {
-        t->stalled = 0;
+        p_xfer->stalled = 0;
     }
-    t->last_missing = missing;
-    pace_update(c, missing);
-    t->sent_round = 0;
-    if (!next_round(c))
+    p_xfer->last_missing = missing;
+    pace_update(p_ctx, missing);
+    p_xfer->sent_round = 0;
+    if (!next_round(p_ctx))
     {
         return;
     }
     /* Tail: with only a few fragments left, a second copy of each saves whole rounds. */
-    t->copies = (t->prof->tail_dup && missing <= t->prof->tail_dup) ? 2u : 1u;
-    t->copy_left = 0;
-    memset(t->todo, 0, sizeof(t->todo));
-    if (c->cfg.baseline_resend_all)
+    p_xfer->copies = (p_xfer->p_prof->tail_dup && missing <= p_xfer->p_prof->tail_dup) ? 2u : 1u;
+    p_xfer->copy_left = 0;
+    memset(p_xfer->todo, 0, sizeof(p_xfer->todo));
+    if (p_ctx->cfg.b_baseline_resend_all)
     {
-        bfill(t->todo, t->frag_count);
+        bfill(p_xfer->todo, p_xfer->frag_count);
     }
     else
     {
-        alfp_nack_for_each(n, t->frag_count, mark_todo, t);
+        alfp_nack_for_each(p_nack, p_xfer->frag_count, mark_todo, p_xfer);
     }
-    t->todo_next = 0;
-    t->send_manifest = (n->flags & ALFP_NACK_NEED_MANIFEST) || n->fmt == ALFP_NACK_FMT_ALL;
-    t->polls_left = t->prof->poll_copies ? t->prof->poll_copies : 1u;
-    t->state = TX_SENDING;
+    p_xfer->todo_next = 0;
+    p_xfer->b_send_manifest = (p_nack->flags & ALFP_NACK_NEED_MANIFEST) || p_nack->fmt == ALFP_NACK_FMT_ALL;
+    p_xfer->polls_left = p_xfer->p_prof->poll_copies ? p_xfer->p_prof->poll_copies : 1u;
+    p_xfer->state = TX_SENDING;
 }
 
-static void tx_on_ack(alfp_ctx_t* c, const alfp_pkt_t* p)
+static void tx_on_ack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
 {
-    alfp_tx_t* t = &c->tx;
-    if (t->state == TX_IDLE || t->state == TX_HASHING)
+    alfp_tx_t* p_xfer = &p_ctx->tx_session;
+    if (p_xfer->state == TX_IDLE || p_xfer->state == TX_HASHING)
     {
         return;
     }
-    switch (p->u.status)
+    switch (p_pkt->body.status)
     {
         case ALFP_ACK_OK:
-            tx_finish(c, ALFP_TX_DONE, ALFP_ACK_OK);
+            tx_finish(p_ctx, ALFP_TX_DONE, ALFP_ACK_OK);
             return;
         case ALFP_ACK_CRC_FAIL:
             /* Every fragment passed its CRC-16 but the file CRC-32 did not match: send it all again. */
-            if (!next_round(c))
+            if (!next_round(p_ctx))
             {
                 return;
             }
-            bfill(t->todo, t->frag_count);
-            t->todo_next = 0;
-            t->polls_left = t->prof->poll_copies ? t->prof->poll_copies : 1u;
-            t->state = TX_SENDING;
+            bfill(p_xfer->todo, p_xfer->frag_count);
+            p_xfer->todo_next = 0;
+            p_xfer->polls_left = p_xfer->p_prof->poll_copies ? p_xfer->p_prof->poll_copies : 1u;
+            p_xfer->state = TX_SENDING;
             return;
         default:
-            tx_finish(c, ALFP_TX_REFUSED, p->u.status);
+            tx_finish(p_ctx, ALFP_TX_REFUSED, p_pkt->body.status);
             return;
     }
 }
@@ -657,371 +657,371 @@ static void tx_on_ack(alfp_ctx_t* c, const alfp_pkt_t* p)
  * RECEIVER (bridge)
  * ========================================================================================= */
 
-static alfp_rx_t* rx_find(alfp_ctx_t* c, uint8_t src, uint16_t sid)
+static alfp_rx_t* rx_find(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid)
 {
-    for (unsigned i = 0; i < ALFP_RX_SESSIONS; i++)
+    for (unsigned idx = 0; idx < ALFP_RX_SESSIONS; idx++)
     {
-        alfp_rx_t* r = &c->rx[i];
-        if (r->state != RX_FREE && r->src == src && r->sid == sid)
+        alfp_rx_t* p_session = &p_ctx->rx_sessions[idx];
+        if (p_session->state != RX_FREE && p_session->src == src && p_session->sid == sid)
         {
-            return r;
+            return p_session;
         }
     }
     return NULL;
 }
 
-static const alfp_done_t* done_find(alfp_ctx_t* c, uint8_t src, uint16_t sid)
+static const alfp_done_t* done_find(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid)
 {
-    for (unsigned i = 0; i < ALFP_DONE_MEMORY; i++)
+    for (unsigned idx = 0; idx < ALFP_DONE_MEMORY; idx++)
     {
-        if (c->done[i].used && c->done[i].src == src && c->done[i].sid == sid)
+        if (p_ctx->done[idx].b_used && p_ctx->done[idx].src == src && p_ctx->done[idx].sid == sid)
         {
-            return &c->done[i];
+            return &p_ctx->done[idx];
         }
     }
     return NULL;
 }
 
-static void done_add(alfp_ctx_t* c, uint8_t src, uint16_t sid, uint8_t status)
+static void done_add(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint8_t status)
 {
-    alfp_done_t* d = &c->done[c->done_next];
-    c->done_next = (uint8_t)((c->done_next + 1u) % ALFP_DONE_MEMORY);
-    d->used = true;
-    d->src = src;
-    d->sid = sid;
-    d->status = status;
+    alfp_done_t* p_done = &p_ctx->done[p_ctx->done_next];
+    p_ctx->done_next = (uint8_t)((p_ctx->done_next + 1u) % ALFP_DONE_MEMORY);
+    p_done->b_used = true;
+    p_done->src = src;
+    p_done->sid = sid;
+    p_done->status = status;
 }
 
 /* Every refusal is logged with its reason, so a refusing bridge says why instead of only the sender
  * seeing "refused". */
-static void log_refusal(alfp_ctx_t* c, uint8_t src, uint16_t sid, uint8_t status, const char* why)
+static void log_refusal(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint8_t status, const char* p_why)
 {
-    const alfp_platform_t* p = c->cfg.platform;
-    if (p != NULL && p->log != NULL)
+    const alfp_platform_t* p_plat = p_ctx->cfg.p_platform;
+    if (p_plat != NULL && p_plat->p_log != NULL)
     {
         char line[128];
         snprintf(line, sizeof(line), "alfp: refused node %u sid %05u, status %u: %s", (unsigned)src, (unsigned)sid,
-                 (unsigned)status, why);
-        p->log(p->ctx, line);
+                 (unsigned)status, p_why);
+        p_plat->p_log(p_plat->p_ctx, line);
     }
 }
 
 /* Best-effort reply outside any session (unknown session, remembered result). */
-static void reply_ack(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t dst, uint16_t sid, uint8_t status)
+static void reply_ack(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t dst, uint16_t sid, uint8_t status)
 {
     uint8_t pkt[ALFP_ACK_LEN];
     uint16_t len = alfp_enc_ack(pkt, sizeof(pkt), sid, status);
-    if (!radio->send(dst, pkt, len))
+    if (!p_radio->p_send(dst, pkt, len))
     {
-        c->stats.send_blocked++;
+        p_ctx->stats.send_blocked++;
     }
 }
 
-static void rx_free(alfp_ctx_t* c, alfp_rx_t* r, bool delete_tmp)
+static void rx_free(alfp_ctx_t* p_ctx, alfp_rx_t* p_session, bool b_delete_tmp)
 {
-    if (r->fh >= 0)
+    if (p_session->file_handle >= 0)
     {
-        st(c)->close(st(c)->ctx, r->fh);
-        r->fh = -1;
+        st(p_ctx)->p_close(st(p_ctx)->p_ctx, p_session->file_handle);
+        p_session->file_handle = -1;
     }
-    if (delete_tmp && r->tmp_path[0])
+    if (b_delete_tmp && p_session->tmp_path[0])
     {
-        st(c)->remove(st(c)->ctx, r->tmp_path);
+        st(p_ctx)->p_remove(st(p_ctx)->p_ctx, p_session->tmp_path);
     }
-    r->state = RX_FREE;
+    p_session->state = RX_FREE;
 }
 
-static alfp_rx_t* rx_open(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, uint16_t sid, uint8_t* refuse)
+static alfp_rx_t* rx_open(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t src, uint16_t sid, uint8_t* p_refuse)
 {
-    alfp_rx_t* slot = NULL;
-    for (unsigned i = 0; i < ALFP_RX_SESSIONS && !slot; i++)
+    alfp_rx_t* p_slot = NULL;
+    for (unsigned idx = 0; idx < ALFP_RX_SESSIONS && !p_slot; idx++)
     {
-        if (c->rx[i].state == RX_FREE)
+        if (p_ctx->rx_sessions[idx].state == RX_FREE)
         {
-            slot = &c->rx[i];
+            p_slot = &p_ctx->rx_sessions[idx];
         }
     }
-    if (!slot)
+    if (!p_slot)
     {
         /* Evict the most idle ACTIVE session if it has been quiet for over half its expiry. */
-        uint32_t tnow = now(c), worst = 0;
-        for (unsigned i = 0; i < ALFP_RX_SESSIONS; i++)
+        uint32_t tnow = now(p_ctx), worst = 0;
+        for (unsigned idx = 0; idx < ALFP_RX_SESSIONS; idx++)
         {
-            alfp_rx_t* r = &c->rx[i];
-            uint32_t idle = tnow - r->last_ms;
-            if (r->state == RX_ACTIVE && idle > r->prof->rx_expiry_ms / 2u && idle > worst)
+            alfp_rx_t* p_session = &p_ctx->rx_sessions[idx];
+            uint32_t idle = tnow - p_session->last_ms;
+            if (p_session->state == RX_ACTIVE && idle > p_session->p_prof->rx_expiry_ms / 2u && idle > worst)
             {
                 worst = idle;
-                slot = r;
+                p_slot = p_session;
             }
         }
-        if (!slot)
+        if (!p_slot)
         {
-            *refuse = ALFP_ACK_BUSY;
-            c->stats.rx_refused_busy++;
-            log_refusal(c, src, sid, ALFP_ACK_BUSY, "all receive sessions busy");
-            ev_rx_fail(c, src, sid, "busy");
+            *p_refuse = ALFP_ACK_BUSY;
+            p_ctx->stats.rx_refused_busy++;
+            log_refusal(p_ctx, src, sid, ALFP_ACK_BUSY, "all receive sessions busy");
+            ev_rx_fail(p_ctx, src, sid, "busy");
             return NULL;
         }
-        rx_free(c, slot, true);
-        c->stats.rx_expired++;
-        ev_rx_fail(c, slot->src, slot->sid, "evicted");
+        rx_free(p_ctx, p_slot, true);
+        p_ctx->stats.rx_expired++;
+        ev_rx_fail(p_ctx, p_slot->src, p_slot->sid, "evicted");
     }
 
-    memset(slot, 0, sizeof(*slot));
-    slot->fh = -1;
-    slot->radio = radio;
-    slot->prof = alfp_profile_for(c, radio);
-    slot->src = src;
-    slot->sid = sid;
-    snprintf(slot->tmp_path, sizeof(slot->tmp_path), "%s/n%u_%05u.part", c->cfg.tmp_dir, (unsigned)src, (unsigned)sid);
-    slot->fh = st(c)->open_write(st(c)->ctx, slot->tmp_path);
-    if (slot->fh < 0)
+    memset(p_slot, 0, sizeof(*p_slot));
+    p_slot->file_handle = -1;
+    p_slot->p_radio = p_radio;
+    p_slot->p_prof = alfp_profile_for(p_ctx, p_radio);
+    p_slot->src = src;
+    p_slot->sid = sid;
+    snprintf(p_slot->tmp_path, sizeof(p_slot->tmp_path), "%s/n%u_%05u.part", p_ctx->cfg.p_tmp_dir, (unsigned)src, (unsigned)sid);
+    p_slot->file_handle = st(p_ctx)->p_open_write(st(p_ctx)->p_ctx, p_slot->tmp_path);
+    if (p_slot->file_handle < 0)
     {
         char why[ALFP_PATH_MAX + 24];
-        snprintf(why, sizeof(why), "cannot create %s", slot->tmp_path);
-        log_refusal(c, src, sid, ALFP_ACK_STORAGE, why);
-        slot->tmp_path[0] = 0;
-        *refuse = ALFP_ACK_STORAGE;
-        ev_rx_fail(c, src, sid, "storage");
+        snprintf(why, sizeof(why), "cannot create %s", p_slot->tmp_path);
+        log_refusal(p_ctx, src, sid, ALFP_ACK_STORAGE, why);
+        p_slot->tmp_path[0] = 0;
+        *p_refuse = ALFP_ACK_STORAGE;
+        ev_rx_fail(p_ctx, src, sid, "storage");
         return NULL;
     }
-    slot->state = RX_ACTIVE;
-    slot->last_ms = now(c);
-    slot->rep.src = src;
-    slot->rep.sid = sid;
-    slot->rep.radio = radio->name;
-    slot->rep.first_ms = slot->last_ms;
-    if (c->cfg.on_rx_start)
+    p_slot->state = RX_ACTIVE;
+    p_slot->last_ms = now(p_ctx);
+    p_slot->rep.src = src;
+    p_slot->rep.sid = sid;
+    p_slot->rep.p_radio = p_radio->p_name;
+    p_slot->rep.first_ms = p_slot->last_ms;
+    if (p_ctx->cfg.p_on_rx_start)
     {
-        c->cfg.on_rx_start(c, src, sid, radio->name);
+        p_ctx->cfg.p_on_rx_start(p_ctx, src, sid, p_radio->p_name);
     }
-    return slot;
+    return p_slot;
 }
 
-static void rx_reset_data(alfp_rx_t* r)
+static void rx_reset_data(alfp_rx_t* p_session)
 {
-    memset(r->have, 0, sizeof(r->have));
-    r->n_have = 0;
+    memset(p_session->have, 0, sizeof(p_session->have));
+    p_session->n_have = 0;
 }
 
-static void rx_maybe_complete(alfp_ctx_t* c, alfp_rx_t* r)
+static void rx_maybe_complete(alfp_ctx_t* p_ctx, alfp_rx_t* p_session)
 {
-    (void)c;
-    if (r->state == RX_ACTIVE && r->have_manifest && r->n_have == r->frag_count)
+    (void)p_ctx;
+    if (p_session->state == RX_ACTIVE && p_session->b_have_manifest && p_session->n_have == p_session->frag_count)
     {
-        r->state = RX_VERIFYING;
-        r->verify_off = 0;
-        r->verify_crc = ALFP_CRC32_INIT;
-        r->pending_nack = false;
-    }
-}
-
-static void rx_adopt_manifest(alfp_ctx_t* c, alfp_rx_t* r, const alfp_manifest_t* m)
-{
-    if (r->n_have && (m->frag_size != r->frag_size || m->frag_count != r->frag_count))
-    {
-        rx_reset_data(r); /* provisional layout from an early DATA was wrong: start clean */
-    }
-    r->m = *m;
-    memcpy(r->meta, m->meta, m->meta_len);
-    r->m.meta = r->meta;
-    r->frag_size = m->frag_size;
-    r->frag_count = m->frag_count;
-    r->have_manifest = true;
-    if (c->cfg.on_rx_manifest)
-    {
-        c->cfg.on_rx_manifest(c, r->src, r->sid, r->frag_count, r->frag_size, r->m.file_size, r->m.file_crc32,
-                              r->meta, r->m.meta_len);
+        p_session->state = RX_VERIFYING;
+        p_session->verify_off = 0;
+        p_session->verify_crc = ALFP_CRC32_INIT;
+        p_session->b_pending_nack = false;
     }
 }
 
-static void rx_on_manifest(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, const alfp_pkt_t* p)
+static void rx_adopt_manifest(alfp_ctx_t* p_ctx, alfp_rx_t* p_session, const alfp_manifest_t* p_manifest)
 {
-    const alfp_manifest_t* m = &p->u.manifest;
-    const alfp_done_t* d = done_find(c, src, p->sid);
-    if (d)
+    if (p_session->n_have && (p_manifest->frag_size != p_session->frag_size || p_manifest->frag_count != p_session->frag_count))
     {
-        if (d->status != ALFP_ACK_OK)
+        rx_reset_data(p_session); /* provisional layout from an early DATA was wrong: start clean */
+    }
+    p_session->manifest = *p_manifest;
+    memcpy(p_session->meta, p_manifest->p_meta, p_manifest->meta_len);
+    p_session->manifest.p_meta = p_session->meta;
+    p_session->frag_size = p_manifest->frag_size;
+    p_session->frag_count = p_manifest->frag_count;
+    p_session->b_have_manifest = true;
+    if (p_ctx->cfg.p_on_rx_manifest)
+    {
+        p_ctx->cfg.p_on_rx_manifest(p_ctx, p_session->src, p_session->sid, p_session->frag_count, p_session->frag_size, p_session->manifest.file_size, p_session->manifest.file_crc32,
+                              p_session->meta, p_session->manifest.meta_len);
+    }
+}
+
+static void rx_on_manifest(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t src, const alfp_pkt_t* p_pkt)
+{
+    const alfp_manifest_t* p_manifest = &p_pkt->body.manifest;
+    const alfp_done_t* p_done = done_find(p_ctx, src, p_pkt->sid);
+    if (p_done)
+    {
+        if (p_done->status != ALFP_ACK_OK)
         {
-            log_refusal(c, src, p->sid, d->status, "same session refused earlier (remembered result)");
+            log_refusal(p_ctx, src, p_pkt->sid, p_done->status, "same session refused earlier (remembered result)");
         }
-        reply_ack(c, radio, src, p->sid, d->status);
+        reply_ack(p_ctx, p_radio, src, p_pkt->sid, p_done->status);
         return;
     }
-    alfp_rx_t* r = rx_find(c, src, p->sid);
-    if (!r)
+    alfp_rx_t* p_session = rx_find(p_ctx, src, p_pkt->sid);
+    if (!p_session)
     {
-        if (m->frag_count > ALFP_MAX_FRAGS)
+        if (p_manifest->frag_count > ALFP_MAX_FRAGS)
         {
-            log_refusal(c, src, p->sid, ALFP_ACK_TOO_BIG, "too many fragments");
-            ev_rx_fail(c, src, p->sid, "too_big");
-            reply_ack(c, radio, src, p->sid, ALFP_ACK_TOO_BIG);
+            log_refusal(p_ctx, src, p_pkt->sid, ALFP_ACK_TOO_BIG, "too many fragments");
+            ev_rx_fail(p_ctx, src, p_pkt->sid, "too_big");
+            reply_ack(p_ctx, p_radio, src, p_pkt->sid, ALFP_ACK_TOO_BIG);
             return;
         }
         uint8_t refuse = 0;
-        r = rx_open(c, radio, src, p->sid, &refuse);
-        if (!r)
+        p_session = rx_open(p_ctx, p_radio, src, p_pkt->sid, &refuse);
+        if (!p_session)
         {
-            reply_ack(c, radio, src, p->sid, refuse);
+            reply_ack(p_ctx, p_radio, src, p_pkt->sid, refuse);
             return;
         }
     }
-    r->last_ms = now(c);
-    if (!r->have_manifest)
+    p_session->last_ms = now(p_ctx);
+    if (!p_session->b_have_manifest)
     {
-        rx_adopt_manifest(c, r, m);
-        rx_maybe_complete(c, r);
+        rx_adopt_manifest(p_ctx, p_session, p_manifest);
+        rx_maybe_complete(p_ctx, p_session);
     }
 }
 
-static void rx_on_data(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, const alfp_pkt_t* p)
+static void rx_on_data(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t src, const alfp_pkt_t* p_pkt)
 {
-    const alfp_data_t* dd = &p->u.data;
-    if (done_find(c, src, p->sid))
+    const alfp_data_t* p_data_pkt = &p_pkt->body.data;
+    if (done_find(p_ctx, src, p_pkt->sid))
     {
         return; /* stray fragment of a finished transfer; the next POLL gets the ACK */
     }
-    if (dd->frag_count > ALFP_MAX_FRAGS)
+    if (p_data_pkt->frag_count > ALFP_MAX_FRAGS)
     {
-        c->stats.pkts_bad_other++;
+        p_ctx->stats.pkts_bad_other++;
         return;
     }
-    alfp_rx_t* r = rx_find(c, src, p->sid);
-    if (!r)
+    alfp_rx_t* p_session = rx_find(p_ctx, src, p_pkt->sid);
+    if (!p_session)
     {
         uint8_t refuse = 0;
-        r = rx_open(c, radio, src, p->sid, &refuse);
-        if (!r)
+        p_session = rx_open(p_ctx, p_radio, src, p_pkt->sid, &refuse);
+        if (!p_session)
         {
             return; /* the sender's POLL will get the refusal */
         }
-        c->stats.data_orphan++;
+        p_ctx->stats.data_orphan++;
     }
-    if (r->state != RX_ACTIVE)
+    if (p_session->state != RX_ACTIVE)
     {
         return;
     }
-    if (!r->have_manifest && r->n_have == 0)
+    if (!p_session->b_have_manifest && p_session->n_have == 0)
     {
         /* DATA before MANIFEST: infer the layout. Every fragment but the last is full size. */
-        r->frag_count = dd->frag_count;
-        if (dd->seq + 1u < dd->frag_count)
+        p_session->frag_count = p_data_pkt->frag_count;
+        if (p_data_pkt->seq + 1u < p_data_pkt->frag_count)
         {
-            r->frag_size = dd->len;
+            p_session->frag_size = p_data_pkt->len;
         }
         else
         {
-            uint16_t mp = radio->max_payload();
-            r->frag_size = (uint16_t)((mp > ALFP_MAX_PKT ? ALFP_MAX_PKT : mp) - ALFP_DATA_OVERHEAD);
+            uint16_t meta_path = p_radio->p_max_payload();
+            p_session->frag_size = (uint16_t)((meta_path > ALFP_MAX_PKT ? ALFP_MAX_PKT : meta_path) - ALFP_DATA_OVERHEAD);
         }
     }
-    if (dd->frag_count != r->frag_count)
+    if (p_data_pkt->frag_count != p_session->frag_count)
     {
-        c->stats.pkts_bad_other++;
+        p_ctx->stats.pkts_bad_other++;
         return;
     }
     /* Length check: all but the last are full; the last is whatever remains. */
-    if (r->have_manifest)
+    if (p_session->b_have_manifest)
     {
-        if (dd->len != frag_len(r->m.file_size, r->frag_size, dd->seq))
+        if (p_data_pkt->len != frag_len(p_session->manifest.file_size, p_session->frag_size, p_data_pkt->seq))
         {
-            c->stats.pkts_bad_other++;
+            p_ctx->stats.pkts_bad_other++;
             return;
         }
     }
-    else if (dd->seq + 1u < dd->frag_count ? dd->len != r->frag_size : dd->len > r->frag_size)
+    else if (p_data_pkt->seq + 1u < p_data_pkt->frag_count ? p_data_pkt->len != p_session->frag_size : p_data_pkt->len > p_session->frag_size)
     {
-        c->stats.pkts_bad_other++;
+        p_ctx->stats.pkts_bad_other++;
         return;
     }
     else
     {
         /* fragment length is valid: store it below */
     }
-    r->last_ms = now(c);
-    if (bget(r->have, dd->seq))
+    p_session->last_ms = now(p_ctx);
+    if (bget(p_session->have, p_data_pkt->seq))
     {
-        c->stats.data_dup++;
-        r->rep.duplicates++;
-        if (c->cfg.on_rx_frag)
+        p_ctx->stats.data_dup++;
+        p_session->rep.duplicates++;
+        if (p_ctx->cfg.p_on_rx_frag)
         {
-            c->cfg.on_rx_frag(c, src, p->sid, dd->seq, (uint8_t)r->rep.nacks_sent, true);
+            p_ctx->cfg.p_on_rx_frag(p_ctx, src, p_pkt->sid, p_data_pkt->seq, (uint8_t)p_session->rep.nacks_sent, true);
         }
         return;
     }
-    int w = st(c)->write_at(st(c)->ctx, r->fh, (uint32_t)dd->seq * r->frag_size, dd->payload, dd->len);
-    if (w != (int)dd->len)
+    int written = st(p_ctx)->p_write_at(st(p_ctx)->p_ctx, p_session->file_handle, (uint32_t)p_data_pkt->seq * p_session->frag_size, p_data_pkt->p_payload, p_data_pkt->len);
+    if (written != (int)p_data_pkt->len)
     {
-        logf_(c, "alfp: SD write failed");
+        logf_(p_ctx, "alfp: SD write failed");
         return; /* stays missing; will be re-requested */
     }
-    bset(r->have, dd->seq);
-    r->n_have++;
-    if (c->cfg.on_rx_frag)
+    bset(p_session->have, p_data_pkt->seq);
+    p_session->n_have++;
+    if (p_ctx->cfg.p_on_rx_frag)
     {
-        c->cfg.on_rx_frag(c, src, p->sid, dd->seq, (uint8_t)r->rep.nacks_sent, false);
+        p_ctx->cfg.p_on_rx_frag(p_ctx, src, p_pkt->sid, p_data_pkt->seq, (uint8_t)p_session->rep.nacks_sent, false);
     }
-    rx_maybe_complete(c, r);
+    rx_maybe_complete(p_ctx, p_session);
 }
 
-static void rx_try_send_nack(alfp_ctx_t* c, alfp_rx_t* r)
+static void rx_try_send_nack(alfp_ctx_t* p_ctx, alfp_rx_t* p_session)
 {
-    uint8_t flags = (uint8_t)(r->have_manifest ? 0u : ALFP_NACK_NEED_MANIFEST);
-    uint16_t cap = r->radio->max_payload();
-    if (cap > sizeof(c->pkt))
+    uint8_t flags = (uint8_t)(p_session->b_have_manifest ? 0u : ALFP_NACK_NEED_MANIFEST);
+    uint16_t cap = p_session->p_radio->p_max_payload();
+    if (cap > sizeof(p_ctx->pkt))
     {
-        cap = sizeof(c->pkt);
+        cap = sizeof(p_ctx->pkt);
     }
     uint16_t len
-        = alfp_enc_nack(c->pkt, cap, r->sid, flags, r->pending_round, r->have, r->frag_count, r->frag_count == 0);
-    if (r->radio->send(r->src, c->pkt, len))
+        = alfp_enc_nack(p_ctx->pkt, cap, p_session->sid, flags, p_session->pending_round, p_session->have, p_session->frag_count, p_session->frag_count == 0);
+    if (p_session->p_radio->p_send(p_session->src, p_ctx->pkt, len))
     {
-        r->pending_nack = false;
-        r->rep.nacks_sent++;
-        if (c->cfg.on_rx_nack)
+        p_session->b_pending_nack = false;
+        p_session->rep.nacks_sent++;
+        if (p_ctx->cfg.p_on_rx_nack)
         {
-            c->cfg.on_rx_nack(c, r->src, r->sid, (uint8_t)r->rep.nacks_sent, (uint16_t)(r->frag_count - r->n_have));
+            p_ctx->cfg.p_on_rx_nack(p_ctx, p_session->src, p_session->sid, (uint8_t)p_session->rep.nacks_sent, (uint16_t)(p_session->frag_count - p_session->n_have));
         }
     }
     else
     {
-        c->stats.send_blocked++;
+        p_ctx->stats.send_blocked++;
     }
 }
 
-static void rx_on_poll(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, const alfp_pkt_t* p)
+static void rx_on_poll(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t src, const alfp_pkt_t* p_pkt)
 {
-    const alfp_done_t* d = done_find(c, src, p->sid);
-    if (d)
+    const alfp_done_t* p_done = done_find(p_ctx, src, p_pkt->sid);
+    if (p_done)
     {
-        reply_ack(c, radio, src, p->sid, d->status); /* our ACK was lost: say it again */
+        reply_ack(p_ctx, p_radio, src, p_pkt->sid, p_done->status); /* our ACK was lost: say it again */
         return;
     }
-    alfp_rx_t* r = rx_find(c, src, p->sid);
-    if (!r)
+    alfp_rx_t* p_session = rx_find(p_ctx, src, p_pkt->sid);
+    if (!p_session)
     {
         /* Everything so far was lost (or we rebooted): ask for manifest + all data. */
         uint8_t pkt[ALFP_NACK_MIN];
-        uint16_t len = alfp_enc_nack(pkt, sizeof(pkt), p->sid, ALFP_NACK_NEED_MANIFEST, p->u.round, NULL, 0, true);
-        if (!radio->send(src, pkt, len))
+        uint16_t len = alfp_enc_nack(pkt, sizeof(pkt), p_pkt->sid, ALFP_NACK_NEED_MANIFEST, p_pkt->body.round, NULL, 0, true);
+        if (!p_radio->p_send(src, pkt, len))
         {
-            c->stats.send_blocked++;
+            p_ctx->stats.send_blocked++;
         }
         return;
     }
-    r->last_ms = now(c);
-    if (r->state == RX_VERIFYING)
+    p_session->last_ms = now(p_ctx);
+    if (p_session->state == RX_VERIFYING)
     {
         return; /* ACK follows shortly */
     }
-    if (r->pending_ack)
+    if (p_session->b_pending_ack)
     {
         return;
     }
-    r->pending_nack = true;
-    r->pending_round = p->u.round;
-    rx_try_send_nack(c, r);
+    p_session->b_pending_nack = true;
+    p_session->pending_round = p_pkt->body.round;
+    rx_try_send_nack(p_ctx, p_session);
 }
 
 /* Where a finished file goes. Two problems with the old flat "inbox/n<src>_<sid>.bin":
@@ -1038,173 +1038,173 @@ static void rx_on_poll(alfp_ctx_t* c, const mesh_radio_t* radio, uint8_t src, co
  *    ("n2_32561.bin" + "n2_32561.met"), so each create is one pass over a small folder. */
 #define INBOX_SUFFIX_MAX 99u
 
-static bool path_exists(alfp_ctx_t* c, const char* path)
+static bool path_exists(alfp_ctx_t* p_ctx, const char* p_path)
 {
-    int h = st(c)->open_read(st(c)->ctx, path);
-    if (h < 0)
+    int handle = st(p_ctx)->p_open_read(st(p_ctx)->p_ctx, p_path);
+    if (handle < 0)
     {
         return false;
     }
-    st(c)->close(st(c)->ctx, h);
+    st(p_ctx)->p_close(st(p_ctx)->p_ctx, handle);
     return true;
 }
 
-static void inbox_stem(alfp_ctx_t* c, const alfp_rx_t* r, char* stem, size_t cap)
+static void inbox_stem(alfp_ctx_t* p_ctx, const alfp_rx_t* p_session, char* p_stem, size_t cap)
 {
-    unsigned bucket = (unsigned)(r->sid >> 8);
+    unsigned bucket = (unsigned)(p_session->sid >> 8);
     char dir[ALFP_PATH_MAX];
-    if (snprintf(dir, sizeof(dir), "%s/%02x", c->cfg.inbox_dir, bucket) < 0)
+    if (snprintf(dir, sizeof(dir), "%s/%02x", p_ctx->cfg.p_inbox_dir, bucket) < 0)
     {
         dir[0] = 0;
     }
-    if (!(c->inbox_made[bucket / 8u] & (1u << (bucket % 8u))))
+    if (!(p_ctx->inbox_made[bucket / 8u] & (1u << (bucket % 8u))))
     {
-        if (st(c)->mkdir)
+        if (st(p_ctx)->p_mkdir)
         {
-            st(c)->mkdir(st(c)->ctx, dir);
+            st(p_ctx)->p_mkdir(st(p_ctx)->p_ctx, dir);
         }
-        c->inbox_made[bucket / 8u] = (uint8_t)(c->inbox_made[bucket / 8u] | (1u << (bucket % 8u)));
+        p_ctx->inbox_made[bucket / 8u] = (uint8_t)(p_ctx->inbox_made[bucket / 8u] | (1u << (bucket % 8u)));
     }
     /* (return values checked: a too-long inbox_dir just gives a truncated name, never an overflow) */
-    int n = snprintf(stem, cap, "%s/n%u_%05u", dir, (unsigned)r->src, (unsigned)r->sid);
+    int len = snprintf(p_stem, cap, "%s/n%u_%05u", dir, (unsigned)p_session->src, (unsigned)p_session->sid);
     char probe[ALFP_PATH_MAX + 8];
-    n = n < 0 ? n : snprintf(probe, sizeof(probe), "%s.bin", stem);
-    for (unsigned k = 1; n >= 0 && k <= INBOX_SUFFIX_MAX && path_exists(c, probe); k++)
+    len = len < 0 ? len : snprintf(probe, sizeof(probe), "%s.bin", p_stem);
+    for (unsigned kdx = 1; len >= 0 && kdx <= INBOX_SUFFIX_MAX && path_exists(p_ctx, probe); kdx++)
     {
-        n = snprintf(stem, cap, "%s/n%u_%05u_%u", dir, (unsigned)r->src, (unsigned)r->sid, k);
-        n = n < 0 ? n : snprintf(probe, sizeof(probe), "%s.bin", stem);
+        len = snprintf(p_stem, cap, "%s/n%u_%05u_%u", dir, (unsigned)p_session->src, (unsigned)p_session->sid, kdx);
+        len = len < 0 ? len : snprintf(probe, sizeof(probe), "%s.bin", p_stem);
     }
 }
 
-static void rx_finish_ok(alfp_ctx_t* c, alfp_rx_t* r)
+static void rx_finish_ok(alfp_ctx_t* p_ctx, alfp_rx_t* p_session)
 {
     char final_path[ALFP_PATH_MAX + 8];
     char stem[ALFP_PATH_MAX];
-    st(c)->close(st(c)->ctx, r->fh);
-    r->fh = -1;
-    inbox_stem(c, r, stem, sizeof(stem));
+    st(p_ctx)->p_close(st(p_ctx)->p_ctx, p_session->file_handle);
+    p_session->file_handle = -1;
+    inbox_stem(p_ctx, p_session, stem, sizeof(stem));
     snprintf(final_path, sizeof(final_path), "%s.bin", stem);
-    bool ok = st(c)->rename(st(c)->ctx, r->tmp_path, final_path) >= 0;
-    if (ok && r->m.meta_len)
+    bool b_is_ok = st(p_ctx)->p_rename(st(p_ctx)->p_ctx, p_session->tmp_path, final_path) >= 0;
+    if (b_is_ok && p_session->manifest.meta_len)
     {
         char meta_path[ALFP_PATH_MAX + 8];
         snprintf(meta_path, sizeof(meta_path), "%s.met", stem);
-        int mh = st(c)->open_write(st(c)->ctx, meta_path);
-        if (mh >= 0)
+        int meta_handle = st(p_ctx)->p_open_write(st(p_ctx)->p_ctx, meta_path);
+        if (meta_handle >= 0)
         {
-            st(c)->write_at(st(c)->ctx, mh, 0, r->meta, r->m.meta_len);
-            st(c)->close(st(c)->ctx, mh);
+            st(p_ctx)->p_write_at(st(p_ctx)->p_ctx, meta_handle, 0, p_session->meta, p_session->manifest.meta_len);
+            st(p_ctx)->p_close(st(p_ctx)->p_ctx, meta_handle);
         }
     }
-    uint8_t status = ok ? ALFP_ACK_OK : ALFP_ACK_STORAGE;
-    if (!ok)
+    uint8_t status = b_is_ok ? ALFP_ACK_OK : ALFP_ACK_STORAGE;
+    if (!b_is_ok)
     {
         char why[ALFP_PATH_MAX + 32]; /* "cannot rename to " + final_path (ALFP_PATH_MAX + 8) */
         snprintf(why, sizeof(why), "cannot rename to %s", final_path);
-        log_refusal(c, r->src, r->sid, status, why);
-        ev_rx_fail(c, r->src, r->sid, "storage");
+        log_refusal(p_ctx, p_session->src, p_session->sid, status, why);
+        ev_rx_fail(p_ctx, p_session->src, p_session->sid, "storage");
     }
-    done_add(c, r->src, r->sid, status);
-    r->tmp_path[0] = 0;
+    done_add(p_ctx, p_session->src, p_session->sid, status);
+    p_session->tmp_path[0] = 0;
 
-    if (ok)
+    if (b_is_ok)
     {
-        c->stats.rx_ok++;
-        r->rep.path = final_path;
-        r->rep.file_size = r->m.file_size;
-        r->rep.frag_count = r->frag_count;
-        r->rep.file_crc32 = r->m.file_crc32;
-        r->rep.meta = r->meta;
-        r->rep.meta_len = r->m.meta_len;
-        r->rep.fragments_received = r->n_have;
-        r->rep.done_ms = now(c);
-        if (c->cfg.on_rx_done)
+        p_ctx->stats.rx_ok++;
+        p_session->rep.p_path = final_path;
+        p_session->rep.file_size = p_session->manifest.file_size;
+        p_session->rep.frag_count = p_session->frag_count;
+        p_session->rep.file_crc32 = p_session->manifest.file_crc32;
+        p_session->rep.p_meta = p_session->meta;
+        p_session->rep.meta_len = p_session->manifest.meta_len;
+        p_session->rep.fragments_received = p_session->n_have;
+        p_session->rep.done_ms = now(p_ctx);
+        if (p_ctx->cfg.p_on_rx_done)
         {
-            c->cfg.on_rx_done(c, &r->rep);
+            p_ctx->cfg.p_on_rx_done(p_ctx, &p_session->rep);
         }
-        r->rep.path = NULL; /* final_path is on this stack frame */
+        p_session->rep.p_path = NULL; /* final_path is on this stack frame */
     }
     /* Tell the sender straight away instead of waiting for its POLL. */
-    r->pending_ack = true;
-    r->pending_status = status;
-    r->state = RX_ACTIVE; /* kept only until the ACK is queued */
-    r->have_manifest = false;
+    p_session->b_pending_ack = true;
+    p_session->pending_status = status;
+    p_session->state = RX_ACTIVE; /* kept only until the ACK is queued */
+    p_session->b_have_manifest = false;
     uint8_t pkt[ALFP_ACK_LEN];
-    uint16_t len = alfp_enc_ack(pkt, sizeof(pkt), r->sid, status);
-    if (r->radio->send(r->src, pkt, len))
+    uint16_t len = alfp_enc_ack(pkt, sizeof(pkt), p_session->sid, status);
+    if (p_session->p_radio->p_send(p_session->src, pkt, len))
     {
-        r->state = RX_FREE;
+        p_session->state = RX_FREE;
     }
 }
 
-static void rx_step(alfp_ctx_t* c)
+static void rx_step(alfp_ctx_t* p_ctx)
 {
-    uint32_t tnow = now(c);
-    for (unsigned i = 0; i < ALFP_RX_SESSIONS; i++)
+    uint32_t tnow = now(p_ctx);
+    for (unsigned idx = 0; idx < ALFP_RX_SESSIONS; idx++)
     {
-        alfp_rx_t* r = &c->rx[i];
-        switch (r->state)
+        alfp_rx_t* p_session = &p_ctx->rx_sessions[idx];
+        switch (p_session->state)
         {
             case RX_FREE:
                 break;
 
             case RX_ACTIVE:
-                if (r->pending_ack)
+                if (p_session->b_pending_ack)
                 {
                     uint8_t pkt[ALFP_ACK_LEN];
-                    uint16_t len = alfp_enc_ack(pkt, sizeof(pkt), r->sid, r->pending_status);
-                    if (r->radio->send(r->src, pkt, len))
+                    uint16_t len = alfp_enc_ack(pkt, sizeof(pkt), p_session->sid, p_session->pending_status);
+                    if (p_session->p_radio->p_send(p_session->src, pkt, len))
                     {
-                        r->state = RX_FREE;
+                        p_session->state = RX_FREE;
                     }
                     break;
                 }
-                if (r->pending_nack)
+                if (p_session->b_pending_nack)
                 {
-                    rx_try_send_nack(c, r);
+                    rx_try_send_nack(p_ctx, p_session);
                 }
-                if ((uint32_t)(tnow - r->last_ms) > r->prof->rx_expiry_ms)
+                if ((uint32_t)(tnow - p_session->last_ms) > p_session->p_prof->rx_expiry_ms)
                 {
-                    c->stats.rx_expired++;
-                    rx_free(c, r, true);
-                    ev_rx_fail(c, r->src, r->sid, "expired");
+                    p_ctx->stats.rx_expired++;
+                    rx_free(p_ctx, p_session, true);
+                    ev_rx_fail(p_ctx, p_session->src, p_session->sid, "expired");
                 }
                 break;
 
             case RX_VERIFYING:
             {
-                uint32_t left = r->m.file_size - r->verify_off;
-                uint16_t n = (uint16_t)(left < ALFP_HASH_CHUNK ? left : ALFP_HASH_CHUNK);
-                int got = st(c)->read_at(st(c)->ctx, r->fh, r->verify_off, c->io, n);
-                if (got != (int)n)
+                uint32_t left = p_session->manifest.file_size - p_session->verify_off;
+                uint16_t chunk_len = (uint16_t)(left < ALFP_HASH_CHUNK ? left : ALFP_HASH_CHUNK);
+                int got = st(p_ctx)->p_read_at(st(p_ctx)->p_ctx, p_session->file_handle, p_session->verify_off, p_ctx->io_buf, chunk_len);
+                if (got != (int)chunk_len)
                 {
                     /* Treat an unreadable partial file as corrupt: start the data again. */
-                    r->verify_off = r->m.file_size;
-                    r->verify_crc = ~r->m.file_crc32;
+                    p_session->verify_off = p_session->manifest.file_size;
+                    p_session->verify_crc = ~p_session->manifest.file_crc32;
                 }
                 else
                 {
-                    r->verify_crc = alfp_crc32(r->verify_crc, c->io, n);
-                    r->verify_off += n;
+                    p_session->verify_crc = alfp_crc32(p_session->verify_crc, p_ctx->io_buf, chunk_len);
+                    p_session->verify_off += chunk_len;
                 }
-                if (r->verify_off >= r->m.file_size)
+                if (p_session->verify_off >= p_session->manifest.file_size)
                 {
-                    if (r->verify_crc == r->m.file_crc32)
+                    if (p_session->verify_crc == p_session->manifest.file_crc32)
                     {
-                        rx_finish_ok(c, r);
+                        rx_finish_ok(p_ctx, p_session);
                     }
                     else
                     {
-                        c->stats.rx_crc_fail++;
-                        logf_(c, "alfp: file CRC-32 mismatch, requesting full resend");
-                        ev_rx_fail(c, r->src, r->sid, "crc");
-                        rx_reset_data(r);
-                        r->state = RX_ACTIVE;
+                        p_ctx->stats.rx_crc_fail++;
+                        logf_(p_ctx, "alfp: file CRC-32 mismatch, requesting full resend");
+                        ev_rx_fail(p_ctx, p_session->src, p_session->sid, "crc");
+                        rx_reset_data(p_session);
+                        p_session->state = RX_ACTIVE;
                         uint8_t pkt[ALFP_ACK_LEN];
-                        uint16_t len = alfp_enc_ack(pkt, sizeof(pkt), r->sid, ALFP_ACK_CRC_FAIL);
-                        if (!r->radio->send(r->src, pkt, len))
+                        uint16_t len = alfp_enc_ack(pkt, sizeof(pkt), p_session->sid, ALFP_ACK_CRC_FAIL);
+                        if (!p_session->p_radio->p_send(p_session->src, pkt, len))
                         {
-                            c->stats.send_blocked++;
+                            p_ctx->stats.send_blocked++;
                         }
                     }
                 }
@@ -1222,54 +1222,54 @@ static void rx_step(alfp_ctx_t* c)
  * DISPATCH
  * ========================================================================================= */
 
-void alfp_handle_packet(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t src, const uint8_t* buf, uint16_t len)
+void alfp_handle_packet(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t src, const uint8_t* p_buf, uint16_t len)
 {
-    alfp_pkt_t p;
-    ctx->stats.pkts_in++;
-    alfp_dec_t d = alfp_decode(buf, len, &p);
-    if (d != ALFP_DEC_OK)
+    alfp_pkt_t pkt;
+    p_ctx->stats.pkts_in++;
+    alfp_dec_t dec = alfp_decode(p_buf, len, &pkt);
+    if (dec != ALFP_DEC_OK)
     {
-        if (d == ALFP_DEC_CRC)
+        if (dec == ALFP_DEC_CRC)
         {
-            ctx->stats.pkts_bad_crc++;
+            p_ctx->stats.pkts_bad_crc++;
         }
         else
         {
-            ctx->stats.pkts_bad_other++;
+            p_ctx->stats.pkts_bad_other++;
         }
         return;
     }
-    bool is_bridge = ctx->cfg.node_id == ctx->cfg.bridge_id;
-    switch (p.type)
+    bool b_is_bridge = p_ctx->cfg.node_id == p_ctx->cfg.bridge_id;
+    switch (pkt.type)
     {
         case ALFP_T_MANIFEST:
-            if (is_bridge)
+            if (b_is_bridge)
             {
-                rx_on_manifest(ctx, radio, src, &p);
+                rx_on_manifest(p_ctx, p_radio, src, &pkt);
             }
             break;
         case ALFP_T_DATA:
-            if (is_bridge)
+            if (b_is_bridge)
             {
-                rx_on_data(ctx, radio, src, &p);
+                rx_on_data(p_ctx, p_radio, src, &pkt);
             }
             break;
         case ALFP_T_POLL:
-            if (is_bridge)
+            if (b_is_bridge)
             {
-                rx_on_poll(ctx, radio, src, &p);
+                rx_on_poll(p_ctx, p_radio, src, &pkt);
             }
             break;
         case ALFP_T_NACK:
-            if (ctx->tx.state != TX_IDLE && p.sid == ctx->tx.sid && src == ctx->tx.dst && radio == ctx->tx.radio)
+            if (p_ctx->tx_session.state != TX_IDLE && pkt.sid == p_ctx->tx_session.sid && src == p_ctx->tx_session.dst && p_radio == p_ctx->tx_session.p_radio)
             {
-                tx_on_nack(ctx, &p);
+                tx_on_nack(p_ctx, &pkt);
             }
             break;
         case ALFP_T_ACK:
-            if (ctx->tx.state != TX_IDLE && p.sid == ctx->tx.sid && src == ctx->tx.dst && radio == ctx->tx.radio)
+            if (p_ctx->tx_session.state != TX_IDLE && pkt.sid == p_ctx->tx_session.sid && src == p_ctx->tx_session.dst && p_radio == p_ctx->tx_session.p_radio)
             {
-                tx_on_ack(ctx, &p);
+                tx_on_ack(p_ctx, &pkt);
             }
             break;
         default:
@@ -1277,40 +1277,40 @@ void alfp_handle_packet(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t src,
     }
 }
 
-void alfp_step(alfp_ctx_t* ctx)
+void alfp_step(alfp_ctx_t* p_ctx)
 {
-    tx_step(ctx);
-    rx_step(ctx);
+    tx_step(p_ctx);
+    rx_step(p_ctx);
 }
 
-void alfp_service(alfp_ctx_t* ctx, const mesh_radio_t* const* radios, uint8_t n_radios)
+void alfp_service(alfp_ctx_t* p_ctx, const mesh_radio_t* const* pp_radios, uint8_t n_radios)
 {
     uint8_t src;
-    for (uint8_t i = 0; i < n_radios; i++)
+    for (uint8_t idx = 0; idx < n_radios; idx++)
     {
-        const mesh_radio_t* r = radios[i];
-        if (!r)
+        const mesh_radio_t* p_radio = pp_radios[idx];
+        if (!p_radio)
         {
             continue;
         }
         /* Bounded: at most 16 packets per radio per call, so one busy radio cannot starve the rest. */
-        for (int k = 0; k < 16; k++)
+        for (int kdx = 0; kdx < 16; kdx++)
         {
-            int n = r->recv(&src, ctx->pkt, sizeof(ctx->pkt));
-            if (n == MESH_RECV_NONE)
+            int len = p_radio->p_recv(&src, p_ctx->pkt, sizeof(p_ctx->pkt));
+            if (len == MESH_RECV_NONE)
             {
                 break;
             }
-            if (n < 0)
+            if (len < 0)
             {
-                ctx->stats.pkts_bad_other++;
+                p_ctx->stats.pkts_bad_other++;
                 continue;
             }
             /* Copy out: handlers reuse ctx->pkt for replies. */
-            uint8_t in[ALFP_MAX_PKT];
-            memcpy(in, ctx->pkt, (size_t)n);
-            alfp_handle_packet(ctx, r, src, in, (uint16_t)n);
+            uint8_t input[ALFP_MAX_PKT];
+            memcpy(input, p_ctx->pkt, (size_t)len);
+            alfp_handle_packet(p_ctx, p_radio, src, input, (uint16_t)len);
         }
     }
-    alfp_step(ctx);
+    alfp_step(p_ctx);
 }

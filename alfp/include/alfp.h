@@ -34,7 +34,7 @@
  * and how they were derived from the LoRa airtime formula and ESP-NOW figures. */
 typedef struct alfp_profile_s
 {
-    const char* radio_name;
+    const char* p_radio_name;
     uint32_t gap_ms;          /* minimum wait after tx_busy() clears before the next packet (lets relays finish) */
     uint32_t gap_max_ms;      /* adaptive pacing never waits longer than this (= gap_ms disables adapting) */
     uint32_t poll_timeout_ms; /* wait for a NACK/ACK after a POLL before polling again */
@@ -48,7 +48,7 @@ typedef struct alfp_profile_s
 } alfp_profile_t;
 
 /* Built-in profile for a radio, looked up by radio->name. */
-const alfp_profile_t* alfp_default_profile(const mesh_radio_t* radio);
+const alfp_profile_t* alfp_default_profile(const mesh_radio_t* p_radio);
 
 typedef enum
 {
@@ -74,8 +74,8 @@ typedef struct
     uint8_t ack_status; /* ALFP_ACK_* when result is DONE or REFUSED */
     uint8_t why;        /* GAVE_UP reason: 1 unanswered polls, 2 no progress, 3 round cap */
     uint16_t sid;
-    const char* radio;
-    const char* path;
+    const char* p_radio;
+    const char* p_path;
     uint32_t file_size;
     uint32_t file_crc32; /* CRC-32 of the file as read from this node's SD card */
     uint16_t frag_count;
@@ -96,12 +96,12 @@ typedef struct
 {
     uint8_t src;
     uint16_t sid;
-    const char* radio;
-    const char* path; /* final file on the bridge's SD card */
+    const char* p_radio;
+    const char* p_path; /* final file on the bridge's SD card */
     uint32_t file_size;
     uint16_t frag_count;
     uint32_t file_crc32;
-    const uint8_t* meta;
+    const uint8_t* p_meta;
     uint8_t meta_len;
     uint16_t fragments_received; /* unique */
     uint16_t duplicates;
@@ -132,10 +132,10 @@ typedef enum
 typedef struct alfp_tx_s
 {
     alfp_tx_state_t state;
-    const mesh_radio_t* radio;
-    const alfp_profile_t* prof;
+    const mesh_radio_t* p_radio;
+    const alfp_profile_t* p_prof;
     uint8_t dst;
-    int fh;
+    int file_handle;
     char path[ALFP_PATH_MAX];
     uint8_t meta[ALFP_MAX_META];
     uint8_t meta_len;
@@ -147,7 +147,7 @@ typedef struct alfp_tx_s
     uint32_t hash_off;
     uint8_t todo[ALFP_BITMAP_BYTES]; /* fragments still to send this round */
     uint16_t todo_next;              /* scan position in todo */
-    bool send_manifest;
+    bool b_send_manifest;
     uint8_t polls_left;    /* copies of the POLL still to send */
     uint16_t last_missing; /* fragments the previous NACK asked for */
     uint8_t copies;        /* copies of each fragment this round (1 or 2) */
@@ -159,7 +159,7 @@ typedef struct alfp_tx_s
     uint8_t polls_unanswered;
     uint32_t next_tx_ms;
     uint32_t wait_until_ms;
-    bool was_busy;
+    bool b_was_busy;
     alfp_tx_report_t rep;
 } alfp_tx_t;
 
@@ -173,14 +173,14 @@ typedef enum
 typedef struct
 {
     alfp_rx_state_t state;
-    const mesh_radio_t* radio;
-    const alfp_profile_t* prof;
+    const mesh_radio_t* p_radio;
+    const alfp_profile_t* p_prof;
     uint8_t src;
     uint16_t sid;
-    int fh;
+    int file_handle;
     char tmp_path[ALFP_PATH_MAX];
-    bool have_manifest;
-    alfp_manifest_t m;
+    bool b_have_manifest;
+    alfp_manifest_t manifest;
     uint8_t meta[ALFP_MAX_META];
     uint16_t frag_count;
     uint16_t frag_size;
@@ -190,9 +190,9 @@ typedef struct
     uint32_t verify_crc;
     uint32_t last_ms;
     /* replies waiting for room in the radio's send queue */
-    bool pending_nack;
+    bool b_pending_nack;
     uint8_t pending_round;
-    bool pending_ack;
+    bool b_pending_ack;
     uint8_t pending_status;
     alfp_rx_report_t rep;
 } alfp_rx_t;
@@ -202,13 +202,13 @@ typedef struct
     uint8_t src;
     uint16_t sid;
     uint8_t status;
-    bool used;
+    bool b_used;
 } alfp_done_t;
 
 /* Pacing learned per radio, carried from one transfer to the next. */
 typedef struct
 {
-    const mesh_radio_t* radio;
+    const mesh_radio_t* p_radio;
     uint32_t gap_ms;
 } alfp_pace_t;
 
@@ -218,58 +218,58 @@ typedef struct
 {
     uint8_t node_id;   /* 1-5 */
     uint8_t bridge_id; /* node that reassembles (1 = A in our deployment) */
-    const alfp_storage_t* storage;
-    const alfp_platform_t* platform;
+    const alfp_storage_t* p_storage;
+    const alfp_platform_t* p_platform;
     /* bridge: finished files go to <inbox_dir>/<xx>/n<src>_<sid>.bin (+ .met with the capture
      * metadata), xx = sid >> 8 in hex, e.g. "rcv/7f/n2_32561.bin". One flat folder grew without
      * limit and made every FatFs create and rename on it scan the whole folder (2.8 s measured on
      * the bridge, see rx_finish_ok). */
-    const char* inbox_dir;
-    const char* tmp_dir; /* bridge: partial files, e.g. "rx" */
-    void (*on_tx_done)(alfp_ctx_t* ctx, const alfp_tx_report_t* r);
-    void (*on_rx_done)(alfp_ctx_t* ctx, const alfp_rx_report_t* r);
-    void* user;
+    const char* p_inbox_dir;
+    const char* p_tmp_dir; /* bridge: partial files, e.g. "rx" */
+    void (*p_on_tx_done)(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep);
+    void (*p_on_rx_done)(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep);
+    void* p_user;
     /* Optional: replace the built-in timing (matched by radio_name). NULL = built-in. */
-    const alfp_profile_t* profiles;
+    const alfp_profile_t* p_profiles;
     uint8_t n_profiles;
     /* Experiments only: behave like a naive protocol that resends the WHOLE file after any loss.
      * Used to measure what selective retransmission saves. Never set in firmware. */
-    bool baseline_resend_all;
+    bool b_baseline_resend_all;
 
     /* ---- Optional progress callbacks (NULL = off). They only report; they must not block and must
      * not call back into ALFP. Strings passed in are only valid during the call. ---------------- */
     /* bridge: first packet of a new receive session (manifest or data, whichever came first) */
-    void (*on_rx_start)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* radio);
+    void (*p_on_rx_start)(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, const char* p_radio);
     /* bridge: manifest adopted -> layout known (may come after some fragments) */
-    void (*on_rx_manifest)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
-                           uint32_t file_size, uint32_t file_crc32, const uint8_t* meta, uint8_t meta_len);
+    void (*p_on_rx_manifest)(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
+                           uint32_t file_size, uint32_t file_crc32, const uint8_t* p_meta, uint8_t meta_len);
     /* bridge: a DATA fragment arrived. round = NACKs this session had sent before it arrived
      * (0 = first try). dup = the bridge already had it. */
-    void (*on_rx_frag)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool dup);
+    void (*p_on_rx_frag)(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool b_dup);
     /* bridge: a NACK was actually handed to the radio. round = NACKs sent so far, this one included;
      * missing = fragments the bridge still lacks (0 if the layout is not known yet). */
-    void (*on_rx_nack)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing);
+    void (*p_on_rx_nack)(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing);
     /* bridge: a session ended without a file ("expired", "evicted", "storage"), was refused before
      * one opened ("busy", "storage", "too_big"), or its file CRC-32 failed ("crc": the data is
      * thrown away and the sender resends everything in the SAME session, so this one is not final) */
-    void (*on_rx_fail)(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* why);
+    void (*p_on_rx_fail)(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, const char* p_why);
     /* sender: hashing finished, the first packet is about to go out */
-    void (*on_tx_start)(alfp_ctx_t* ctx, const alfp_tx_t* tx);
+    void (*p_on_tx_start)(alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session);
     /* sender: a NACK asked for `missing` fragments after `round` */
-    void (*on_tx_nack)(alfp_ctx_t* ctx, uint16_t sid, uint8_t round, uint16_t missing);
+    void (*p_on_tx_nack)(alfp_ctx_t* p_ctx, uint16_t sid, uint8_t round, uint16_t missing);
 } alfp_cfg_t;
 
 struct alfp_ctx_s
 {
     alfp_cfg_t cfg;
-    alfp_tx_t tx;
-    alfp_rx_t rx[ALFP_RX_SESSIONS];
+    alfp_tx_t tx_session;
+    alfp_rx_t rx_sessions[ALFP_RX_SESSIONS];
     alfp_done_t done[ALFP_DONE_MEMORY];
     uint8_t done_next;
     uint16_t next_sid;
     alfp_pace_t pace[2];
     uint8_t pkt[ALFP_MAX_PKT];
-    uint8_t io[ALFP_HASH_CHUNK];
+    uint8_t io_buf[ALFP_HASH_CHUNK];
     alfp_stats_t stats;
     uint8_t inbox_made[256 / 8]; /* bridge: <inbox_dir>/<xx>/ subfolders already made this boot */
 };
@@ -277,29 +277,29 @@ struct alfp_ctx_s
 /* ---- API -------------------------------------------------------------------------------- */
 
 /* Timing used by this context for a radio (override from cfg, else built-in). */
-const alfp_profile_t* alfp_profile_for(const alfp_ctx_t* ctx, const mesh_radio_t* radio);
+const alfp_profile_t* alfp_profile_for(const alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio);
 
-void alfp_init(alfp_ctx_t* ctx, const alfp_cfg_t* cfg);
+void alfp_init(alfp_ctx_t* p_ctx, const alfp_cfg_t* p_cfg);
 
 /* Start sending path (a file on this node's SD card) to dst over radio. meta is copied.
  * Returns ALFP_OK if the transfer started; the result arrives later via cfg.on_tx_done. */
-alfp_err_t alfp_send_file(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t dst, const char* path,
-                          const uint8_t* meta, uint8_t meta_len);
+alfp_err_t alfp_send_file(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t dst, const char* p_path,
+                          const uint8_t* p_meta, uint8_t meta_len);
 
-bool alfp_tx_active(const alfp_ctx_t* ctx);
+bool alfp_tx_active(const alfp_ctx_t* p_ctx);
 
 /* Feed one packet that radio->recv() returned. */
-void alfp_handle_packet(alfp_ctx_t* ctx, const mesh_radio_t* radio, uint8_t src, const uint8_t* buf, uint16_t len);
+void alfp_handle_packet(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t src, const uint8_t* p_buf, uint16_t len);
 
 /* Timers, pacing, hashing, verification. Call every few ms. */
-void alfp_step(alfp_ctx_t* ctx);
+void alfp_step(alfp_ctx_t* p_ctx);
 
 /* Convenience: drain every radio's recv queue into alfp_handle_packet, then alfp_step. */
-void alfp_service(alfp_ctx_t* ctx, const mesh_radio_t* const* radios, uint8_t n_radios);
+void alfp_service(alfp_ctx_t* p_ctx, const mesh_radio_t* const* pp_radios, uint8_t n_radios);
 
 /* Radio selection (once per transfer): first radio in preference order whose mesh has heard
  * the bridge within fresh_ms. Returns NULL when none has, so the capture stays queued on SD. */
-const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* by_preference, uint8_t n, uint8_t bridge_id,
+const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* pp_by_preference, uint8_t count, uint8_t bridge_id,
                                       uint32_t now_ms, uint32_t fresh_ms);
 
 /* Size-based radio choice (additive; alfp_select_radio() above is unchanged and still used when
@@ -308,15 +308,15 @@ const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* by_preference, 
  * threshold, prefers "wifi" and falls back to "lora". Returns NULL if neither is fresh, same as
  * alfp_select_radio(). by_preference does not need "lora"/"wifi" in any particular order; radios
  * are matched by name. See docs/DESIGN.md "Radio choice by size". */
-const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* by_preference, uint8_t n, uint8_t bridge_id,
+const mesh_radio_t* alfp_select_radio_for_size(const mesh_radio_t* const* pp_by_preference, uint8_t count, uint8_t bridge_id,
                                                uint32_t now_ms, uint32_t fresh_ms, uint32_t size_bytes,
                                                uint32_t size_threshold);
 
 /* True if chosen is the radio alfp_select_radio_for_size() would have preferred by size alone
  * (i.e. it was not a freshness fallback). Used only to log "reason=size" vs "reason=fallback". */
-bool alfp_radio_was_size_preferred(const mesh_radio_t* const* by_preference, uint8_t n, uint32_t size_bytes,
-                                   uint32_t size_threshold, const mesh_radio_t* chosen);
+bool alfp_radio_was_size_preferred(const mesh_radio_t* const* pp_by_preference, uint8_t count, uint32_t size_bytes,
+                                   uint32_t size_threshold, const mesh_radio_t* p_chosen);
 
-const char* alfp_tx_result_str(alfp_tx_result_t r);
+const char* alfp_tx_result_str(alfp_tx_result_t result);
 
 #endif

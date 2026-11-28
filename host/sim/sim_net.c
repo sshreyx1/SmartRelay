@@ -7,27 +7,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-static net_t* g_net; /* callbacks need to find their node */
-static const alfp_profile_t* g_prof;
+static net_t* gp_net; /* callbacks need to find their node */
+static const alfp_profile_t* gp_prof;
 static uint8_t g_nprof;
-static bool g_baseline;
+static bool gb_baseline;
 
-void net_set_options(const alfp_profile_t* profiles, uint8_t n_profiles, bool baseline_resend_all)
+void net_set_options(const alfp_profile_t* p_profiles, uint8_t n_profiles, bool b_baseline_resend_all)
 {
-    g_prof = profiles;
+    gp_prof = p_profiles;
     g_nprof = n_profiles;
-    g_baseline = baseline_resend_all;
+    gb_baseline = b_baseline_resend_all;
 }
 
-static uint32_t p_now(void* c)
+static uint32_t p_now(void* p_ctx)
 {
-    (void)c;
+    (void)p_ctx;
     return sim_now();
 }
 
-static uint32_t p_rand(void* c)
+static uint32_t p_rand(void* p_ctx)
 {
-    (void)c;
+    (void)p_ctx;
     return sim_rand();
 }
 
@@ -36,122 +36,122 @@ static unsigned p_rand_u(void)
     return sim_rand();
 }
 
-static net_node_t* node_of(alfp_ctx_t* ctx)
+static net_node_t* node_of(alfp_ctx_t* p_ctx)
 {
-    return (net_node_t*)ctx->cfg.user;
+    return (net_node_t*)p_ctx->cfg.p_user;
 }
 
-static void on_tx(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
+static void on_tx(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
 {
-    net_node_t* nd = node_of(ctx);
-    if (nd->n_tx < NET_MAX_REPORTS)
+    net_node_t* p_node_end = node_of(p_ctx);
+    if (p_node_end->n_tx < NET_MAX_REPORTS)
     {
-        nd->tx_reports[nd->n_tx++] = *r;
+        p_node_end->tx_reports[p_node_end->n_tx++] = *p_rep;
     }
-    if (nd->use_outbox)
+    if (p_node_end->b_use_outbox)
     {
-        alfp_outbox_on_tx_done(&nd->outbox, r);
-    }
-}
-
-static void on_rx(alfp_ctx_t* ctx, const alfp_rx_report_t* r)
-{
-    net_node_t* nd = node_of(ctx);
-    if (nd->n_rx < NET_MAX_REPORTS)
-    {
-        nd->rx_reports[nd->n_rx] = *r;
-        snprintf(nd->rx_paths[nd->n_rx], sizeof(nd->rx_paths[0]), "%s", r->path);
-        nd->rx_reports[nd->n_rx].path = nd->rx_paths[nd->n_rx];
-        nd->rx_reports[nd->n_rx].meta = NULL; /* points into the session; not kept */
-        nd->n_rx++;
+        alfp_outbox_on_tx_done(&p_node_end->outbox, p_rep);
     }
 }
 
-void net_init(net_t* n, const sim_cfg_t* cfg, const char* root, int radios_mask, bool use_outbox)
+static void on_rx(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
 {
-    memset(n, 0, sizeof(*n));
-    g_net = n;
-    n->cfg = *cfg;
-    snprintf(n->root, sizeof(n->root), "%s", root);
+    net_node_t* p_node_end = node_of(p_ctx);
+    if (p_node_end->n_rx < NET_MAX_REPORTS)
+    {
+        p_node_end->rx_reports[p_node_end->n_rx] = *p_rep;
+        snprintf(p_node_end->rx_paths[p_node_end->n_rx], sizeof(p_node_end->rx_paths[0]), "%s", p_rep->p_path);
+        p_node_end->rx_reports[p_node_end->n_rx].p_path = p_node_end->rx_paths[p_node_end->n_rx];
+        p_node_end->rx_reports[p_node_end->n_rx].p_meta = NULL; /* points into the session; not kept */
+        p_node_end->n_rx++;
+    }
+}
+
+void net_init(net_t* p_net, const sim_cfg_t* p_cfg, const char* p_root, int radios_mask, bool b_use_outbox)
+{
+    memset(p_net, 0, sizeof(*p_net));
+    gp_net = p_net;
+    p_net->cfg = *p_cfg;
+    snprintf(p_net->root, sizeof(p_net->root), "%s", p_root);
     char cmd[400];
-    snprintf(cmd, sizeof(cmd), "rm -rf '%s'", root);
+    snprintf(cmd, sizeof(cmd), "rm -rf '%s'", p_root);
     if (system(cmd) != 0)
     {
-        fprintf(stderr, "could not clear %s\n", root);
+        fprintf(stderr, "could not clear %s\n", p_root);
     }
-    sim_init(cfg);
-    for (uint8_t i = 1; i <= cfg->n_nodes; i++)
+    sim_init(p_cfg);
+    for (uint8_t idx = 1; idx <= p_cfg->n_nodes; idx++)
     {
-        net_node_t* nd = &n->node[i];
+        net_node_t* p_node_end = &p_net->node[idx];
         char dir[300];
-        snprintf(dir, sizeof(dir), "%s/node%u", root, (unsigned)i);
-        storage_posix_init(&nd->sp, dir, &nd->st);
-        nd->sp.rand_fn = p_rand_u;
-        nd->plat = (alfp_platform_t){NULL, p_now, p_rand, NULL};
-        nd->n_radios = 0;
+        snprintf(dir, sizeof(dir), "%s/node%u", p_root, (unsigned)idx);
+        storage_posix_init(&p_node_end->posix, dir, &p_node_end->store);
+        p_node_end->posix.p_rand_fn = p_rand_u;
+        p_node_end->plat = (alfp_platform_t){NULL, p_now, p_rand, NULL};
+        p_node_end->n_radios = 0;
         if (radios_mask & 2)
         {
-            nd->radios[nd->n_radios++] = &sim_wifi;
+            p_node_end->radios[p_node_end->n_radios++] = &g_sim_wifi;
         }
         if (radios_mask & 1)
         {
-            nd->radios[nd->n_radios++] = &sim_lora;
+            p_node_end->radios[p_node_end->n_radios++] = &g_sim_lora;
         }
-        alfp_cfg_t ac = {
-            .node_id = i,
-            .bridge_id = cfg->bridge_id,
-            .storage = &nd->st,
-            .platform = &nd->plat,
-            .inbox_dir = "inbox",
-            .tmp_dir = "rx",
-            .on_tx_done = on_tx,
-            .on_rx_done = on_rx,
-            .user = nd,
-            .profiles = g_prof,
+        alfp_cfg_t cfg_a = {
+            .node_id = idx,
+            .bridge_id = p_cfg->bridge_id,
+            .p_storage = &p_node_end->store,
+            .p_platform = &p_node_end->plat,
+            .p_inbox_dir = "inbox",
+            .p_tmp_dir = "rx",
+            .p_on_tx_done = on_tx,
+            .p_on_rx_done = on_rx,
+            .p_user = p_node_end,
+            .p_profiles = gp_prof,
             .n_profiles = g_nprof,
-            .baseline_resend_all = g_baseline,
+            .b_baseline_resend_all = gb_baseline,
         };
-        sim_set_current(i);
-        alfp_init(&nd->alfp, &ac);
-        nd->use_outbox = use_outbox;
-        if (use_outbox)
+        sim_set_current(idx);
+        alfp_init(&p_node_end->alfp, &cfg_a);
+        p_node_end->b_use_outbox = b_use_outbox;
+        if (b_use_outbox)
         {
-            alfp_outbox_init(&nd->outbox, &nd->alfp, nd->radios, nd->n_radios, cfg->bridge_id, 10000, "outbox");
+            alfp_outbox_init(&p_node_end->outbox, &p_node_end->alfp, p_node_end->radios, p_node_end->n_radios, p_cfg->bridge_id, 10000, "outbox");
         }
     }
 }
 
-static void one_ms(net_t* n)
+static void one_ms(net_t* p_net)
 {
     sim_tick();
-    for (uint8_t i = 1; i <= n->cfg.n_nodes; i++)
+    for (uint8_t idx = 1; idx <= p_net->cfg.n_nodes; idx++)
     {
-        net_node_t* nd = &n->node[i];
-        sim_set_current(i);
-        sim_lora.poll();
-        sim_wifi.poll();
-        alfp_service(&nd->alfp, nd->radios, nd->n_radios);
-        if (nd->use_outbox)
+        net_node_t* p_node_end = &p_net->node[idx];
+        sim_set_current(idx);
+        g_sim_lora.p_poll();
+        g_sim_wifi.p_poll();
+        alfp_service(&p_node_end->alfp, p_node_end->radios, p_node_end->n_radios);
+        if (p_node_end->b_use_outbox)
         {
-            alfp_outbox_pump(&nd->outbox);
+            alfp_outbox_pump(&p_node_end->outbox);
         }
     }
 }
 
-void net_run_ms(net_t* n, uint32_t ms)
+void net_run_ms(net_t* p_net, uint32_t msec)
 {
-    for (uint32_t t = 0; t < ms; t++)
+    for (uint32_t tick = 0; tick < msec; tick++)
     {
-        one_ms(n);
+        one_ms(p_net);
     }
 }
 
-bool net_run_until(net_t* n, bool (*pred)(net_t*), uint32_t max_ms)
+bool net_run_until(net_t* p_net, bool (*p_pred)(net_t*), uint32_t max_ms)
 {
-    for (uint32_t t = 0; t < max_ms; t++)
+    for (uint32_t tick = 0; tick < max_ms; tick++)
     {
-        one_ms(n);
-        if (pred(n))
+        one_ms(p_net);
+        if (p_pred(p_net))
         {
             return true;
         }
@@ -159,25 +159,25 @@ bool net_run_until(net_t* n, bool (*pred)(net_t*), uint32_t max_ms)
     return false;
 }
 
-void net_close(net_t* n)
+void net_close(net_t* p_net)
 {
-    for (uint8_t i = 1; i <= n->cfg.n_nodes; i++)
+    for (uint8_t idx = 1; idx <= p_net->cfg.n_nodes; idx++)
     {
-        storage_posix_close_all(&n->node[i].sp);
+        storage_posix_close_all(&p_net->node[idx].posix);
     }
 }
 
-void net_make_file(net_t* n, uint8_t node, const char* path, uint32_t size, uint32_t seed)
+void net_make_file(net_t* p_net, uint8_t node, const char* p_path, uint32_t size, uint32_t seed)
 {
-    char p[600];
-    snprintf(p, sizeof(p), "%s/node%u/%s", n->root, (unsigned)node, path);
+    char path[600];
+    snprintf(path, sizeof(path), "%s/node%u/%s", p_net->root, (unsigned)node, p_path);
     /* make parent dir */
     char dir[600];
-    snprintf(dir, sizeof(dir), "%s", p);
-    char* slash = strrchr(dir, '/');
-    if (slash)
+    snprintf(dir, sizeof(dir), "%s", path);
+    char* p_slash = strrchr(dir, '/');
+    if (p_slash)
     {
-        *slash = 0;
+        *p_slash = 0;
         char cmd[700];
         snprintf(cmd, sizeof(cmd), "mkdir -p '%s'", dir);
         if (system(cmd) != 0)
@@ -185,45 +185,45 @@ void net_make_file(net_t* n, uint8_t node, const char* path, uint32_t size, uint
             fprintf(stderr, "mkdir failed\n");
         }
     }
-    FILE* f = fopen(p, "wb");
-    uint32_t x = seed * 2654435761u + 12345u;
-    for (uint32_t i = 0; i < size; i++)
+    FILE* p_file = fopen(path, "wb");
+    uint32_t value_x = seed * 2654435761u + 12345u;
+    for (uint32_t idx = 0; idx < size; idx++)
     {
-        x ^= x << 13;
-        x ^= x >> 17;
-        x ^= x << 5;
-        fputc((int)(x & 0xFF), f);
+        value_x ^= value_x << 13;
+        value_x ^= value_x >> 17;
+        value_x ^= value_x << 5;
+        fputc((int)(value_x & 0xFF), p_file);
     }
-    fclose(f);
+    fclose(p_file);
 }
 
-bool net_files_equal(net_t* n, uint8_t a, const char* pa, uint8_t b, const char* pb)
+bool net_files_equal(net_t* p_net, uint8_t node_a, const char* p_path_a, uint8_t node_b, const char* p_path_b)
 {
-    char p1[600], p2[600];
-    snprintf(p1, sizeof(p1), "%s/node%u/%s", n->root, (unsigned)a, pa);
-    snprintf(p2, sizeof(p2), "%s/node%u/%s", n->root, (unsigned)b, pb);
-    FILE* f1 = fopen(p1, "rb");
-    FILE* f2 = fopen(p2, "rb");
-    bool eq = f1 && f2;
-    while (eq)
+    char path_one[600], path_two[600];
+    snprintf(path_one, sizeof(path_one), "%s/node%u/%s", p_net->root, (unsigned)node_a, p_path_a);
+    snprintf(path_two, sizeof(path_two), "%s/node%u/%s", p_net->root, (unsigned)node_b, p_path_b);
+    FILE* p_file_a = fopen(path_one, "rb");
+    FILE* p_file_b = fopen(path_two, "rb");
+    bool b_equal = p_file_a && p_file_b;
+    while (b_equal)
     {
-        int c1 = fgetc(f1), c2 = fgetc(f2);
-        if (c1 != c2)
+        int chr_a = fgetc(p_file_a), chr_b = fgetc(p_file_b);
+        if (chr_a != chr_b)
         {
-            eq = false;
+            b_equal = false;
         }
-        if (c1 == EOF || c2 == EOF)
+        if (chr_a == EOF || chr_b == EOF)
         {
             break;
         }
     }
-    if (f1)
+    if (p_file_a)
     {
-        fclose(f1);
+        fclose(p_file_a);
     }
-    if (f2)
+    if (p_file_b)
     {
-        fclose(f2);
+        fclose(p_file_b);
     }
-    return eq;
+    return b_equal;
 }

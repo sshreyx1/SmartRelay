@@ -10,122 +10,122 @@
 
 typedef struct
 {
-    uint8_t b[MAXP];
+    uint8_t buf[MAXP];
     uint16_t len;
     uint32_t due;
 } item_t;
 
 typedef struct
 {
-    item_t q[Q]; /* packets waiting to be received by this endpoint */
-    uint8_t head, n;
+    item_t queue[Q]; /* packets waiting to be received by this endpoint */
+    uint8_t head, count;
     uint32_t busy_until;
-    uint8_t id;
-    mesh_stats_t st;
+    uint8_t node_id;
+    mesh_stats_t stats;
     float drop;
 } end_t;
 
 static struct
 {
-    end_t e[2];
-    uint32_t (*now)(void);
-    uint32_t (*rnd)(void);
+    end_t ends[2];
+    uint32_t (*p_now)(void);
+    uint32_t (*p_rnd)(void);
     uint16_t maxp;
     uint32_t air, lat;
     float loss;
-} L;
+} loopback;
 
-void loopback_init(uint32_t (*now_ms)(void), uint32_t (*rand32)(void), uint16_t max_payload, uint32_t airtime_ms,
+void loopback_init(uint32_t (*p_now_ms)(void), uint32_t (*p_rand32)(void), uint16_t max_payload, uint32_t airtime_ms,
                    uint32_t latency_ms)
 {
-    memset(&L, 0, sizeof(L));
-    L.now = now_ms;
-    L.rnd = rand32;
-    L.maxp = max_payload > MAXP ? MAXP : max_payload;
-    L.air = airtime_ms;
-    L.lat = latency_ms;
-    L.e[0].id = 2;
-    L.e[1].id = 1;
+    memset(&loopback, 0, sizeof(loopback));
+    loopback.p_now = p_now_ms;
+    loopback.p_rnd = p_rand32;
+    loopback.maxp = max_payload > MAXP ? MAXP : max_payload;
+    loopback.air = airtime_ms;
+    loopback.lat = latency_ms;
+    loopback.ends[0].node_id = 2;
+    loopback.ends[1].node_id = 1;
 }
 
 void loopback_set_loss(float loss)
 {
-    L.loss = loss;
+    loopback.loss = loss;
 }
 
 static float frand(void)
 {
-    return (float)(L.rnd() >> 8) / 16777216.0f;
+    return (float)(loopback.p_rnd() >> 8) / 16777216.0f;
 }
 
-static bool l_send(int me, uint8_t dst, const uint8_t* p, uint16_t len)
+static bool l_send(int self_id, uint8_t dst, const uint8_t* p_buf, uint16_t len)
 {
     (void)dst;
-    end_t* s = &L.e[me];
-    end_t* d = &L.e[1 - me];
-    if (len == 0 || len > L.maxp)
+    end_t* p_self_end = &loopback.ends[self_id];
+    end_t* p_dest = &loopback.ends[1 - self_id];
+    if (len == 0 || len > loopback.maxp)
     {
         return false;
     }
-    uint32_t t = L.now();
-    if ((int32_t)(s->busy_until - t) > 0)
+    uint32_t now_ms = loopback.p_now();
+    if ((int32_t)(p_self_end->busy_until - now_ms) > 0)
     {
         return false; /* one packet in flight at a time, like a real radio queue that is full */
     }
-    s->busy_until = t + L.air;
-    s->st.tx++;
-    if (frand() < L.loss || (d->drop > 0 && frand() < d->drop))
+    p_self_end->busy_until = now_ms + loopback.air;
+    p_self_end->stats.tx_count++;
+    if (frand() < loopback.loss || (p_dest->drop > 0 && frand() < p_dest->drop))
     {
-        d->st.drop_injected++;
+        p_dest->stats.drop_injected++;
         return true; /* accepted, then lost in the air */
     }
-    if (d->n >= Q)
+    if (p_dest->count >= Q)
     {
-        d->st.rx_overflow++;
+        p_dest->stats.rx_overflow++;
         return true;
     }
-    item_t* it = &d->q[(d->head + d->n) % Q];
-    memcpy(it->b, p, len);
-    it->len = len;
-    it->due = t + L.air + L.lat;
-    d->n++;
+    item_t* p_item = &p_dest->queue[(p_dest->head + p_dest->count) % Q];
+    memcpy(p_item->buf, p_buf, len);
+    p_item->len = len;
+    p_item->due = now_ms + loopback.air + loopback.lat;
+    p_dest->count++;
     return true;
 }
 
-static int l_recv(int me, uint8_t* src, uint8_t* buf, uint16_t cap)
+static int l_recv(int self_id, uint8_t* p_src, uint8_t* p_buf, uint16_t cap)
 {
-    end_t* e = &L.e[me];
-    if (!e->n || (int32_t)(L.now() - e->q[e->head].due) < 0)
+    end_t* p_self_end = &loopback.ends[self_id];
+    if (!p_self_end->count || (int32_t)(loopback.p_now() - p_self_end->queue[p_self_end->head].due) < 0)
     {
         return MESH_RECV_NONE;
     }
-    const item_t* it = &e->q[e->head];
-    e->head = (uint8_t)((e->head + 1) % Q);
-    e->n--;
-    if (it->len > cap)
+    const item_t* p_item = &p_self_end->queue[p_self_end->head];
+    p_self_end->head = (uint8_t)((p_self_end->head + 1) % Q);
+    p_self_end->count--;
+    if (p_item->len > cap)
     {
         return MESH_RECV_BUF_TOO_SMALL;
     }
-    memcpy(buf, it->b, it->len);
-    *src = L.e[1 - me].id;
-    e->st.rx++;
-    e->st.delivered++;
-    return it->len;
+    memcpy(p_buf, p_item->buf, p_item->len);
+    *p_src = loopback.ends[1 - self_id].node_id;
+    p_self_end->stats.rx_count++;
+    p_self_end->stats.delivered++;
+    return p_item->len;
 }
 
-static bool l_heard(int me, uint8_t node, uint32_t* ms)
+static bool l_heard(int self_id, uint8_t node, uint32_t* p_msec)
 {
-    if (node != L.e[1 - me].id)
+    if (node != loopback.ends[1 - self_id].node_id)
     {
         return false;
     }
-    *ms = L.now();
+    *p_msec = loopback.p_now();
     return true;
 }
 
-static bool l_busy(int me)
+static bool l_busy(int self_id)
 {
-    return (int32_t)(L.e[me].busy_until - L.now()) > 0;
+    return (int32_t)(loopback.ends[self_id].busy_until - loopback.p_now()) > 0;
 }
 
 /* DEVIATION (BARR-C 6.3.b.iv, return inside a macro): END() generates the complete callback
@@ -146,7 +146,7 @@ static bool l_busy(int me)
     }                                                                                                                  \
     static uint16_t N##_maxp(void)                                                                                     \
     {                                                                                                                  \
-        return L.maxp;                                                                                                 \
+        return loopback.maxp;                                                                                                 \
     }                                                                                                                  \
     static bool N##_heard(uint8_t n, uint32_t* ms)                                                                     \
     {                                                                                                                  \
@@ -158,13 +158,13 @@ static bool l_busy(int me)
     }                                                                                                                  \
     static void N##_stats(mesh_stats_t* o)                                                                             \
     {                                                                                                                  \
-        *o = L.e[I].st;                                                                                                \
+        *o = loopback.ends[I].stats;                                                                                                \
     }                                                                                                                  \
     static void N##_drop(float r)                                                                                      \
     {                                                                                                                  \
-        L.e[I].drop = r;                                                                                               \
+        loopback.ends[I].drop = r;                                                                                               \
     }                                                                                                                  \
-    const mesh_radio_t loopback_##N                                                                                    \
+    const mesh_radio_t g_loopback_##N                                                                                    \
         = { "lora", N##_send, N##_recv, N##_poll, N##_maxp, N##_heard, N##_busy, N##_stats, N##_drop };
 
 END(a, 0)

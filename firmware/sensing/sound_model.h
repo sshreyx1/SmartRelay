@@ -416,9 +416,9 @@ static const uint8_t sm_stage1_classes[]
 
 static const sm_model_t sm_stage1 = { sm_stage1_trees, 10, 7, sm_stage1_classes };
 
-static inline void sm_stage1_predict(const float* f, uint8_t* label, uint8_t* conf)
+static inline void sm_stage1_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
-    sm_predict(&sm_stage1, f, label, conf);
+    sm_predict(&sm_stage1, p_features, p_label, p_conf);
 }
 
 static const int8_t sm_stage2_bird_t0_feat[] = { 1, 11, 18, 23, 19, 2, 4, 17, 14, 6, 3, 18, 16, 13, 8 };
@@ -772,9 +772,9 @@ static const uint8_t sm_stage2_bird_classes[] = { SC_ROOSTER, SC_HEN, SC_CROW, S
 
 static const sm_model_t sm_stage2_bird = { sm_stage2_bird_trees, 20, 4, sm_stage2_bird_classes };
 
-static inline void sm_stage2_bird_predict(const float* f, uint8_t* label, uint8_t* conf)
+static inline void sm_stage2_bird_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
-    sm_predict(&sm_stage2_bird, f, label, conf);
+    sm_predict(&sm_stage2_bird, p_features, p_label, p_conf);
 }
 
 static const int8_t sm_stage2_mammal_t0_feat[] = { 23, 9, 0, 7, 14, 14 };
@@ -798,9 +798,9 @@ static const uint8_t sm_stage2_mammal_classes[] = { SC_DOG, SC_CAT, SC_COW, SC_P
 
 static const sm_model_t sm_stage2_mammal = { sm_stage2_mammal_trees, 1, 5, sm_stage2_mammal_classes };
 
-static inline void sm_stage2_mammal_predict(const float* f, uint8_t* label, uint8_t* conf)
+static inline void sm_stage2_mammal_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
-    sm_predict(&sm_stage2_mammal, f, label, conf);
+    sm_predict(&sm_stage2_mammal, p_features, p_label, p_conf);
 }
 
 static const int8_t sm_stage2_insect_frog_t0_feat[] = { 7, 1, 5, 11 };
@@ -1076,9 +1076,9 @@ static const uint8_t sm_stage2_insect_frog_classes[] = { SC_FROG, SC_CRICKET, SC
 
 static const sm_model_t sm_stage2_insect_frog = { sm_stage2_insect_frog_trees, 20, 3, sm_stage2_insect_frog_classes };
 
-static inline void sm_stage2_insect_frog_predict(const float* f, uint8_t* label, uint8_t* conf)
+static inline void sm_stage2_insect_frog_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
-    sm_predict(&sm_stage2_insect_frog, f, label, conf);
+    sm_predict(&sm_stage2_insect_frog, p_features, p_label, p_conf);
 }
 
 /* stage-2 model for a group id, or NULL if that group has none */

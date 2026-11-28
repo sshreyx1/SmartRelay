@@ -33,8 +33,8 @@
  * stack temporary. */
 typedef struct
 {
-    rtos_task_fn fn;
-    void* arg;
+    rtos_task_fn p_callback;
+    void* p_arg;
 } task_ctx_t;
 
 static task_ctx_t s_task_ctx[RTOS_MAX_TASKS];
@@ -76,21 +76,21 @@ void rtos_atomic_init(void)
 #endif
 }
 
-void rtos_atomic_add_u32(volatile uint32_t* counter, uint32_t delta)
+void rtos_atomic_add_u32(volatile uint32_t* p_counter, uint32_t delta)
 {
 #if TK_SUPPORT_SMP
     UINT intsts;
     ISpinLock(&s_counter_lock, &intsts);
-    *counter += delta;
+    *p_counter += delta;
     ISpinUnlock(&s_counter_lock, intsts);
 #else
     *counter += delta;
 #endif
 }
 
-bool rtos_atomic_cas_i32(volatile int32_t* value, int32_t expected, int32_t desired)
+bool rtos_atomic_cas_i32(volatile int32_t* p_value, int32_t expected, int32_t desired)
 {
-    bool swapped;
+    bool b_swapped;
 #if TK_SUPPORT_SMP
     UINT intsts;
     ISpinLock(&s_counter_lock, &intsts);
@@ -98,24 +98,24 @@ bool rtos_atomic_cas_i32(volatile int32_t* value, int32_t expected, int32_t desi
     UINT intsts;
     DI(intsts);
 #endif
-    swapped = (*value == expected);
-    if (swapped)
+    b_swapped = (*p_value == expected);
+    if (b_swapped)
     {
-        *value = desired;
+        *p_value = desired;
     }
 #if TK_SUPPORT_SMP
     ISpinUnlock(&s_counter_lock, intsts);
 #else
     EI(intsts);
 #endif
-    return swapped;
+    return b_swapped;
 }
 
-static void task_trampoline(INT stacd, void* exinf)
+static void task_trampoline(INT stacd, void* p_exinf)
 {
     (void)stacd;
-    task_ctx_t* ctx = (task_ctx_t*)exinf;
-    ctx->fn(ctx->arg);
+    task_ctx_t* p_ctx = (task_ctx_t*)p_exinf;
+    p_ctx->p_callback(p_ctx->p_arg);
     /* rtos tasks loop forever; returning here would shut the kernel down. */
     for (;;)
     {
@@ -123,10 +123,10 @@ static void task_trampoline(INT stacd, void* exinf)
     }
 }
 
-rtos_id_t rtos_task_create(const char* name, rtos_task_fn fn, void* arg, unsigned priority, unsigned stack_bytes,
+rtos_id_t rtos_task_create(const char* p_name, rtos_task_fn p_callback, void* p_arg, unsigned priority, unsigned stack_bytes,
                            rtos_core_t core)
 {
-    (void)name;                             /* T_CTSK has an optional dsname field; skipped, not load-bearing here */
+    (void)p_name;                             /* T_CTSK has an optional dsname field; skipped, not load-bearing here */
     stack_bytes = (stack_bytes + 7u) & ~7u; /* keeps every carved stack 8-byte aligned */
     if (s_task_count >= RTOS_MAX_TASKS || stack_bytes > RTOS_MAX_STACK_BYTES
         || stack_bytes > RTOS_STACK_POOL_BYTES - s_stack_pool_used)
@@ -136,35 +136,35 @@ rtos_id_t rtos_task_create(const char* name, rtos_task_fn fn, void* arg, unsigne
     unsigned slot = s_task_count++;
     s_stack[slot] = &s_stack_pool[s_stack_pool_used];
     s_stack_pool_used += stack_bytes;
-    s_task_ctx[slot].fn = fn;
-    s_task_ctx[slot].arg = arg;
+    s_task_ctx[slot].p_callback = p_callback;
+    s_task_ctx[slot].p_arg = p_arg;
     s_task_stack_bytes[slot] = stack_bytes;
     memset(s_stack[slot], RTOS_CANARY, stack_bytes);
 
-    T_CTSK* ctsk = &s_ctsk[slot];
-    memset(ctsk, 0, sizeof(*ctsk));
-    ctsk->exinf = &s_task_ctx[slot];
-    ctsk->task = task_trampoline;
-    ctsk->itskpri = (PRI)priority;
-    ctsk->stksz = (SZ)stack_bytes;
-    ctsk->bufptr = s_stack[slot];
-    ctsk->tskatr = TA_HLNG | TA_RNG3 | TA_USERBUF;
+    T_CTSK* p_ctsk = &s_ctsk[slot];
+    memset(p_ctsk, 0, sizeof(*p_ctsk));
+    p_ctsk->exinf = &s_task_ctx[slot];
+    p_ctsk->task = task_trampoline;
+    p_ctsk->itskpri = (PRI)priority;
+    p_ctsk->stksz = (SZ)stack_bytes;
+    p_ctsk->bufptr = s_stack[slot];
+    p_ctsk->tskatr = TA_HLNG | TA_RNG3 | TA_USERBUF;
 #if TK_SUPPORT_SMP
-    ctsk->tskatr |= TA_ASSPRC;
-    ctsk->assprc = (core == RTOS_CORE_1) ? TP_PRC2 : TP_PRC1;
+    p_ctsk->tskatr |= TA_ASSPRC;
+    p_ctsk->assprc = (core == RTOS_CORE_1) ? TP_PRC2 : TP_PRC1;
 #else
     (void)core; /* SMP=0 build: single core, TA_ASSPRC dropped (brief 3.1 fallback) */
 #endif
 
-    ID tid = tk_cre_tsk(ctsk);
+    ID tid = tk_cre_tsk(p_ctsk);
     if (tid <= E_OK)
     {
         return (rtos_id_t)tid;
     }
-    ER er = tk_sta_tsk(tid, 0);
-    if (er < E_OK)
+    ER err = tk_sta_tsk(tid, 0);
+    if (err < E_OK)
     {
-        return (rtos_id_t)er;
+        return (rtos_id_t)err;
     }
     s_task_id[slot] = tid;
     return (rtos_id_t)tid;
@@ -172,14 +172,14 @@ rtos_id_t rtos_task_create(const char* name, rtos_task_fn fn, void* arg, unsigne
 
 uint32_t rtos_task_stack_free(rtos_id_t task)
 {
-    for (unsigned i = 0; i < s_task_count; i++)
+    for (unsigned idx = 0; idx < s_task_count; idx++)
     {
-        if (s_task_id[i] != (ID)task)
+        if (s_task_id[idx] != (ID)task)
         {
             continue;
         }
         uint32_t free_bytes = 0;
-        while (free_bytes < s_task_stack_bytes[i] && s_stack[i][free_bytes] == RTOS_CANARY)
+        while (free_bytes < s_task_stack_bytes[idx] && s_stack[idx][free_bytes] == RTOS_CANARY)
         {
             free_bytes++;
         }
@@ -188,9 +188,9 @@ uint32_t rtos_task_stack_free(rtos_id_t task)
     return 0;
 }
 
-void rtos_delay_ms(uint32_t ms)
+void rtos_delay_ms(uint32_t msec)
 {
-    tk_dly_tsk((RELTIM)(ms ? ms : 1));
+    tk_dly_tsk((RELTIM)(msec ? msec : 1));
 }
 
 rtos_id_t rtos_flags_create(void)
@@ -199,8 +199,8 @@ rtos_id_t rtos_flags_create(void)
     memset(&cflg, 0, sizeof(cflg));
     cflg.flgatr = TA_TFIFO | TA_WMUL; /* TA_WMUL: more than one task may wait on this group */
     cflg.iflgptn = 0;
-    ID id = tk_cre_flg(&cflg);
-    return (rtos_id_t)id;
+    ID obj_id = tk_cre_flg(&cflg);
+    return (rtos_id_t)obj_id;
 }
 
 void rtos_flags_set(rtos_id_t flags, uint32_t bits)
@@ -213,7 +213,7 @@ void rtos_flags_clear(rtos_id_t flags, uint32_t bits)
     tk_clr_flg((ID)flags, (UINT)~bits);
 }
 
-bool rtos_flags_wait_any(rtos_id_t flags, uint32_t mask, uint32_t* out_bits, int32_t timeout_ms)
+bool rtos_flags_wait_any(rtos_id_t flags, uint32_t mask, uint32_t* p_out_bits, int32_t timeout_ms)
 {
     UINT ptn = 0;
     /* round 2 review fix A3: TWF_CLR zeroes the WHOLE flag group on any
@@ -221,19 +221,19 @@ bool rtos_flags_wait_any(rtos_id_t flags, uint32_t mask, uint32_t* out_bits, int
      * would wipe out an unrelated task's pending bit in this one shared
      * group. TWF_BITCLR clears only the bits in `mask` that were actually
      * set (eventflag.c:168-172: "flgcb->flgptn &= ~waiptn"). */
-    ER er = tk_wai_flg((ID)flags, (UINT)mask, TWF_ORW | TWF_BITCLR, &ptn, (TMO)timeout_ms);
-    if (er < E_OK)
+    ER err = tk_wai_flg((ID)flags, (UINT)mask, TWF_ORW | TWF_BITCLR, &ptn, (TMO)timeout_ms);
+    if (err < E_OK)
     {
         return false;
     }
-    if (out_bits)
+    if (p_out_bits)
     {
-        *out_bits = (uint32_t)ptn;
+        *p_out_bits = (uint32_t)ptn;
     }
     return true;
 }
 
-rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* backing_buf)
+rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* p_backing_buf)
 {
     T_CMBF cmbf;
     memset(&cmbf, 0, sizeof(cmbf));
@@ -251,12 +251,12 @@ rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* backing_buf)
      * allocated via the same macro. */
     cmbf.bufsz = (SZ)RTOS_MSGQ_BYTES(msg_size, count);
     cmbf.maxmsz = (INT)msg_size;
-    cmbf.bufptr = backing_buf;
-    ID id = tk_cre_mbf(&cmbf);
-    return (rtos_id_t)id;
+    cmbf.bufptr = p_backing_buf;
+    ID obj_id = tk_cre_mbf(&cmbf);
+    return (rtos_id_t)obj_id;
 }
 
-bool rtos_msgq_selftest(rtos_id_t q, uint32_t msg_size, uint32_t count, char* log_line, uint32_t log_line_max)
+bool rtos_msgq_selftest(rtos_id_t queue, uint32_t msg_size, uint32_t count, char* p_log_line, uint32_t log_line_max)
 {
     uint8_t dummy[256]; /* >= the largest queued message (log.h LOG_LINE_MAX) */
     if (msg_size > sizeof(dummy))
@@ -268,26 +268,26 @@ bool rtos_msgq_selftest(rtos_id_t q, uint32_t msg_size, uint32_t count, char* lo
     uint32_t sent = 0;
     for (; sent < count; sent++)
     {
-        if (!rtos_msgq_send_nowait(q, dummy, msg_size))
+        if (!rtos_msgq_send_nowait(queue, dummy, msg_size))
         {
             break;
         }
     }
-    bool extra_accepted = rtos_msgq_send_nowait(q, dummy, msg_size);
+    bool b_extra_accepted = rtos_msgq_send_nowait(queue, dummy, msg_size);
 
     uint32_t drained = 0;
-    while (rtos_msgq_recv(q, dummy, msg_size, RTOS_NO_WAIT))
+    while (rtos_msgq_recv(queue, dummy, msg_size, RTOS_NO_WAIT))
     {
         drained++;
     }
 
-    bool ok = (sent == count) && !extra_accepted && (drained == count);
-    if (log_line && log_line_max >= 64)
+    bool b_is_ok = (sent == count) && !b_extra_accepted && (drained == count);
+    if (p_log_line && log_line_max >= 64)
     {
-        tm_sprintf((UB*)log_line, (UB*)"msgq selftest: wanted %u, sent %u, extra accepted %d, drained %u - %s", count,
-                   sent, (int)extra_accepted, drained, ok ? "ok" : "FAILED");
+        tm_sprintf((UB*)p_log_line, (UB*)"msgq selftest: wanted %u, sent %u, extra accepted %d, drained %u - %s", count,
+                   sent, (int)b_extra_accepted, drained, b_is_ok ? "ok" : "FAILED");
     }
-    return ok;
+    return b_is_ok;
 }
 
 static volatile uint32_t s_msgq_errors;
@@ -295,15 +295,15 @@ static volatile int32_t s_msgq_last_error;
 
 /* E_TMOUT is the normal "queue full" answer for TMO_POL / a timed wait; anything else negative is a
  * real fault (bad id, bad size, ...) and is counted separately (follow-up F8). */
-static bool msgq_send_result(ER er)
+static bool msgq_send_result(ER err)
 {
-    if (er >= E_OK)
+    if (err >= E_OK)
     {
         return true;
     }
-    if (er != E_TMOUT)
+    if (err != E_TMOUT)
     {
-        s_msgq_last_error = (int32_t)er;
+        s_msgq_last_error = (int32_t)err;
         rtos_atomic_add_u32(&s_msgq_errors, 1);
     }
     return false;
@@ -319,30 +319,30 @@ int32_t rtos_msgq_last_error(void)
     return s_msgq_last_error;
 }
 
-bool rtos_msgq_send_nowait(rtos_id_t q, const void* msg, uint32_t msg_size)
+bool rtos_msgq_send_nowait(rtos_id_t queue, const void* p_msg, uint32_t msg_size)
 {
-    return msgq_send_result(tk_snd_mbf((ID)q, msg, (INT)msg_size, TMO_POL));
+    return msgq_send_result(tk_snd_mbf((ID)queue, p_msg, (INT)msg_size, TMO_POL));
 }
 
-bool rtos_msgq_send_wait(rtos_id_t q, const void* msg, uint32_t msg_size, int32_t timeout_ms)
+bool rtos_msgq_send_wait(rtos_id_t queue, const void* p_msg, uint32_t msg_size, int32_t timeout_ms)
 {
-    return msgq_send_result(tk_snd_mbf((ID)q, msg, (INT)msg_size, (TMO)timeout_ms));
+    return msgq_send_result(tk_snd_mbf((ID)queue, p_msg, (INT)msg_size, (TMO)timeout_ms));
 }
 
-bool rtos_msgq_recv(rtos_id_t q, void* msg, uint32_t msg_size, int32_t timeout_ms)
+bool rtos_msgq_recv(rtos_id_t queue, void* p_msg, uint32_t msg_size, int32_t timeout_ms)
 {
-    INT sz = tk_rcv_mbf((ID)q, msg, (TMO)timeout_ms);
-    return sz == (INT)msg_size;
+    INT size = tk_rcv_mbf((ID)queue, p_msg, (TMO)timeout_ms);
+    return size == (INT)msg_size;
 }
 
 uint32_t rtos_now_ms(void)
 {
-    SYSTIM t;
-    if (tk_get_tim(&t) < E_OK)
+    SYSTIM sys_time;
+    if (tk_get_tim(&sys_time) < E_OK)
     {
         return 0;
     }
-    return (uint32_t)t.lo;
+    return (uint32_t)sys_time.lo;
 }
 
 uint32_t rtos_elapsed_ms(uint32_t start_ms)

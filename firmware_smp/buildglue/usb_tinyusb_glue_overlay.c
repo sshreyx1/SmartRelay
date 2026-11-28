@@ -32,8 +32,8 @@
 
 uint32_t tusb_time_millis_api(void)
 {
-    volatile uint32_t const* timer_raw_low = (volatile uint32_t const*)0x40054028u;
-    return *timer_raw_low / 1000U;
+    volatile uint32_t const* p_timer_raw_low = (volatile uint32_t const*)0x40054028u;
+    return *p_timer_raw_low / 1000U;
 }
 
 int tm_tusb_init(void)
@@ -98,13 +98,13 @@ void tm_tusb_discard_input(void)
 {
     while (tud_cdc_available())
     {
-        unsigned char b = (unsigned char)tud_cdc_read_char();
+        unsigned char byte = (unsigned char)tud_cdc_read_char();
         unsigned next = (console_rx_head + 1u) % CONSOLE_RX_RING_SIZE;
         if (next == console_rx_tail)
         {
             continue; /* ring full: drop the byte, same policy as the old discard */
         }
-        console_rx_ring[console_rx_head] = b;
+        console_rx_ring[console_rx_head] = byte;
         __asm volatile("" ::: "memory");
         console_rx_head = next;
     }
@@ -116,10 +116,10 @@ int tm_console_rx_getchar(void)
     {
         return -1;
     }
-    unsigned char b = console_rx_ring[console_rx_tail];
+    unsigned char byte = console_rx_ring[console_rx_tail];
     __asm volatile("" ::: "memory");
     console_rx_tail = (console_rx_tail + 1u) % CONSOLE_RX_RING_SIZE;
-    return (int)b;
+    return (int)byte;
 }
 
 /*

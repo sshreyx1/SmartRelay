@@ -17,7 +17,7 @@
  * is edited in one place; moving them to a .c would change the FreeRTOS, SMP and
  * host build file lists.
  * Approved by: ____________________ (project manager), date: __________ */
-static const uint8_t WIFI_MESH_MACS[6][6] = {
+static const uint8_t wifi_mesh_macs[6][6] = {
     {0, 0, 0, 0, 0, 0},                       /* 0: unused          */
     {0xAC, 0x0B, 0xFB, 0xC7, 0x7F, 0xE9},     /* 1: A  <- WST-1     */
     {0xAC, 0x0B, 0xFB, 0xC8, 0x19, 0x96},     /* 2: B  <- WST-2     */
@@ -40,7 +40,7 @@ static const uint8_t WIFI_MESH_MACS[6][6] = {
  *
  * Bit n set = node n is a neighbour.                                     */
 #define NB(n) (1u << (n))
-static const uint8_t WIFI_MESH_NEIGHBOURS[6] = {
+static const uint8_t wifi_mesh_neighbours[6] = {
     0,
     NB(2) | NB(3) | NB(4),            /* A: B, C, D    */
     NB(1) | NB(3) | NB(4),            /* B: A, C, D    */

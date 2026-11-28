@@ -20,9 +20,9 @@
 #define ALFP_CRC16_INIT 0xFFFFu
 #define ALFP_CRC32_INIT 0x00000000u
 
-uint16_t alfp_crc16(uint16_t crc, const uint8_t* data, size_t len);
+uint16_t alfp_crc16(uint16_t crc, const uint8_t* p_data, size_t len);
 
 /* Start with ALFP_CRC32_INIT; the result is the finished CRC-32 of all bytes so far. */
-uint32_t alfp_crc32(uint32_t crc, const uint8_t* data, size_t len);
+uint32_t alfp_crc32(uint32_t crc, const uint8_t* p_data, size_t len);
 
 #endif

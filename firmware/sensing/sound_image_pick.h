@@ -31,23 +31,23 @@ typedef struct
 
 typedef struct
 {
-    sip_prefix_t p[SIP_MAX_PREFIXES];
-    uint8_t n;
+    sip_prefix_t prefixes[SIP_MAX_PREFIXES];
+    uint8_t count;
     uint8_t any_next; /* last-resort fallback: next group to take from */
 } sip_table_t;
 
-void sip_reset(sip_table_t* t);
+void sip_reset(sip_table_t* p_table);
 
 /* Counts "<prefix>_NN.jpg" (case-insensitive .jpg). Other names, and any name starting with '.',
  * are ignored (returns false). */
-bool sip_add_file(sip_table_t* t, const char* name);
+bool sip_add_file(sip_table_t* p_table, const char* p_name);
 
 /* Images known for a prefix (0 if none). */
-unsigned sip_count(const sip_table_t* t, const char* prefix);
+unsigned sip_count(const sip_table_t* p_table, const char* p_prefix);
 
 /* Picks the image for label_id (common/sound_classes.h; 0xFF = unknown -> generic).
  * Writes the file name ("dog_01.jpg", no folder) to name and returns NN, or -1 only if the card
  * has no usable image at all. */
-int sip_pick(sip_table_t* t, uint8_t label_id, char* name, size_t cap);
+int sip_pick(sip_table_t* p_table, uint8_t label_id, char* p_name, size_t cap);
 
 #endif

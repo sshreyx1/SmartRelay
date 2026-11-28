@@ -43,6 +43,6 @@ static inline int32_t sound_asr32(int32_t value, uint32_t shift)
 }
 
 /* re/im: SOUND_FFT_N values each, transformed in place (output in natural order). */
-void sound_fft256(int16_t* re, int16_t* im);
+void sound_fft256(int16_t* p_real, int16_t* p_imag);
 
 #endif

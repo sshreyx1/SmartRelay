@@ -18,7 +18,7 @@ extern "C"
 {
 #endif
 
-    typedef void (*rtos_task_fn)(void* arg);
+    typedef void (*rtos_task_fn)(void* p_arg);
 
     /* Numbered 0/1 at this layer; rtos_port_mtk3.c maps 0->TP_PRC1 (core 0),
      * 1->TP_PRC2 (core 1). Ignored entirely when built SMP=0 (see build/README). */
@@ -43,10 +43,10 @@ extern "C"
 
     /* Returns a task id > 0, or a negative kernel error code. The task is
      * created and started (tk_cre_tsk + tk_sta_tsk); it must never return. */
-    rtos_id_t rtos_task_create(const char* name, rtos_task_fn fn, void* arg, unsigned priority, unsigned stack_bytes,
+    rtos_id_t rtos_task_create(const char* p_name, rtos_task_fn p_callback, void* p_arg, unsigned priority, unsigned stack_bytes,
                                rtos_core_t core);
 
-    void rtos_delay_ms(uint32_t ms);
+    void rtos_delay_ms(uint32_t msec);
 
     /* Event flags: one flag group holds up to 32 independent bits. */
     rtos_id_t rtos_flags_create(void);
@@ -59,7 +59,7 @@ extern "C"
      * group, including ones a different task is still waiting on, since
      * EVT_WANT_STATS/EVT_FORCE_CAPTURE/etc. all share one group in
      * main_smp.c - see the citation in rtos_port_mtk3.c). */
-    bool rtos_flags_wait_any(rtos_id_t flags, uint32_t mask, uint32_t* out_bits, int32_t timeout_ms);
+    bool rtos_flags_wait_any(rtos_id_t flags, uint32_t mask, uint32_t* p_out_bits, int32_t timeout_ms);
 
 /* Required backing_buf size for rtos_msgq_create (round 2 review fix A4):
  * each queued message costs 4 bytes of header plus msg_size rounded up to a
@@ -74,21 +74,21 @@ extern "C"
      * backing_buf must be caller-allocated static/global storage of at least
      * RTOS_MSGQ_BYTES(msg_size, count) bytes that outlives the queue (the
      * kernel's T_CMBF keeps a bare pointer into it, not a copy). */
-    rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* backing_buf);
+    rtos_id_t rtos_msgq_create(uint32_t msg_size, uint32_t count, void* p_backing_buf);
     /* Never blocks (TMO_POL). Returns false ("queue full") without sending. */
-    bool rtos_msgq_send_nowait(rtos_id_t q, const void* msg, uint32_t msg_size);
+    bool rtos_msgq_send_nowait(rtos_id_t queue, const void* p_msg, uint32_t msg_size);
     /* Waits up to timeout_ms (RTOS_NO_WAIT, RTOS_WAIT_FOREVER, or a ms value) for room. Only valid
      * from a task. Returns false if the message could not be queued in time. */
-    bool rtos_msgq_send_wait(rtos_id_t q, const void* msg, uint32_t msg_size, int32_t timeout_ms);
+    bool rtos_msgq_send_wait(rtos_id_t queue, const void* p_msg, uint32_t msg_size, int32_t timeout_ms);
     /* timeout_ms: RTOS_NO_WAIT, RTOS_WAIT_FOREVER, or a ms value. */
-    bool rtos_msgq_recv(rtos_id_t q, void* msg, uint32_t msg_size, int32_t timeout_ms);
+    bool rtos_msgq_recv(rtos_id_t queue, void* p_msg, uint32_t msg_size, int32_t timeout_ms);
 
     /* Round 2 review fix A4: startup self-check. Sends `count` dummy messages,
      * confirms the (count+1)th is refused, drains everything back out (leaves
      * the queue empty), and returns whether all three held. If log_line is
      * non-NULL and log_line_max >= 64, writes a one-line summary into it (the
      * caller logs it - rtos_port does not depend on log.h). */
-    bool rtos_msgq_selftest(rtos_id_t q, uint32_t msg_size, uint32_t count, char* log_line, uint32_t log_line_max);
+    bool rtos_msgq_selftest(rtos_id_t queue, uint32_t msg_size, uint32_t count, char* p_log_line, uint32_t log_line_max);
 
     /* Free-running millisecond counter, for every timeout the brief moves off
      * FreeRTOS ticks (3.3): TXDONE 100 ms, heartbeat 3 s, bridge-lost 10 s. This
@@ -143,10 +143,10 @@ extern "C"
      * from app_main_smp()); rtos_atomic_add_u32 is then safe to call from any
      * task/core for a counter only ever touched this way. */
     void rtos_atomic_init(void);
-    void rtos_atomic_add_u32(volatile uint32_t* counter, uint32_t delta);
+    void rtos_atomic_add_u32(volatile uint32_t* p_counter, uint32_t delta);
     /* Sets *value to desired only if it currently equals expected; returns whether it did. Same lock
      * as rtos_atomic_add_u32. */
-    bool rtos_atomic_cas_i32(volatile int32_t* value, int32_t expected, int32_t desired);
+    bool rtos_atomic_cas_i32(volatile int32_t* p_value, int32_t expected, int32_t desired);
 
 #ifdef __cplusplus
 }

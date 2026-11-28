@@ -26,17 +26,17 @@
 #include "sim_net.h"
 #include "testlib.h"
 
-static net_t N;
+static net_t net;
 #define BRIDGE 1
 
-static bool bridge_has_one(net_t* n)
+static bool bridge_has_one(net_t* p_net)
 {
-    return n->node[BRIDGE].n_rx >= 1;
+    return p_net->node[BRIDGE].n_rx >= 1;
 }
 
-static bool sender2_done(net_t* n)
+static bool sender2_done(net_t* p_net)
 {
-    return n->node[2].n_tx >= 1; /* the sender's own tx_report, populated only after its ACK arrives */
+    return p_net->node[2].n_tx >= 1; /* the sender's own tx_report, populated only after its ACK arrives */
 }
 
 /* sim_lora/sim_wifi are singletons shared by every simulated node (host/sim/sim_mesh.h: "real
@@ -45,9 +45,9 @@ static bool sender2_done(net_t* n)
  * sim_set_current() last pointed at, not necessarily this one). */
 static mesh_stats_t stats_of(uint8_t node, int kind)
 {
-    mesh_stats_t s;
-    sim_get_stats(node, kind, &s);
-    return s;
+    mesh_stats_t stats;
+    sim_get_stats(node, kind, &stats);
+    return stats;
 }
 
 /* Duplicate suppression: a trail topology (chain + skip links, i.e. real redundant paths, same
@@ -59,20 +59,20 @@ static void test_duplicate_suppression(void)
     sim_default_cfg(&cfg, 5);
     sim_topology_trail(&cfg, -1);
     cfg.seed = 200;
-    net_init(&N, &cfg, "sim_out/test_filter", 1, false); /* LoRa only: simplest flood to reason about */
-    net_make_file(&N, 5, "img/dup.jpg", 3000, 1);
+    net_init(&net, &cfg, "sim_out/test_filter", 1, false); /* LoRa only: simplest flood to reason about */
+    net_make_file(&net, 5, "img/dup.jpg", 3000, 1);
     sim_set_current(5);
-    CHECK(alfp_send_file(&N.node[5].alfp, &sim_lora, BRIDGE, "img/dup.jpg", NULL, 0) == ALFP_OK);
-    CHECK(net_run_until(&N, bridge_has_one, 120000));
+    CHECK(alfp_send_file(&net.node[5].alfp, &g_sim_lora, BRIDGE, "img/dup.jpg", NULL, 0) == ALFP_OK);
+    CHECK(net_run_until(&net, bridge_has_one, 120000));
 
     uint32_t total_dup = 0;
-    for (uint8_t i = 1; i <= N.cfg.n_nodes; i++)
+    for (uint8_t idx = 1; idx <= net.cfg.n_nodes; idx++)
     {
-        total_dup += stats_of(i, SIM_LORA).dup_dropped;
+        total_dup += stats_of(idx, SIM_LORA).dup_dropped;
     }
     CHECK(total_dup > 0);
     printf("    duplicate packets dropped across the mesh: %lu\n", (unsigned long)total_dup);
-    net_close(&N);
+    net_close(&net);
 }
 
 /* Packets not addressed to this node: a unicast frame must never be handed to a node's own
@@ -84,18 +84,18 @@ static void test_not_addressed_to_node_is_not_delivered(void)
     sim_default_cfg(&cfg, 3);
     sim_topology_chain(&cfg, -1); /* 1 - 2 - 3: node 2 must relay node 3's unicast to node 1, never deliver it */
     cfg.seed = 201;
-    net_init(&N, &cfg, "sim_out/test_filter", 1, false);
-    net_make_file(&N, 3, "img/relay.jpg", 2000, 2);
+    net_init(&net, &cfg, "sim_out/test_filter", 1, false);
+    net_make_file(&net, 3, "img/relay.jpg", 2000, 2);
     sim_set_current(3);
-    CHECK(alfp_send_file(&N.node[3].alfp, &sim_lora, BRIDGE, "img/relay.jpg", NULL, 0) == ALFP_OK);
-    CHECK(net_run_until(&N, bridge_has_one, 120000));
+    CHECK(alfp_send_file(&net.node[3].alfp, &g_sim_lora, BRIDGE, "img/relay.jpg", NULL, 0) == ALFP_OK);
+    CHECK(net_run_until(&net, bridge_has_one, 120000));
 
     mesh_stats_t relay_stats = stats_of(2, SIM_LORA);
     CHECK(relay_stats.delivered == 0); /* node 2 is not the destination: never delivered to its app layer */
     CHECK(relay_stats.relayed > 0);    /* but it did relay the frames on toward the bridge */
     printf("    relay node: delivered=%lu (must be 0) relayed=%lu\n", (unsigned long)relay_stats.delivered,
            (unsigned long)relay_stats.relayed);
-    net_close(&N);
+    net_close(&net);
 }
 
 /* Injected packet loss (the 'd' console key on real hardware, sim_set_drop_rate here): a transfer
@@ -106,19 +106,19 @@ static void test_loss_injection_30_percent_still_completes(void)
     sim_default_cfg(&cfg, 2);
     sim_topology_full(&cfg, -1);
     cfg.seed = 202;
-    net_init(&N, &cfg, "sim_out/test_filter", 1, false);
+    net_init(&net, &cfg, "sim_out/test_filter", 1, false);
     sim_set_link_loss(SIM_LORA, 0.3f); /* per-link loss, same mechanism test_lora_loss_sweep_multihop uses */
-    net_make_file(&N, 2, "img/loss.jpg", 6000, 3);
+    net_make_file(&net, 2, "img/loss.jpg", 6000, 3);
     sim_set_current(2);
-    CHECK(alfp_send_file(&N.node[2].alfp, &sim_lora, BRIDGE, "img/loss.jpg", NULL, 0) == ALFP_OK);
-    CHECK(net_run_until(&N, sender2_done, 300000));
+    CHECK(alfp_send_file(&net.node[2].alfp, &g_sim_lora, BRIDGE, "img/loss.jpg", NULL, 0) == ALFP_OK);
+    CHECK(net_run_until(&net, sender2_done, 300000));
     sim_set_link_loss(SIM_LORA, 0.0f);
 
-    alfp_tx_report_t* r = &N.node[2].tx_reports[0];
-    CHECK(r->result == ALFP_TX_DONE);
-    CHECK(r->data_resent > 0); /* the repair (not the first round) is what proves loss injection did something */
-    printf("    30%% loss: %u rounds, %u resent, transfer still completed\n", r->rounds, r->data_resent);
-    net_close(&N);
+    alfp_tx_report_t* p_rep = &net.node[2].tx_reports[0];
+    CHECK(p_rep->result == ALFP_TX_DONE);
+    CHECK(p_rep->data_resent > 0); /* the repair (not the first round) is what proves loss injection did something */
+    printf("    30%% loss: %u rounds, %u resent, transfer still completed\n", p_rep->rounds, p_rep->data_resent);
+    net_close(&net);
 }
 
 /* A packet addressed to MESH_BROADCAST is delivered everywhere it is heard, unlike a unicast
@@ -133,18 +133,18 @@ static void test_heartbeat_heard_by_every_linked_node(void)
     sim_default_cfg(&cfg, 3);
     sim_topology_full(&cfg, -1);
     cfg.seed = 203;
-    net_init(&N, &cfg, "sim_out/test_filter", 3, false);
-    net_run_ms(&N, 3500); /* let heartbeats go out */
-    for (uint8_t i = 1; i <= 3; i++)
+    net_init(&net, &cfg, "sim_out/test_filter", 3, false);
+    net_run_ms(&net, 3500); /* let heartbeats go out */
+    for (uint8_t idx = 1; idx <= 3; idx++)
     {
-        sim_set_current(i); /* radio methods answer for whichever node sim_set_current() last named */
-        for (uint8_t k = 0; k < N.node[i].n_radios; k++)
+        sim_set_current(idx); /* radio methods answer for whichever node sim_set_current() last named */
+        for (uint8_t kdx = 0; kdx < net.node[idx].n_radios; kdx++)
         {
-            uint32_t t;
-            CHECK(N.node[i].radios[k]->last_heard(BRIDGE, &t) || i == BRIDGE);
+            uint32_t now_ms;
+            CHECK(net.node[idx].radios[kdx]->p_last_heard(BRIDGE, &now_ms) || idx == BRIDGE);
         }
     }
-    net_close(&N);
+    net_close(&net);
 }
 
 int main(void)

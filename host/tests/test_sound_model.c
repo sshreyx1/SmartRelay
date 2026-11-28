@@ -15,18 +15,18 @@
 int main(void)
 {
     int match = 0;
-    for (int i = 0; i < SM_N_VECTORS; i++)
+    for (int idx = 0; idx < SM_N_VECTORS; idx++)
     {
         uint8_t label = 0, conf = 0;
-        sound_classify(sm_vec_features[i], &label, &conf);
-        if (label == sm_vec_label[i] && conf == sm_vec_conf[i])
+        sound_classify(sm_vec_features[idx], &label, &conf);
+        if (label == sm_vec_label[idx] && conf == sm_vec_conf[idx])
         {
             match++;
         }
         else
         {
-            printf("FAIL vector %d: C %s %u%%, python %s %u%%\n", i, sound_class_name(label), conf,
-                   sound_class_name(sm_vec_label[i]), sm_vec_conf[i]);
+            printf("FAIL vector %d: C %s %u%%, python %s %u%%\n", idx, sound_class_name(label), conf,
+                   sound_class_name(sm_vec_label[idx]), sm_vec_conf[idx]);
         }
     }
     printf("sound_model: %d/%d vectors match (min conf %u)\n", match, SM_N_VECTORS, sound_classify_min_conf());

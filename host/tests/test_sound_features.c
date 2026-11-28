@@ -16,7 +16,7 @@
 
 #define N (16000 * 5)
 static uint16_t buf[N];
-static sf_t sf;
+static sf_t feat;
 static int fails;
 
 #define CHECK(cond, ...)                         \
@@ -40,34 +40,34 @@ enum
     F_LOGRMS = 24
 };
 
-static void sine(double hz, double amp, double dc, unsigned seed, int noise)
+static void sine(double freq_hz, double amp, double dc_offset, unsigned seed, int noise)
 {
     srand(seed);
-    for (int i = 0; i < N; i++)
+    for (int idx = 0; idx < N; idx++)
     {
-        double v = dc + amp * sin(2 * M_PI * hz * i / 16000.0) + (noise ? (rand() % (2 * noise + 1)) - noise : 0);
-        buf[i] = (uint16_t)(v < 0 ? 0 : v > 4095 ? 4095 : lround(v));
+        double value = dc_offset + amp * sin(2 * M_PI * freq_hz * idx / 16000.0) + (noise ? (rand() % (2 * noise + 1)) - noise : 0);
+        buf[idx] = (uint16_t)(value < 0 ? 0 : value > 4095 ? 4095 : lround(value));
     }
 }
 
 static void features(uint32_t chunk, float out[SF_N_FEATURES])
 {
-    sf_reset(&sf);
+    sf_reset(&feat);
     for (uint32_t off = 0; off < N; off += chunk)
     {
-        sf_add(&sf, buf + off, N - off < chunk ? N - off : chunk);
+        sf_add(&feat, buf + off, N - off < chunk ? N - off : chunk);
     }
-    sf_finish(&sf, out);
+    sf_finish(&feat, out);
 }
 
-static int dominant_band(const float* f)
+static int dominant_band(const float* p_feats)
 {
     int best = 0;
-    for (int b = 1; b < SF_N_BANDS; b++)
+    for (int band = 1; band < SF_N_BANDS; band++)
     {
-        if (f[F_BAND0 + b] > f[F_BAND0 + best])
+        if (p_feats[F_BAND0 + band] > p_feats[F_BAND0 + best])
         {
-            best = b;
+            best = band;
         }
     }
     return best;
@@ -75,120 +75,120 @@ static int dominant_band(const float* f)
 
 static void test_sine_bands(void)
 {
-    float f[SF_N_FEATURES];
+    float feats[SF_N_FEATURES];
     sine(1000, 800, 2100, 1, 3);
-    features(4096, f);
-    CHECK(dominant_band(f) == 3, "1 kHz: dominant band %d, want 3 (1-2k)", dominant_band(f));
-    CHECK(fabsf(f[F_CENTROID] - 1000.0f) < 100.0f, "1 kHz: centroid %.1f Hz", (double)f[F_CENTROID]);
+    features(4096, feats);
+    CHECK(dominant_band(feats) == 3, "1 kHz: dominant band %d, want 3 (1-2k)", dominant_band(feats));
+    CHECK(fabsf(feats[F_CENTROID] - 1000.0f) < 100.0f, "1 kHz: centroid %.1f Hz", (double)feats[F_CENTROID]);
 
     sine(6000, 800, 2100, 2, 3);
-    features(4096, f);
-    CHECK(dominant_band(f) == 7, "6 kHz: dominant band %d, want 7 (5.5-8k)", dominant_band(f));
+    features(4096, feats);
+    CHECK(dominant_band(feats) == 7, "6 kHz: dominant band %d, want 7 (5.5-8k)", dominant_band(feats));
 }
 
 static void test_block_sizes(void)
 {
-    float ref[SF_N_FEATURES], f[SF_N_FEATURES];
+    float ref[SF_N_FEATURES], feats[SF_N_FEATURES];
     sine(700, 500, 2083, 3, 40);
     features(N, ref);
     const uint32_t sizes[] = {1, 7, 256, 1000, 8192};
-    for (unsigned s = 0; s < sizeof(sizes) / sizeof(sizes[0]); s++)
+    for (unsigned size_idx = 0; size_idx < sizeof(sizes) / sizeof(sizes[0]); size_idx++)
     {
-        features(sizes[s], f);
-        CHECK(memcmp(f, ref, sizeof(f)) == 0, "block size %u changes the output", sizes[s]);
+        features(sizes[size_idx], feats);
+        CHECK(memcmp(feats, ref, sizeof(feats)) == 0, "block size %u changes the output", sizes[size_idx]);
     }
 }
 
 static void test_dc_offset(void)
 {
-    float a[SF_N_FEATURES], b[SF_N_FEATURES];
+    float vec_a[SF_N_FEATURES], vec_b[SF_N_FEATURES];
     sine(1500, 300, 2048, 4, 30);
-    features(4096, a);
-    for (int i = 0; i < N; i++)
+    features(4096, vec_a);
+    for (int idx = 0; idx < N; idx++)
     {
-        buf[i] = (uint16_t)(buf[i] + 60);
+        buf[idx] = (uint16_t)(buf[idx] + 60);
     }
-    features(4096, b);
-    for (int k = 0; k < F_LOGRMS + 1; k++) /* log_rms is DC-corrected too, so all 25 must hold */
+    features(4096, vec_b);
+    for (int kdx = 0; kdx < F_LOGRMS + 1; kdx++) /* log_rms is DC-corrected too, so all 25 must hold */
     {
-        CHECK(fabsf(a[k] - b[k]) <= 1e-3f * (1.0f + fabsf(a[k])), "+60 DC changes %s: %g -> %g", SF_FEATURE_NAMES[k],
-              (double)a[k], (double)b[k]);
+        CHECK(fabsf(vec_a[kdx] - vec_b[kdx]) <= 1e-3f * (1.0f + fabsf(vec_a[kdx])), "+60 DC changes %s: %g -> %g", g_sf_feature_names[kdx],
+              (double)vec_a[kdx], (double)vec_b[kdx]);
     }
 }
 
 static void test_silence_and_clipping(void)
 {
-    float f[SF_N_FEATURES];
-    for (int i = 0; i < N; i++)
+    float feats[SF_N_FEATURES];
+    for (int idx = 0; idx < N; idx++)
     {
-        buf[i] = 2100;
+        buf[idx] = 2100;
     }
-    features(4096, f);
-    for (int k = 0; k < SF_N_FEATURES; k++)
+    features(4096, feats);
+    for (int kdx = 0; kdx < SF_N_FEATURES; kdx++)
     {
-        CHECK(isfinite(f[k]), "silence: %s not finite", SF_FEATURE_NAMES[k]);
+        CHECK(isfinite(feats[kdx]), "silence: %s not finite", g_sf_feature_names[kdx]);
     }
-    CHECK(f[F_LOGRMS] == 0.0f, "silence: log_rms %g", (double)f[F_LOGRMS]);
-    for (int i = 0; i < N; i++)
+    CHECK(feats[F_LOGRMS] == 0.0f, "silence: log_rms %g", (double)feats[F_LOGRMS]);
+    for (int idx = 0; idx < N; idx++)
     {
-        buf[i] = (i / 8) & 1 ? 4095 : 0;
+        buf[idx] = (idx / 8) & 1 ? 4095 : 0;
     }
-    features(4096, f);
-    for (int k = 0; k < SF_N_FEATURES; k++)
+    features(4096, feats);
+    for (int kdx = 0; kdx < SF_N_FEATURES; kdx++)
     {
-        CHECK(isfinite(f[k]), "clipped: %s not finite", SF_FEATURE_NAMES[k]);
+        CHECK(isfinite(feats[kdx]), "clipped: %s not finite", g_sf_feature_names[kdx]);
     }
-    sf_reset(&sf);
-    sf_add(&sf, buf, 100); /* less than one frame */
-    sf_finish(&sf, f);
-    for (int k = 0; k < SF_N_FEATURES; k++)
+    sf_reset(&feat);
+    sf_add(&feat, buf, 100); /* less than one frame */
+    sf_finish(&feat, feats);
+    for (int kdx = 0; kdx < SF_N_FEATURES; kdx++)
     {
-        CHECK(isfinite(f[k]), "short: %s not finite", SF_FEATURE_NAMES[k]);
+        CHECK(isfinite(feats[kdx]), "short: %s not finite", g_sf_feature_names[kdx]);
     }
 }
 
 static void test_fft_vs_dft(void)
 {
-    int16_t re[SOUND_FFT_N], im[SOUND_FFT_N];
-    double x[SOUND_FFT_N];
+    int16_t real[SOUND_FFT_N], imag[SOUND_FFT_N];
+    double value_x[SOUND_FFT_N];
     srand(5);
-    for (int n = 0; n < SOUND_FFT_N; n++)
+    for (int pos = 0; pos < SOUND_FFT_N; pos++)
     {
-        x[n] = 9000 * sin(2 * M_PI * 20.3 * n / SOUND_FFT_N) + 3000 * cos(2 * M_PI * 77 * n / SOUND_FFT_N) +
+        value_x[pos] = 9000 * sin(2 * M_PI * 20.3 * pos / SOUND_FFT_N) + 3000 * cos(2 * M_PI * 77 * pos / SOUND_FFT_N) +
                (rand() % 201) - 100;
-        re[n] = (int16_t)lround(x[n]);
-        im[n] = 0;
+        real[pos] = (int16_t)lround(value_x[pos]);
+        imag[pos] = 0;
     }
-    sound_fft256(re, im);
-    double p_fft = 0, p_dft = 0;
+    sound_fft256(real, imag);
+    double fft = 0, dft = 0;
     int peak_fft = 0, peak_dft = 0;
     double best_fft = -1, best_dft = -1;
-    for (int k = 1; k <= SOUND_FFT_N / 2; k++)
+    for (int kdx = 1; kdx <= SOUND_FFT_N / 2; kdx++)
     {
-        double dr = 0, di = 0;
-        for (int n = 0; n < SOUND_FFT_N; n++)
+        double dft_real = 0, dft_imag = 0;
+        for (int pos = 0; pos < SOUND_FFT_N; pos++)
         {
-            dr += x[n] * cos(2 * M_PI * k * n / SOUND_FFT_N);
-            di -= x[n] * sin(2 * M_PI * k * n / SOUND_FFT_N);
+            dft_real += value_x[pos] * cos(2 * M_PI * kdx * pos / SOUND_FFT_N);
+            dft_imag -= value_x[pos] * sin(2 * M_PI * kdx * pos / SOUND_FFT_N);
         }
-        double pd = dr * dr + di * di;
-        double fr = re[k] * 256.0, fi = im[k] * 256.0; /* undo the documented 1/256 scaling */
-        double pf = fr * fr + fi * fi;
-        p_dft += pd;
-        p_fft += pf;
-        if (pd > best_dft)
+        double power_dft = dft_real * dft_real + dft_imag * dft_imag;
+        double fft_real = real[kdx] * 256.0, file_info = imag[kdx] * 256.0; /* undo the documented 1/256 scaling */
+        double power_fft = fft_real * fft_real + file_info * file_info;
+        dft += power_dft;
+        fft += power_fft;
+        if (power_dft > best_dft)
         {
-            best_dft = pd;
-            peak_dft = k;
+            best_dft = power_dft;
+            peak_dft = kdx;
         }
-        if (pf > best_fft)
+        if (power_fft > best_fft)
         {
-            best_fft = pf;
-            peak_fft = k;
+            best_fft = power_fft;
+            peak_fft = kdx;
         }
     }
     CHECK(peak_fft == peak_dft, "FFT peak bin %d, DFT %d", peak_fft, peak_dft);
-    CHECK(fabs(p_fft - p_dft) / p_dft < 0.05, "FFT power off by %.2f%%", 100 * fabs(p_fft - p_dft) / p_dft);
+    CHECK(fabs(fft - dft) / dft < 0.05, "FFT power off by %.2f%%", 100 * fabs(fft - dft) / dft);
 }
 
 static void test_quiet_keeps_shape(void)

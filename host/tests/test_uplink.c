@@ -12,30 +12,30 @@
 #include "testlib.h"
 #include "uplink.h"
 
-static net_t N;
-static FILE* g_out;
+static net_t net;
+static FILE* gp_out;
 
-static bool done(net_t* n)
+static bool done(net_t* p_net)
 {
-    return n->node[2].n_tx >= 1;
+    return p_net->node[2].n_tx >= 1;
 }
 
-static void w(const char* s, void* u)
+static void w(const char* p_str, void* p_user)
 {
-    (void)u;
-    fputs(s, g_out);
+    (void)p_user;
+    fputs(p_str, gp_out);
 }
 
-static char* g_buf;
+static char* gp_buf;
 static size_t g_buf_len;
 
-static void wb(const char* s, void* u)
+static void wb(const char* p_str, void* p_user)
 {
-    (void)u;
-    size_t n = strlen(s);
-    memcpy(g_buf + g_buf_len, s, n);
-    g_buf_len += n;
-    g_buf[g_buf_len] = 0;
+    (void)p_user;
+    size_t len = strlen(p_str);
+    memcpy(gp_buf + g_buf_len, p_str, len);
+    g_buf_len += len;
+    gp_buf[g_buf_len] = 0;
 }
 
 static void test_uplink_stream(void)
@@ -43,105 +43,105 @@ static void test_uplink_stream(void)
     sim_cfg_t cfg;
     sim_default_cfg(&cfg, 2);
     sim_topology_full(&cfg, -1);
-    net_init(&N, &cfg, "sim_out/uplink", 2, false);
-    net_run_ms(&N, 200);
-    net_make_file(&N, 2, "samples/img_00.jpg", 7777, 99);
-    capture_meta_t m;
-    capture_meta_clear(&m);
-    m.node_id = 2;
-    m.capture_id = 5;
-    m.temp_c_x10 = 297;
-    m.humidity_x10 = 842;
-    m.trigger_flags = CM_TRIG_PIR | CM_TRIG_SOUND;
-    uint8_t mb[CAPTURE_META_LEN];
-    capture_meta_pack(&m, mb);
+    net_init(&net, &cfg, "sim_out/uplink", 2, false);
+    net_run_ms(&net, 200);
+    net_make_file(&net, 2, "samples/img_00.jpg", 7777, 99);
+    capture_meta_t cap_meta;
+    capture_meta_clear(&cap_meta);
+    cap_meta.node_id = 2;
+    cap_meta.capture_id = 5;
+    cap_meta.temp_c_x10 = 297;
+    cap_meta.humidity_x10 = 842;
+    cap_meta.trigger_flags = CM_TRIG_PIR | CM_TRIG_SOUND;
+    uint8_t meta_buf[CAPTURE_META_LEN];
+    capture_meta_pack(&cap_meta, meta_buf);
     sim_set_current(2);
-    CHECK(alfp_send_file(&N.node[2].alfp, &sim_wifi, 1, "samples/img_00.jpg", mb, sizeof(mb)) == ALFP_OK);
-    CHECK(net_run_until(&N, done, 60000));
-    CHECK(N.node[1].n_rx == 1);
+    CHECK(alfp_send_file(&net.node[2].alfp, &g_sim_wifi, 1, "samples/img_00.jpg", meta_buf, sizeof(meta_buf)) == ALFP_OK);
+    CHECK(net_run_until(&net, done, 60000));
+    CHECK(net.node[1].n_rx == 1);
 
     /* rebuild the report the bridge's callback received (metadata comes from the .met sidecar) */
-    alfp_rx_report_t r = N.node[1].rx_reports[0];
+    alfp_rx_report_t rep = net.node[1].rx_reports[0];
     uint8_t meta[64];
-    char mp[600];
-    snprintf(mp, sizeof(mp), "%s/node1/%s", N.root, r.path);
-    strcpy(strrchr(mp, '.'), ".met");
-    FILE* f = fopen(mp, "rb");
-    CHECK(f != NULL);
-    r.meta_len = f ? (uint8_t)fread(meta, 1, sizeof(meta), f) : 0;
-    if (f)
+    char meta_path[600];
+    snprintf(meta_path, sizeof(meta_path), "%s/node1/%s", net.root, rep.p_path);
+    strcpy(strrchr(meta_path, '.'), ".met");
+    FILE* p_file = fopen(meta_path, "rb");
+    CHECK(p_file != NULL);
+    rep.meta_len = p_file ? (uint8_t)fread(meta, 1, sizeof(meta), p_file) : 0;
+    if (p_file)
     {
-        fclose(f);
+        fclose(p_file);
     }
-    r.meta = meta;
+    rep.p_meta = meta;
 
-    g_out = fopen("uplink_stream.txt", "w");
-    fputs("node 1 ready (bridge)\n", g_out);
-    CHECK(uplink_send_file(&N.node[1].st, &r, w, NULL) == 0);
-    fputs("some other log line\n", g_out);
-    fclose(g_out);
+    gp_out = fopen("uplink_stream.txt", "w");
+    fputs("node 1 ready (bridge)\n", gp_out);
+    CHECK(uplink_send_file(&net.node[1].store, &rep, w, NULL) == 0);
+    fputs("some other log line\n", gp_out);
+    fclose(gp_out);
 
     /* The queued path the firmware uses must produce exactly the same text, whatever the per-pass
      * line budget, and must keep several finished files in order. */
     static char one_shot[64 * 1024], queued[3 * 64 * 1024];
-    g_buf = one_shot;
+    gp_buf = one_shot;
     g_buf_len = 0;
-    CHECK(uplink_send_file(&N.node[1].st, &r, wb, NULL) == 0);
+    CHECK(uplink_send_file(&net.node[1].store, &rep, wb, NULL) == 0);
     size_t one_len = g_buf_len;
     CHECK(one_len > 7777u);
 
-    static uplink_queue_t q;
-    uplink_queue_init(&q, &N.node[1].st);
-    for (int i = 0; i < 3; i++)
+    static uplink_queue_t queue;
+    uplink_queue_init(&queue, &net.node[1].store);
+    for (int idx = 0; idx < 3; idx++)
     {
-        CHECK(uplink_queue_add(&q, &r));
+        CHECK(uplink_queue_add(&queue, &rep));
     }
-    r.path = NULL; /* the queue must hold its own copy of the report */
-    CHECK(uplink_queue_waiting(&q) == 3u);
-    CHECK(uplink_queue_service(&q, 0, wb, NULL) == 0u);
-    g_buf = queued;
+    rep.p_path = NULL; /* the queue must hold its own copy of the report */
+    CHECK(uplink_queue_waiting(&queue) == 3u);
+    CHECK(uplink_queue_service(&queue, 0, wb, NULL) == 0u);
+    gp_buf = queued;
     g_buf_len = 0;
     unsigned passes = 0;
-    while (uplink_queue_waiting(&q) != 0u && passes < 100000u)
+    while (uplink_queue_waiting(&queue) != 0u && passes < 100000u)
     {
-        CHECK(uplink_queue_service(&q, 3, wb, NULL) <= 3u);
+        CHECK(uplink_queue_service(&queue, 3, wb, NULL) <= 3u);
         passes++;
     }
     CHECK(g_buf_len == 3u * one_len);
-    for (int i = 0; i < 3; i++)
+    for (int idx = 0; idx < 3; idx++)
     {
-        CHECK(memcmp(queued + (size_t)i * one_len, one_shot, one_len) == 0);
+        CHECK(memcmp(queued + (size_t)idx * one_len, one_shot, one_len) == 0);
     }
-    CHECK(q.sent_ok == 3u && q.sent_bad == 0u && q.max_waiting == 3u);
+    CHECK(queue.sent_ok == 3u && queue.sent_bad == 0u && queue.max_waiting == 3u);
     /* 7777 B = 163 @D lines + header + END per file, 3 lines per pass */
     CHECK(passes == (3u * 165u + 2u) / 3u);
 
     /* queue full is reported, not overwritten */
-    r = N.node[1].rx_reports[0];
-    r.meta = meta;
-    uplink_queue_init(&q, &N.node[1].st);
-    for (unsigned i = 0; i < UPLINK_QUEUE_DEPTH; i++)
+    rep = net.node[1].rx_reports[0];
+    rep.p_meta = meta;
+    uplink_queue_init(&queue, &net.node[1].store);
+    for (unsigned idx = 0; idx < UPLINK_QUEUE_DEPTH; idx++)
     {
-        CHECK(uplink_queue_add(&q, &r));
+        CHECK(uplink_queue_add(&queue, &rep));
     }
-    CHECK(!uplink_queue_add(&q, &r));
-    CHECK(q.queue_full == 1u);
+    CHECK(!uplink_queue_add(&queue, &rep));
+    CHECK(queue.queue_full == 1u);
 
     /* a file that disappears is aborted and the next one still goes */
-    uplink_queue_init(&q, &N.node[1].st);
-    alfp_rx_report_t gone = r;
-    gone.path = "inbox/does_not_exist.bin";
-    CHECK(uplink_queue_add(&q, &gone));
-    CHECK(uplink_queue_add(&q, &r));
-    g_buf = queued;
+    uplink_queue_init(&queue, &net.node[1].store);
+    alfp_rx_report_t gone = rep;
+    gone.p_path = "inbox/does_not_exist.bin";
+    CHECK(uplink_queue_add(&queue, &gone));
+    CHECK(uplink_queue_add(&queue, &rep));
+    gp_buf = queued;
     g_buf_len = 0;
-    while (uplink_queue_waiting(&q) != 0u)
+    while (uplink_queue_waiting(&queue) != 0u)
     {
-        (void)uplink_queue_service(&q, 8, wb, NULL);
+        (void)uplink_queue_service(&queue, 8, wb, NULL);
     }
-    CHECK(q.sent_bad == 1u && q.sent_ok == 1u);
+    CHECK(queue.sent_bad == 1u && queue.sent_ok == 1u);
     CHECK(strstr(queued, "@ALFP ABORT read error\n") != NULL);
-    net_close(&N);
+    net_close(&net);
 }
 
 int main(void)

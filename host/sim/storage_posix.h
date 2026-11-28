@@ -13,16 +13,16 @@
 typedef struct
 {
     char root[256];
-    FILE* f[SP_MAX_FILES];
+    FILE* files[SP_MAX_FILES];
     float write_fault_rate; /* test hook: chance a write silently flips a byte (SD fault) */
     int fault_write_number; /* test hook: corrupt exactly the Nth write (1-based), 0 = off */
     int writes;
-    unsigned (*rand_fn)(void);
+    unsigned (*p_rand_fn)(void);
     unsigned open_count; /* files currently open (leak check) */
 } storage_posix_t;
 
 /* Creates root if needed and fills *out with function pointers bound to sp. */
-void storage_posix_init(storage_posix_t* sp, const char* root, alfp_storage_t* out);
-void storage_posix_close_all(storage_posix_t* sp);
+void storage_posix_init(storage_posix_t* p_posix, const char* p_root, alfp_storage_t* p_out);
+void storage_posix_close_all(storage_posix_t* p_posix);
 
 #endif

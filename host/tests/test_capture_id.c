@@ -9,23 +9,23 @@
 
 static int fails;
 
-static void expect_str(const char* got, const char* want)
+static void expect_str(const char* p_got, const char* p_want)
 {
-    if (strcmp(got, want) != 0)
+    if (strcmp(p_got, p_want) != 0)
     {
-        printf("FAIL: got '%s', want '%s'\n", got, want);
+        printf("FAIL: got '%s', want '%s'\n", p_got, p_want);
         fails++;
     }
 }
 
-static void expect_parse(const char* s, int ok, unsigned node, unsigned long id)
+static void expect_parse(const char* p_str, int ok_flag, unsigned node, unsigned long cap_id)
 {
-    uint8_t n = 0;
-    uint32_t v = 0;
-    int got = capture_id_parse(s, &n, &v);
-    if (got != ok || (ok && (n != node || v != id)))
+    uint8_t got_node = 0;
+    uint32_t value = 0;
+    int got = capture_id_parse(p_str, &got_node, &value);
+    if (got != ok_flag || (ok_flag && (got_node != node || value != cap_id)))
     {
-        printf("FAIL: parse('%s') = %d N%u %lu, want %d N%u %lu\n", s, got, n, (unsigned long)v, ok, node, id);
+        printf("FAIL: parse('%s') = %d N%u %lu, want %d N%u %lu\n", p_str, got, got_node, (unsigned long)value, ok_flag, node, cap_id);
         fails++;
     }
 }
@@ -43,14 +43,14 @@ int main(void)
     expect_str(buf, "N5-1234567");
 
     const uint32_t ids[] = {0, 1, 42, 999999, 1000000, 4294967295u};
-    for (unsigned i = 0; i < sizeof(ids) / sizeof(ids[0]); i++)
+    for (unsigned idx = 0; idx < sizeof(ids) / sizeof(ids[0]); idx++)
     {
         for (unsigned node = 0; node < 256; node += 51)
         {
-            capture_id_format(buf, sizeof(buf), (uint8_t)node, ids[i]);
-            expect_parse(buf, 1, node, ids[i]);
-            capture_id_file_stem(buf, sizeof(buf), (uint8_t)node, ids[i]);
-            expect_parse(buf, 1, node, ids[i]);
+            capture_id_format(buf, sizeof(buf), (uint8_t)node, ids[idx]);
+            expect_parse(buf, 1, node, ids[idx]);
+            capture_id_file_stem(buf, sizeof(buf), (uint8_t)node, ids[idx]);
+            expect_parse(buf, 1, node, ids[idx]);
         }
     }
     expect_parse("N2_000042_full.scl", 1, 2, 42);

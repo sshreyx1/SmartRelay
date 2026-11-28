@@ -27,8 +27,8 @@
 
 typedef struct mesh_stats_s
 {
-    uint32_t tx;             // packets this node created and transmitted
-    uint32_t rx;             // valid packets heard over the air (before duplicate check)
+    uint32_t tx_count;             // packets this node created and transmitted
+    uint32_t rx_count;             // valid packets heard over the air (before duplicate check)
     uint32_t delivered;      // packets handed up through recv()
     uint32_t relayed;        // other nodes' packets rebroadcast by this node
     uint32_t dup_dropped;    // packets already seen within the duplicate window
@@ -42,36 +42,36 @@ typedef struct mesh_stats_s
 
 typedef struct mesh_radio_s
 {
-    const char* name;  // "lora" or "wifi"
+    const char* p_name;  // "lora" or "wifi"
 
     // Queue payload for flooding to node dst (1-5 or MESH_BROADCAST).
     // Returns false if the queue is full, len is 0, or len > max_payload(). Returns quickly.
-    bool ( *send )( uint8_t dst, const uint8_t* payload, uint16_t len );
+    bool ( *p_send )( uint8_t dst, const uint8_t* p_payload, uint16_t len );
 
     // Copy ONE packet addressed to this node or to MESH_BROADCAST into buf.
     // Returns the payload length (>= 0), MESH_RECV_NONE, or MESH_RECV_BUF_TOO_SMALL.
     // *src is the node that created the packet, not the last relay. Never blocks.
-    int ( *recv )( uint8_t* src, uint8_t* buf, uint16_t buf_size );
+    int ( *p_recv )( uint8_t* p_src, uint8_t* p_buf, uint16_t buf_size );
 
     // Service the radio: read incoming packets, relay, transmit queued packets.
     // Call from the main loop every few ms.
-    void ( *poll )( void );
+    void ( *p_poll )( void );
 
     // Bytes available to the caller per packet (radio limit minus mesh header). Constant after init.
-    uint16_t ( *max_payload )( void );
+    uint16_t ( *p_max_payload )( void );
 
     // Time (ms since boot) we last received ANY packet created by node_id.
     // Returns false if never heard.
-    bool ( *last_heard )( uint8_t node_id, uint32_t* ms_since_boot );
+    bool ( *p_last_heard )( uint8_t node_id, uint32_t* p_ms_since_boot );
 
     // True while the send queue is non-empty or the radio is mid-transmission.
-    bool ( *tx_busy )( void );
+    bool ( *p_tx_busy )( void );
 
     // Copy the counters since boot.
-    void ( *get_stats )( mesh_stats_t* out );
+    void ( *p_get_stats )( mesh_stats_t* p_out );
 
     // Demo only: fraction (0.0-1.0) of received packets to discard on purpose.
-    void ( *set_drop_rate )( float rate );
+    void ( *p_set_drop_rate )( float rate );
 } mesh_radio_t;
 
 #endif  // MESH_RADIO_H

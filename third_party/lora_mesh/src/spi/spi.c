@@ -24,12 +24,12 @@ void DEV_SPI_Init()
 }
 
 
-void DEV_SPI_Write_Bytes(const uint8_t* tx_buf, size_t length)
+void DEV_SPI_Write_Bytes(const uint8_t* p_tx_buf, size_t length)
 {
-    spi_write_blocking(SPI_PORT, tx_buf, length);
+    spi_write_blocking(SPI_PORT, p_tx_buf, length);
 }
 
-void DEV_SPI_Read_Bytes(uint8_t* rx_buf, size_t length)
+void DEV_SPI_Read_Bytes(uint8_t* p_rx_buf, size_t length)
 {
-    spi_read_blocking(SPI_PORT, 0x00, rx_buf, length);
+    spi_read_blocking(SPI_PORT, 0x00, p_rx_buf, length);
 }

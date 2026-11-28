@@ -29,7 +29,7 @@ static const char* s_legacy_label = "";
 static sensing_sound_t s_sound;
 static sensing_env_t s_env = { .weather = -1 };
 static uint32_t s_last_dht_try, s_last_dht_good;
-static bool s_have_dht;
+static bool b_s_have_dht;
 static uint32_t s_cooldown_until;
 
 static uint16_t read_light(void)
@@ -40,11 +40,11 @@ static uint16_t read_light(void)
 
 static void update_weather(uint32_t now_ms)
 {
-    s_env.dht_ok = s_have_dht && (now_ms - s_last_dht_good) < SENSING_DHT_STALE_MS;
-    if (s_env.dht_ok)
+    s_env.b_dht_ok = b_s_have_dht && (now_ms - s_last_dht_good) < SENSING_DHT_STALE_MS;
+    if (s_env.b_dht_ok)
     {
-        float f[3] = { s_env.temp_c, s_env.hum_pct, (float)s_env.light };
-        s_env.weather = weather_predict(f);
+        float features[3] = { s_env.temp_c, s_env.hum_pct, (float)s_env.light };
+        s_env.weather = weather_predict(features);
     }
     else
     {
@@ -52,9 +52,9 @@ static void update_weather(uint32_t now_ms)
     }
 }
 
-void sensing_init(const sensing_hooks_t* hooks)
+void sensing_init(const sensing_hooks_t* p_hooks)
 {
-    s_h = *hooks;
+    s_h = *p_hooks;
     pir_init();   /* Maryam: GP0 input, pull-down */
     sound_init(); /* Rhaylene: GP14 input, pull-down */
     mic_init();   /* Rhaylene: adc_init() + GP26 as ADC */
@@ -74,23 +74,23 @@ bool sensing_env_poll(uint32_t now_ms)
     s_last_dht_try = now_ms;
     s_env.light = read_light();
 
-    float t = 0.0f, h = 0.0f;
-    if (s_h.timing_begin)
+    float temp_c = 0.0f, humidity = 0.0f;
+    if (s_h.p_timing_begin)
     {
-        s_h.timing_begin();
+        s_h.p_timing_begin();
     }
-    bool ok = DHT_read(&t, &h);
-    if (s_h.timing_end)
+    bool b_is_ok = DHT_read(&temp_c, &humidity);
+    if (s_h.p_timing_end)
     {
-        s_h.timing_end();
+        s_h.p_timing_end();
     }
     /* DHT22.c does not decode negative temperatures (bit 15); Singapore never needs it, but a
      * reading with that bit set would be nonsense, so it is rejected with the out-of-range check. */
-    if (ok && t > -40.0f && t < 80.0f && h >= 0.0f && h <= 100.0f)
+    if (b_is_ok && temp_c > -40.0f && temp_c < 80.0f && humidity >= 0.0f && humidity <= 100.0f)
     {
-        s_env.temp_c = t;
-        s_env.hum_pct = h;
-        s_have_dht = true;
+        s_env.temp_c = temp_c;
+        s_env.hum_pct = humidity;
+        b_s_have_dht = true;
         s_last_dht_good = now_ms;
         s_env.dht_good++;
     }
@@ -127,9 +127,9 @@ bool sensing_dual_trigger(uint32_t now_ms)
     return sound_is_triggered() && pir_is_motion_detected();
 }
 
-static int16_t to_x10_i16(float v)
+static int16_t to_x10_i16(float value)
 {
-    return (int16_t)lroundf(v * 10.0f);
+    return (int16_t)lroundf(value * 10.0f);
 }
 
 #if SOUND_LEGACY_MODE
@@ -155,36 +155,36 @@ bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
     return true;
 }
 #else
-static uint16_t to_u16_meta(float v)
+static uint16_t to_u16_meta(float value)
 {
     /* 0xFFFF is CM_MISSING_U16, so a real reading saturates one below it */
-    return (uint16_t)(v >= 65534.0f ? 65534.0f : v <= 0.0f ? 0.0f : v + 0.5f);
+    return (uint16_t)(value >= 65534.0f ? 65534.0f : value <= 0.0f ? 0.0f : value + 0.5f);
 }
 
-bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
+bool sensing_record_sound(uint32_t seconds, audio_result_t* p_audio)
 {
-    sensing_sound_t* r = &s_sound;
-    *r = (sensing_sound_t) { .ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN };
-    audio_timing_t tm;
-    if (!audio_capture_sf(seconds, s_h.wait_ms, audio, &r->lost, &s_sf, &tm))
+    sensing_sound_t* p_snd = &s_sound;
+    *p_snd = (sensing_sound_t) { .b_is_ok = false, .label_id = SC_UNKNOWN, .conf = SC_UNKNOWN };
+    audio_timing_t timing;
+    if (!audio_capture_sf(seconds, s_h.p_wait_ms, p_audio, &p_snd->lost, &s_sf, &timing))
     {
-        audio->samples = 0;
+        p_audio->samples = 0;
         printf("[AUDIO] no free DMA channel, sound features missing\n");
         return false;
     }
-    const uint32_t t0 = time_us_32();
-    float f[SF_N_FEATURES];
-    sf_finish(&s_sf, f);
-    sound_classify(f, &r->label_id, &r->conf);
-    r->model_us = time_us_32() - t0;
-    r->rms = to_u16_meta(sf_rms_dc_corrected(&s_sf));
-    r->zcr_per_s = to_u16_meta(sf_zcr_per_s(&s_sf));
-    r->feat_us = tm.feat_us;
-    r->maxcall_us = tm.maxcall_us;
-    r->ok = true;
-    if (r->lost)
+    const uint32_t start_t = time_us_32();
+    float features[SF_N_FEATURES];
+    sf_finish(&s_sf, features);
+    sound_classify(features, &p_snd->label_id, &p_snd->conf);
+    p_snd->model_us = time_us_32() - start_t;
+    p_snd->rms = to_u16_meta(sf_rms_dc_corrected(&s_sf));
+    p_snd->zcr_per_s = to_u16_meta(sf_zcr_per_s(&s_sf));
+    p_snd->feat_us = timing.feat_us;
+    p_snd->maxcall_us = timing.maxcall_us;
+    p_snd->b_is_ok = true;
+    if (p_snd->lost)
     {
-        printf("[AUDIO] warning: %lu samples lost (task too slow)\n", (unsigned long)r->lost);
+        printf("[AUDIO] warning: %lu samples lost (task too slow)\n", (unsigned long)p_snd->lost);
     }
     return true;
 }
@@ -197,8 +197,8 @@ const sensing_sound_t* sensing_last_sound(void)
 
 void sensing_log_sound(void)
 {
-    const sensing_sound_t* r = &s_sound;
-    if (!r->ok)
+    const sensing_sound_t* p_snd = &s_sound;
+    if (!p_snd->b_is_ok)
     {
         printf("[SOUND] capture failed: label unknown\n");
         return;
@@ -209,53 +209,53 @@ void sensing_log_sound(void)
     return;
 #endif
     printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%lu feat_us=%lu maxcall_us=%lu model_us=%lu\n",
-           sound_class_name(sound_class_group(r->label_id)), sound_class_name(r->label_id), r->label_id, r->conf,
-           r->rms, r->zcr_per_s, (unsigned long)r->lost, (unsigned long)r->feat_us, (unsigned long)r->maxcall_us,
-           (unsigned long)r->model_us);
+           sound_class_name(sound_class_group(p_snd->label_id)), sound_class_name(p_snd->label_id), p_snd->label_id, p_snd->conf,
+           p_snd->rms, p_snd->zcr_per_s, (unsigned long)p_snd->lost, (unsigned long)p_snd->feat_us, (unsigned long)p_snd->maxcall_us,
+           (unsigned long)p_snd->model_us);
     const uint32_t budget_us = AUDIO_SECONDS * 1000000u / 4u; /* 25% of the recording */
-    if (r->feat_us + r->model_us > budget_us)
+    if (p_snd->feat_us + p_snd->model_us > budget_us)
     {
         printf("[SOUND] warning: feature + model time %lu us is over the 25%% CPU budget (%lu us)\n",
-               (unsigned long)(r->feat_us + r->model_us), (unsigned long)budget_us);
+               (unsigned long)(p_snd->feat_us + p_snd->model_us), (unsigned long)budget_us);
     }
-    if (r->maxcall_us > 100000u)
+    if (p_snd->maxcall_us > 100000u)
     {
         printf("[SOUND] warning: one feature call took %lu us, eating into the ~512 ms ring slack\n",
-               (unsigned long)r->maxcall_us);
+               (unsigned long)p_snd->maxcall_us);
     }
 }
 
-void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* m, audio_result_t* audio)
+void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* p_meta, audio_result_t* p_audio)
 {
-    capture_meta_clear(m);
-    m->trigger_flags = trigger_flags;
-    m->uptime_ms = now_ms;
+    capture_meta_clear(p_meta);
+    p_meta->trigger_flags = trigger_flags;
+    p_meta->uptime_ms = now_ms;
 
     /* on failure the sound fields keep capture_meta_clear()'s unknown / missing values */
-    if (sensing_record_sound(AUDIO_SECONDS, audio))
+    if (sensing_record_sound(AUDIO_SECONDS, p_audio))
     {
-        m->sound_class = s_sound.label_id;
-        m->sound_conf = s_sound.conf;
-        m->sound_rms = s_sound.rms;
-        m->sound_zcr = s_sound.zcr_per_s;
+        p_meta->sound_class = s_sound.label_id;
+        p_meta->sound_conf = s_sound.conf;
+        p_meta->sound_rms = s_sound.rms;
+        p_meta->sound_zcr = s_sound.zcr_per_s;
     }
 
     /* their main.c reads the light again after the recording for the event snapshot */
     s_env.light = read_light();
-    uint32_t t = to_ms_since_boot(get_absolute_time());
-    update_weather(t);
-    m->light_raw = s_env.light;
-    if (s_env.dht_ok)
+    uint32_t stamp_ms = to_ms_since_boot(get_absolute_time());
+    update_weather(stamp_ms);
+    p_meta->light_raw = s_env.light;
+    if (s_env.b_dht_ok)
     {
-        m->temp_c_x10 = to_x10_i16(s_env.temp_c);
-        m->humidity_x10 = (uint16_t)lroundf(s_env.hum_pct * 10.0f);
-        m->weather_label = (uint8_t)s_env.weather;
+        p_meta->temp_c_x10 = to_x10_i16(s_env.temp_c);
+        p_meta->humidity_x10 = (uint16_t)lroundf(s_env.hum_pct * 10.0f);
+        p_meta->weather_label = (uint8_t)s_env.weather;
         /* weather_conf / trigger_trust stay "unknown": the tree outputs a label only */
     }
-    s_cooldown_until = t + SENSING_COOLDOWN_MS;
+    s_cooldown_until = stamp_ms + SENSING_COOLDOWN_MS;
 }
 
-const char* sensing_weather_name(int w)
+const char* sensing_weather_name(int weather)
 {
-    return w < 0 ? "unknown (no DHT22 reading)" : weather_label(w);
+    return weather < 0 ? "unknown (no DHT22 reading)" : weather_label(weather);
 }

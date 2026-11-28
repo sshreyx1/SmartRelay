@@ -32,7 +32,7 @@ typedef struct
     uint64_t sum_sq;    /* sum of (sample - 2048)^2, exact */
     uint64_t sum;       /* sum of raw samples, for the DC level check */
     uint32_t crossings; /* zero crossings */
-    uint32_t n;         /* samples seen */
+    uint32_t count;         /* samples seen */
     int16_t prev;       /* previous centered sample */
 } audio_feat_t;
 
@@ -41,15 +41,15 @@ typedef struct
     float energy;       /* same as SoundAnalysis.energy */
     float zcr;          /* same as SoundAnalysis.zcr (crossings per sample) */
     int class_id;       /* same as SoundAnalysis.class_id */
-    const char* label;  /* same as SoundAnalysis.label */
+    const char* p_label;  /* same as SoundAnalysis.label */
     uint16_t rms;       /* sqrt(energy), ADC counts: what capture_meta carries as sound_rms */
     uint16_t zcr_per_s; /* crossings per second: capture_meta sound_zcr */
     uint16_t mean_adc;  /* average raw reading; about 2048 if the mic is biased at 1.65 V */
     uint32_t samples;
 } audio_result_t;
 
-void audio_feat_reset(audio_feat_t* f);
-void audio_feat_add(audio_feat_t* f, const uint16_t* s, uint32_t n);
-void audio_feat_finish(const audio_feat_t* f, uint32_t sample_rate, audio_result_t* out);
+void audio_feat_reset(audio_feat_t* p_feat);
+void audio_feat_add(audio_feat_t* p_feat, const uint16_t* p_samples, uint32_t count);
+void audio_feat_finish(const audio_feat_t* p_feat, uint32_t sample_rate, audio_result_t* p_out);
 
 #endif

@@ -4,10 +4,10 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-void vApplicationStackOverflowHook(TaskHandle_t task, char* name)
+void vApplicationStackOverflowHook(TaskHandle_t p_task, char* p_name)
 {
-    (void)task;
-    printf("FATAL: stack overflow in task '%s'\n", name);
+    (void)p_task;
+    printf("FATAL: stack overflow in task '%s'\n", p_name);
     for (;;)
     {
     }

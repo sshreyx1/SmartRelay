@@ -56,13 +56,13 @@ typedef struct {
 void wst_link_init(void);
 
 /* Queue one packet to broadcast. Returns false if too big or queue full. */
-bool wst_link_send(const uint8_t *pkt, uint8_t len);
+bool wst_link_send(const uint8_t *p_pkt, uint8_t len);
 
 /* Move bytes in/out of the UART. Call this very often. */
 void wst_link_poll(void);
 
 /* Get the next received packet. Returns false if nothing waiting. */
-bool wst_link_recv(wst_rx_pkt_t *out);
+bool wst_link_recv(wst_rx_pkt_t *p_out);
 
 /* True while packets are still queued or the WST is still sending. */
 bool wst_link_tx_busy(void);
@@ -74,9 +74,9 @@ bool wst_link_get_mac(uint8_t mac[6]);
 void wst_link_request_mac(void);
 
 /* Copy out the counters. */
-void wst_link_get_stats(wst_link_stats_t *out);
+void wst_link_get_stats(wst_link_stats_t *p_out);
 
 /* CRC-8 used on the wire (exposed so tests and Python can match it). */
-uint8_t wst_crc8(const uint8_t *d, uint32_t n, uint8_t c);
+uint8_t wst_crc8(const uint8_t *p_data, uint32_t len, uint8_t crc);
 
 #endif

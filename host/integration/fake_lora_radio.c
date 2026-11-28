@@ -24,7 +24,7 @@
 
 static int sock = -1;
 static int self;
-static bool tx_on;
+static bool b_tx_on;
 static uint32_t tx_end, tx_start;
 static uint8_t tx_buf[256];
 static uint8_t tx_len;
@@ -36,66 +36,66 @@ static uint32_t now(void) { return to_ms_since_boot(get_absolute_time()); }
 
 uint32_t lora_radio_time_on_air_ms(uint8_t len)
 {
-    const int sf = 7, cr = 1, crc = 1, npre = 8;
-    double ts = (double)(1 << sf) / 125000.0 * 1000.0;
-    double sym = ceil((8.0 * len - 4.0 * sf + 28 + 16 * crc) / (4.0 * sf)) * (cr + 4);
+    const int spread = 7, coding_rate = 1, crc = 1, npre = 8;
+    double time_spec = (double)(1 << spread) / 125000.0 * 1000.0;
+    double sym = ceil((8.0 * len - 4.0 * spread + 28 + 16 * crc) / (4.0 * spread)) * (coding_rate + 4);
     if (sym < 0) sym = 0;
-    return (uint32_t)ceil((npre + 4.25) * ts + (8 + sym) * ts);
+    return (uint32_t)ceil((npre + 4.25) * time_spec + (8 + sym) * time_spec);
 }
 
 bool lora_radio_init(void)
 {
     sock = socket(AF_INET, SOCK_DGRAM, 0);
-    struct sockaddr_in a = {0};
-    a.sin_family = AF_INET;
-    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    a.sin_port = htons((uint16_t)(BASE_PORT + self));
-    if (bind(sock, (struct sockaddr*)&a, sizeof(a)) != 0) { perror("bind"); return false; }
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = htons((uint16_t)(BASE_PORT + self));
+    if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) { perror("bind"); return false; }
     fcntl(sock, F_SETFL, O_NONBLOCK);
-    const char* l = getenv("LORA_LOSS");
-    loss = l ? atof(l) : 0.0;
+    const char* p_loss_env = getenv("LORA_LOSS");
+    loss = p_loss_env ? atof(p_loss_env) : 0.0;
     srand((unsigned)(self * 7919 + (unsigned)now()));
     printf("fake LR1121: node %d on udp %d, loss %.0f%%\n", self, BASE_PORT + self, loss * 100);
     return true;
 }
 
-bool lora_radio_start_tx(const uint8_t* buf, uint8_t len)
+bool lora_radio_start_tx(const uint8_t* p_buf, uint8_t len)
 {
-    if (tx_on || len == 0) return false;
-    memcpy(tx_buf, buf, len);
+    if (b_tx_on || len == 0) return false;
+    memcpy(tx_buf, p_buf, len);
     tx_len = len;
-    tx_on = true;
+    b_tx_on = true;
     tx_start = now();
     tx_end = tx_start + lora_radio_time_on_air_ms(len);
     return true;
 }
 
-bool lora_radio_tx_active(void) { return tx_on; }
+bool lora_radio_tx_active(void) { return b_tx_on; }
 
-lora_radio_event_t lora_radio_service(uint8_t* buf, uint8_t* len, int8_t* rssi, int8_t* snr)
+lora_radio_event_t lora_radio_service(uint8_t* p_buf, uint8_t* p_len, int8_t* p_rssi, int8_t* p_snr)
 {
-    if (tx_on && (int32_t)(now() - tx_end) >= 0)
+    if (b_tx_on && (int32_t)(now() - tx_end) >= 0)
     {
-        for (int n = 1; n <= MAX_NODES; n++)
+        for (int node = 1; node <= MAX_NODES; node++)
         {
-            if (n == self) continue;
-            struct sockaddr_in a = {0};
-            a.sin_family = AF_INET;
-            a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-            a.sin_port = htons((uint16_t)(BASE_PORT + n));
-            sendto(sock, tx_buf, tx_len, 0, (struct sockaddr*)&a, sizeof(a));
+            if (node == self) continue;
+            struct sockaddr_in addr = {0};
+            addr.sin_family = AF_INET;
+            addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            addr.sin_port = htons((uint16_t)(BASE_PORT + node));
+            sendto(sock, tx_buf, tx_len, 0, (struct sockaddr*)&addr, sizeof(addr));
         }
-        tx_on = false;
+        b_tx_on = false;
         return LORA_EVT_TX_DONE;
     }
     uint8_t tmp[256];
-    ssize_t r = recv(sock, tmp, sizeof(tmp), 0);
-    if (r <= 0) return LORA_EVT_NONE;
-    if (tx_on) return LORA_EVT_RX_ERROR;                 /* half duplex: we were talking */
+    ssize_t ret = recv(sock, tmp, sizeof(tmp), 0);
+    if (ret <= 0) return LORA_EVT_NONE;
+    if (b_tx_on) return LORA_EVT_RX_ERROR;                 /* half duplex: we were talking */
     if ((double)rand() / RAND_MAX < loss) return LORA_EVT_NONE; /* lost in the air */
-    memcpy(buf, tmp, (size_t)r);
-    *len = (uint8_t)r;
-    *rssi = -60;
-    *snr = 9;
+    memcpy(p_buf, tmp, (size_t)ret);
+    *p_len = (uint8_t)ret;
+    *p_rssi = -60;
+    *p_snr = 9;
     return LORA_EVT_RX_DONE;
 }

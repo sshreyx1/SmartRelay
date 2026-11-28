@@ -55,7 +55,7 @@
  * @param Pin GPIO pin number
  * @param Mode GPIO mode: 0 or GPIO_MODE_INPUT for input, others for output
  */
-void DEV_GPIO_Mode(uint16_t Pin, uint16_t Mode);
+void DEV_GPIO_Mode(uint16_t pin, uint16_t mode);
 
 /**
  * @brief Configure a GPIO pin for interrupt handling
@@ -66,7 +66,7 @@ void DEV_GPIO_Mode(uint16_t Pin, uint16_t Mode);
  * @param Pin GPIO pin number
  * @param isr_handler Pointer to the interrupt handler function
  */
-void DEV_GPIO_INT(int32_t Pin, gpio_irq_callback_t isr_handler);
+void DEV_GPIO_INT(int32_t pin, gpio_irq_callback_t p_isr_handler);
 
 /**
  * @brief Set the logic level of a GPIO pin
@@ -76,7 +76,7 @@ void DEV_GPIO_INT(int32_t Pin, gpio_irq_callback_t isr_handler);
  * @param Pin GPIO pin number
  * @param Value Logic level: 0 for low, 1 for high
  */
-void DEV_Digital_Write(uint16_t Pin, uint8_t Value);
+void DEV_Digital_Write(uint16_t pin, uint8_t value);
 
 /**
  * @brief Read the logic level of a GPIO pin
@@ -86,6 +86,6 @@ void DEV_Digital_Write(uint16_t Pin, uint8_t Value);
  * @param Pin GPIO pin number
  * @return uint8_t Logic level: 0 for low, 1 for high
  */
-uint8_t DEV_Digital_Read(uint16_t Pin);
+uint8_t DEV_Digital_Read(uint16_t pin);
 
 #endif

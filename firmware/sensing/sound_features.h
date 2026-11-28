@@ -48,8 +48,8 @@ typedef struct
 {
     uint16_t frame[SF_FRAME];
     uint32_t fill;        /* samples in frame[] */
-    int16_t re[SF_FRAME]; /* FFT scratch, here so it is not on the caller's stack */
-    int16_t im[SF_FRAME];
+    int16_t real[SF_FRAME]; /* FFT scratch, here so it is not on the caller's stack */
+    int16_t imag[SF_FRAME];
     uint32_t n_frames;
     uint32_t n_samples;   /* every sample added, including a last partial frame */
     uint64_t sum, sum_sq; /* raw samples, for the DC-corrected RMS */
@@ -61,15 +61,15 @@ typedef struct
     uint16_t hist[SF_HIST_BUCKETS];
 } sf_t;
 
-extern const char* const SF_FEATURE_NAMES[SF_N_FEATURES];
+extern const char* const g_sf_feature_names[SF_N_FEATURES];
 
-void sf_reset(sf_t* s);
-void sf_add(sf_t* s, const uint16_t* samples, uint32_t n);
+void sf_reset(sf_t* p_feat);
+void sf_add(sf_t* p_feat, const uint16_t* p_samples, uint32_t count);
 /* out: SF_N_FEATURES values, always finite (all 0 if no complete frame was seen). */
-void sf_finish(const sf_t* s, float out[SF_N_FEATURES]);
+void sf_finish(const sf_t* p_feat, float out[SF_N_FEATURES]);
 
 /* For capture_meta: RMS around the capture's own mean (ADC counts), and zero crossings per second. */
-float sf_rms_dc_corrected(const sf_t* s);
-float sf_zcr_per_s(const sf_t* s);
+float sf_rms_dc_corrected(const sf_t* p_feat);
+float sf_zcr_per_s(const sf_t* p_feat);
 
 #endif

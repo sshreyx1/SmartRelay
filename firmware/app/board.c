@@ -9,11 +9,11 @@
 void board_spi1_idle(void)
 {
     const uint pins[2] = { BOARD_LORA_CS_GPIO, BOARD_SD_CS_GPIO };
-    for (int i = 0; i < 2; i++)
+    for (int idx = 0; idx < 2; idx++)
     {
-        gpio_init(pins[i]);
-        gpio_put(pins[i], 1);
-        gpio_set_dir(pins[i], GPIO_OUT);
+        gpio_init(pins[idx]);
+        gpio_put(pins[idx], 1);
+        gpio_set_dir(pins[idx], GPIO_OUT);
     }
 }
 

@@ -10,216 +10,216 @@
 #include <string.h>
 #include <sys/stat.h>
 
-static void full(storage_posix_t* sp, const char* path, char* out, size_t cap)
+static void full(storage_posix_t* p_posix, const char* p_path, char* p_out, size_t cap)
 {
-    snprintf(out, cap, "%s/%s", sp->root, path);
+    snprintf(p_out, cap, "%s/%s", p_posix->root, p_path);
 }
 
-static int slot(storage_posix_t* sp)
+static int slot(storage_posix_t* p_posix)
 {
-    for (int i = 0; i < SP_MAX_FILES; i++)
+    for (int idx = 0; idx < SP_MAX_FILES; idx++)
     {
-        if (!sp->f[i])
+        if (!p_posix->files[idx])
         {
-            return i;
+            return idx;
         }
     }
     return -1;
 }
 
-static int p_open(void* c, const char* path, const char* mode)
+static int p_open(void* p_ctx, const char* p_path, const char* p_mode)
 {
-    storage_posix_t* sp = c;
-    char p[512];
-    full(sp, path, p, sizeof(p));
-    int h = slot(sp);
-    if (h < 0)
+    storage_posix_t* p_posix = p_ctx;
+    char path[512];
+    full(p_posix, p_path, path, sizeof(path));
+    int handle = slot(p_posix);
+    if (handle < 0)
     {
         return -1;
     }
-    sp->f[h] = fopen(p, mode);
-    if (!sp->f[h])
+    p_posix->files[handle] = fopen(path, p_mode);
+    if (!p_posix->files[handle])
     {
         return -1;
     }
-    sp->open_count++;
-    return h;
+    p_posix->open_count++;
+    return handle;
 }
 
-static int p_open_read(void* c, const char* path)
+static int p_open_read(void* p_ctx, const char* p_path)
 {
-    return p_open(c, path, "rb");
+    return p_open(p_ctx, p_path, "rb");
 }
 
-static int p_open_write(void* c, const char* path)
+static int p_open_write(void* p_ctx, const char* p_path)
 {
-    return p_open(c, path, "w+b"); /* read + write, like FA_READ|FA_WRITE|FA_CREATE_ALWAYS */
+    return p_open(p_ctx, p_path, "w+b"); /* read + write, like FA_READ|FA_WRITE|FA_CREATE_ALWAYS */
 }
 
-static FILE* fh(storage_posix_t* sp, int h)
+static FILE* fh(storage_posix_t* p_posix, int handle)
 {
-    return (h >= 0 && h < SP_MAX_FILES) ? sp->f[h] : NULL;
+    return (handle >= 0 && handle < SP_MAX_FILES) ? p_posix->files[handle] : NULL;
 }
 
-static int p_read_at(void* c, int h, uint32_t off, uint8_t* buf, uint16_t len)
+static int p_read_at(void* p_ctx, int handle, uint32_t off, uint8_t* p_buf, uint16_t len)
 {
-    FILE* f = fh(c, h);
-    if (!f || fseek(f, (long)off, SEEK_SET) != 0)
+    FILE* p_file = fh(p_ctx, handle);
+    if (!p_file || fseek(p_file, (long)off, SEEK_SET) != 0)
     {
         return -1;
     }
-    return (int)fread(buf, 1, len, f);
+    return (int)fread(p_buf, 1, len, p_file);
 }
 
-static int p_write_at(void* c, int h, uint32_t off, const uint8_t* buf, uint16_t len)
+static int p_write_at(void* p_ctx, int handle, uint32_t off, const uint8_t* p_buf, uint16_t len)
 {
-    storage_posix_t* sp = c;
-    FILE* f = fh(sp, h);
-    if (!f || fseek(f, (long)off, SEEK_SET) != 0)
+    storage_posix_t* p_posix = p_ctx;
+    FILE* p_file = fh(p_posix, handle);
+    if (!p_file || fseek(p_file, (long)off, SEEK_SET) != 0)
     {
         return -1;
     }
-    size_t n;
-    sp->writes++;
-    bool fault = sp->fault_write_number && sp->writes == sp->fault_write_number;
-    if (sp->write_fault_rate > 0 && sp->rand_fn && (float)(sp->rand_fn() % 1000000u) / 1e6f < sp->write_fault_rate)
+    size_t written;
+    p_posix->writes++;
+    bool b_fault = p_posix->fault_write_number && p_posix->writes == p_posix->fault_write_number;
+    if (p_posix->write_fault_rate > 0 && p_posix->p_rand_fn && (float)(p_posix->p_rand_fn() % 1000000u) / 1e6f < p_posix->write_fault_rate)
     {
-        fault = true;
+        b_fault = true;
     }
-    if (fault && len && sp->rand_fn)
+    if (b_fault && len && p_posix->p_rand_fn)
     {
         uint8_t tmp[512];
-        memcpy(tmp, buf, len);
-        tmp[sp->rand_fn() % len] ^= 0x5A;
-        n = fwrite(tmp, 1, len, f);
+        memcpy(tmp, p_buf, len);
+        tmp[p_posix->p_rand_fn() % len] ^= 0x5A;
+        written = fwrite(tmp, 1, len, p_file);
     }
     else
     {
-        n = fwrite(buf, 1, len, f);
+        written = fwrite(p_buf, 1, len, p_file);
     }
-    fflush(f);
-    return (int)n;
+    fflush(p_file);
+    return (int)written;
 }
 
-static int32_t p_size(void* c, int h)
+static int32_t p_size(void* p_ctx, int handle)
 {
-    FILE* f = fh(c, h);
-    if (!f || fseek(f, 0, SEEK_END) != 0)
+    FILE* p_file = fh(p_ctx, handle);
+    if (!p_file || fseek(p_file, 0, SEEK_END) != 0)
     {
         return -1;
     }
-    return (int32_t)ftell(f);
+    return (int32_t)ftell(p_file);
 }
 
-static int p_close(void* c, int h)
+static int p_close(void* p_ctx, int handle)
 {
-    storage_posix_t* sp = c;
-    FILE* f = fh(sp, h);
-    if (!f)
+    storage_posix_t* p_posix = p_ctx;
+    FILE* p_file = fh(p_posix, handle);
+    if (!p_file)
     {
         return -1;
     }
-    fclose(f);
-    sp->f[h] = NULL;
-    sp->open_count--;
+    fclose(p_file);
+    p_posix->files[handle] = NULL;
+    p_posix->open_count--;
     return 0;
 }
 
-static int p_remove(void* c, const char* path)
+static int p_remove(void* p_ctx, const char* p_path)
 {
-    char p[512];
-    full(c, path, p, sizeof(p));
-    return remove(p) == 0 ? 0 : -1;
+    char path[512];
+    full(p_ctx, p_path, path, sizeof(path));
+    return remove(path) == 0 ? 0 : -1;
 }
 
-static int p_rename(void* c, const char* a, const char* b)
+static int p_rename(void* p_ctx, const char* p_old_path, const char* p_new_path)
 {
-    char pa[512], pb[512];
-    full(c, a, pa, sizeof(pa));
-    full(c, b, pb, sizeof(pb));
-    return rename(pa, pb) == 0 ? 0 : -1;
+    char path_a[512], path_b[512];
+    full(p_ctx, p_old_path, path_a, sizeof(path_a));
+    full(p_ctx, p_new_path, path_b, sizeof(path_b));
+    return rename(path_a, path_b) == 0 ? 0 : -1;
 }
 
-static int p_list(void* c, const char* dir, void (*fn)(const char*, void*), void* user)
+static int p_list(void* p_ctx, const char* p_dir, void (*p_callback)(const char*, void*), void* p_user)
 {
-    char p[512];
-    full(c, dir, p, sizeof(p));
-    DIR* d = opendir(p);
-    if (!d)
+    char path[512];
+    full(p_ctx, p_dir, path, sizeof(path));
+    DIR* p_dir_handle = opendir(path);
+    if (!p_dir_handle)
     {
         return -1;
     }
-    struct dirent* e;
-    while ((e = readdir(d)))
+    struct dirent* p_entry;
+    while ((p_entry = readdir(p_dir_handle)))
     {
-        if (e->d_name[0] == '.')
+        if (p_entry->d_name[0] == '.')
         {
             continue;
         }
-        char fp[1024];
-        struct stat s;
-        snprintf(fp, sizeof(fp), "%s/%s", p, e->d_name);
-        if (stat(fp, &s) == 0 && S_ISREG(s.st_mode))
+        char full_path[1024];
+        struct stat info;
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, p_entry->d_name);
+        if (stat(full_path, &info) == 0 && S_ISREG(info.st_mode))
         {
-            fn(e->d_name, user);
+            p_callback(p_entry->d_name, p_user);
         }
     }
-    closedir(d);
+    closedir(p_dir_handle);
     return 0;
 }
 
-static int mkdirs(const char* p)
+static int mkdirs(const char* p_path)
 {
     char tmp[512];
-    snprintf(tmp, sizeof(tmp), "%s", p);
-    for (char* s = tmp + 1; *s; s++)
+    snprintf(tmp, sizeof(tmp), "%s", p_path);
+    for (char* p_str = tmp + 1; *p_str; p_str++)
     {
-        if (*s == '/')
+        if (*p_str == '/')
         {
-            *s = 0;
+            *p_str = 0;
             mkdir(tmp, 0755);
-            *s = '/';
+            *p_str = '/';
         }
     }
     return (mkdir(tmp, 0755) == 0 || errno == EEXIST) ? 0 : -1;
 }
 
-static int p_mkdir(void* c, const char* dir)
+static int p_mkdir(void* p_ctx, const char* p_dir)
 {
-    char p[512];
-    full(c, dir, p, sizeof(p));
-    return mkdirs(p);
+    char path[512];
+    full(p_ctx, p_dir, path, sizeof(path));
+    return mkdirs(path);
 }
 
-void storage_posix_init(storage_posix_t* sp, const char* root, alfp_storage_t* out)
+void storage_posix_init(storage_posix_t* p_posix, const char* p_root, alfp_storage_t* p_out)
 {
-    memset(sp, 0, sizeof(*sp));
-    snprintf(sp->root, sizeof(sp->root), "%s", root);
-    mkdirs(root);
-    *out = (alfp_storage_t){
-        .ctx = sp,
-        .open_read = p_open_read,
-        .open_write = p_open_write,
-        .read_at = p_read_at,
-        .write_at = p_write_at,
-        .size = p_size,
-        .close = p_close,
-        .remove = p_remove,
-        .rename = p_rename,
-        .list = p_list,
-        .mkdir = p_mkdir,
+    memset(p_posix, 0, sizeof(*p_posix));
+    snprintf(p_posix->root, sizeof(p_posix->root), "%s", p_root);
+    mkdirs(p_root);
+    *p_out = (alfp_storage_t){
+        .p_ctx = p_posix,
+        .p_open_read = p_open_read,
+        .p_open_write = p_open_write,
+        .p_read_at = p_read_at,
+        .p_write_at = p_write_at,
+        .p_size = p_size,
+        .p_close = p_close,
+        .p_remove = p_remove,
+        .p_rename = p_rename,
+        .p_list = p_list,
+        .p_mkdir = p_mkdir,
     };
 }
 
-void storage_posix_close_all(storage_posix_t* sp)
+void storage_posix_close_all(storage_posix_t* p_posix)
 {
-    for (int i = 0; i < SP_MAX_FILES; i++)
+    for (int idx = 0; idx < SP_MAX_FILES; idx++)
     {
-        if (sp->f[i])
+        if (p_posix->files[idx])
         {
-            fclose(sp->f[i]);
-            sp->f[i] = NULL;
+            fclose(p_posix->files[idx]);
+            p_posix->files[idx] = NULL;
         }
     }
-    sp->open_count = 0;
+    p_posix->open_count = 0;
 }

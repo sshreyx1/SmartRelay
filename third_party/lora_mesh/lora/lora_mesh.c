@@ -35,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-    bool     used;
+    bool     b_used;
     uint8_t  src;
     uint16_t pkt_id;
     uint32_t seen_ms;
@@ -75,7 +75,7 @@ static int8_t last_snr_db;
 static uint8_t rx_buf[LORA_MAX_PACKET_LEN];
 
 // Route of the packet recv() returned last (lora_mesh_last_recv_info), and relays per source
-static bool     last_recv_valid;
+static bool     b_last_recv_valid;
 static uint8_t  last_recv_hops;
 static uint16_t relayed_from[6];
 
@@ -84,9 +84,9 @@ static uint32_t now_ms( void )
     return to_ms_since_boot( get_absolute_time( ) );
 }
 
-static inline uint8_t ring_slot( const ring_t* r, uint8_t offset, uint8_t size )
+static inline uint8_t ring_slot( const ring_t* p_ring, uint8_t offset, uint8_t size )
 {
-    return ( uint8_t ) ( ( r->head + offset ) % size );
+    return ( uint8_t ) ( ( p_ring->head + offset ) % size );
 }
 
 /* --- Duplicate cache ---------------------------------------------------- */
@@ -97,61 +97,61 @@ static bool seen_check_and_mark( uint8_t src, uint16_t pkt_id, uint32_t now )
     int free_slot   = -1;
     int oldest_slot = 0;
 
-    for( int i = 0; i < LORA_MESH_DEDUP_SLOTS; i++ )
+    for( int idx = 0; idx < LORA_MESH_DEDUP_SLOTS; idx++ )
     {
-        seen_t* s = &seen[i];
-        if( s->used && ( now - s->seen_ms ) >= LORA_MESH_DEDUP_WINDOW_MS )
+        seen_t* p_entry = &seen[idx];
+        if( p_entry->b_used && ( now - p_entry->seen_ms ) >= LORA_MESH_DEDUP_WINDOW_MS )
         {
-            s->used = false;  // expired
+            p_entry->b_used = false;  // expired
         }
-        if( !s->used )
+        if( !p_entry->b_used )
         {
             if( free_slot < 0 )
             {
-                free_slot = i;
+                free_slot = idx;
             }
             continue;
         }
-        if( s->src == src && s->pkt_id == pkt_id )
+        if( p_entry->src == src && p_entry->pkt_id == pkt_id )
         {
             return true;
         }
-        if( ( now - s->seen_ms ) > ( now - seen[oldest_slot].seen_ms ) || !seen[oldest_slot].used )
+        if( ( now - p_entry->seen_ms ) > ( now - seen[oldest_slot].seen_ms ) || !seen[oldest_slot].b_used )
         {
-            oldest_slot = i;
+            oldest_slot = idx;
         }
     }
 
     // Full cache: overwrite the oldest entry
-    seen_t* slot  = &seen[free_slot >= 0 ? free_slot : oldest_slot];
-    slot->used    = true;
-    slot->src     = src;
-    slot->pkt_id  = pkt_id;
-    slot->seen_ms = now;
+    seen_t* p_slot  = &seen[free_slot >= 0 ? free_slot : oldest_slot];
+    p_slot->b_used    = true;
+    p_slot->src     = src;
+    p_slot->pkt_id  = pkt_id;
+    p_slot->seen_ms = now;
     return false;
 }
 
 /* --- Queues --------------------------------------------------------------- */
 
-static bool enqueue_own( uint8_t dst, const uint8_t* payload, uint16_t len )
+static bool enqueue_own( uint8_t dst, const uint8_t* p_payload, uint16_t len )
 {
     if( txq_ring.count >= LORA_MESH_TXQ_LEN )
     {
         return false;
     }
-    packet_t* p = &txq[ring_slot( &txq_ring, txq_ring.count, LORA_MESH_TXQ_LEN )];
+    packet_t* p_slot = &txq[ring_slot( &txq_ring, txq_ring.count, LORA_MESH_TXQ_LEN )];
 
     const uint16_t pkt_id = next_pkt_id++;
-    p->data[0]            = self_id;
-    p->data[1]            = dst;
-    p->data[2]            = ( uint8_t ) ( pkt_id >> 8 );
-    p->data[3]            = ( uint8_t ) pkt_id;
-    p->data[4]            = LORA_MESH_HOP_LIMIT;
+    p_slot->data[0]            = self_id;
+    p_slot->data[1]            = dst;
+    p_slot->data[2]            = ( uint8_t ) ( pkt_id >> 8 );
+    p_slot->data[3]            = ( uint8_t ) pkt_id;
+    p_slot->data[4]            = LORA_MESH_HOP_LIMIT;
     if( len > 0 )
     {
-        memcpy( &p->data[MESH_HEADER_LEN], payload, len );
+        memcpy( &p_slot->data[MESH_HEADER_LEN], p_payload, len );
     }
-    p->len = ( uint8_t ) ( MESH_HEADER_LEN + len );
+    p_slot->len = ( uint8_t ) ( MESH_HEADER_LEN + len );
     txq_ring.count++;
 
     // So our own packet echoing back from a neighbour is dropped as a duplicate
@@ -159,20 +159,20 @@ static bool enqueue_own( uint8_t dst, const uint8_t* payload, uint16_t len )
     return true;
 }
 
-static bool enqueue_relay( const uint8_t* pkt, uint8_t len, uint32_t now )
+static bool enqueue_relay( const uint8_t* p_pkt, uint8_t len, uint32_t now )
 {
-    for( int i = 0; i < LORA_MESH_RELAYQ_LEN; i++ )
+    for( int idx = 0; idx < LORA_MESH_RELAYQ_LEN; idx++ )
     {
-        if( !relay_used[i] )
+        if( !relay_used[idx] )
         {
-            packet_t* p = &relayq[i];
-            memcpy( p->data, pkt, len );
-            p->data[4]--;  // one hop used
-            p->len = len;
+            packet_t* p_slot = &relayq[idx];
+            memcpy( p_slot->data, p_pkt, len );
+            p_slot->data[4]--;  // one hop used
+            p_slot->len = len;
             const uint32_t span =
                 LORA_MESH_RELAY_DELAY_MAX_MS - LORA_MESH_RELAY_DELAY_MIN_MS + 1;
-            p->due_ms     = now + LORA_MESH_RELAY_DELAY_MIN_MS + ( get_rand_32( ) % span );
-            relay_used[i] = true;
+            p_slot->due_ms     = now + LORA_MESH_RELAY_DELAY_MIN_MS + ( get_rand_32( ) % span );
+            relay_used[idx] = true;
             return true;
         }
     }
@@ -180,25 +180,25 @@ static bool enqueue_relay( const uint8_t* pkt, uint8_t len, uint32_t now )
     return false;
 }
 
-static void deliver( uint8_t src, const uint8_t* payload, uint8_t len, uint8_t hops )
+static void deliver( uint8_t src, const uint8_t* p_payload, uint8_t len, uint8_t hops )
 {
     if( rxq_ring.count >= LORA_MESH_RXQ_LEN )
     {
         stats.rx_overflow++;
         return;
     }
-    delivery_t* d = &rxq[ring_slot( &rxq_ring, rxq_ring.count, LORA_MESH_RXQ_LEN )];
-    d->src        = src;
-    d->len        = len;
-    d->hops       = hops;
-    memcpy( d->data, payload, len );
+    delivery_t* p_item = &rxq[ring_slot( &rxq_ring, rxq_ring.count, LORA_MESH_RXQ_LEN )];
+    p_item->src        = src;
+    p_item->len        = len;
+    p_item->hops       = hops;
+    memcpy( p_item->data, p_payload, len );
     rxq_ring.count++;
     stats.delivered++;
 }
 
 /* --- Receive handling ------------------------------------------------------- */
 
-static void handle_packet( const uint8_t* pkt, uint8_t len, uint32_t now )
+static void handle_packet( const uint8_t* p_pkt, uint8_t len, uint32_t now )
 {
     if( len < MESH_HEADER_LEN )
     {
@@ -213,10 +213,10 @@ static void handle_packet( const uint8_t* pkt, uint8_t len, uint32_t now )
         return;
     }
 
-    const uint8_t  src    = pkt[0];
-    const uint8_t  dst    = pkt[1];
-    const uint16_t pkt_id = ( uint16_t ) ( ( pkt[2] << 8 ) | pkt[3] );
-    const uint8_t  hops   = pkt[4];
+    const uint8_t  src    = p_pkt[0];
+    const uint8_t  dst    = p_pkt[1];
+    const uint16_t pkt_id = ( uint16_t ) ( ( p_pkt[2] << 8 ) | p_pkt[3] );
+    const uint8_t  hops   = p_pkt[4];
 
     if( src == 0 || src == MESH_BROADCAST )
     {
@@ -224,7 +224,7 @@ static void handle_packet( const uint8_t* pkt, uint8_t len, uint32_t now )
         return;
     }
 
-    stats.rx++;
+    stats.rx_count++;
     if( src <= LORA_MESH_MAX_NODE_ID )
     {
         heard[src]    = true;
@@ -244,7 +244,7 @@ static void handle_packet( const uint8_t* pkt, uint8_t len, uint32_t now )
     {
         // links travelled (1 = direct); 0 = unknown if the hops byte is out of range
         const uint8_t links = hops <= LORA_MESH_HOP_LIMIT ? ( uint8_t ) ( LORA_MESH_HOP_LIMIT - hops + 1 ) : 0;
-        deliver( src, &pkt[MESH_HEADER_LEN], payload_len, links );
+        deliver( src, &p_pkt[MESH_HEADER_LEN], payload_len, links );
     }
 
     // Relay rule: anything not addressed only to us, while hops remain
@@ -252,7 +252,7 @@ static void handle_packet( const uint8_t* pkt, uint8_t len, uint32_t now )
     {
         if( hops > 0 )
         {
-            if( enqueue_relay( pkt, len, now ) && src < sizeof( relayed_from ) / sizeof( relayed_from[0] ) )
+            if( enqueue_relay( p_pkt, len, now ) && src < sizeof( relayed_from ) / sizeof( relayed_from[0] ) )
             {
                 relayed_from[src]++;
             }
@@ -275,12 +275,12 @@ static void start_next_tx( uint32_t now )
 
     // Due relays first (oldest due time), so the flood keeps moving
     int best = -1;
-    for( int i = 0; i < LORA_MESH_RELAYQ_LEN; i++ )
+    for( int idx = 0; idx < LORA_MESH_RELAYQ_LEN; idx++ )
     {
-        if( relay_used[i] && ( int32_t ) ( now - relayq[i].due_ms ) >= 0 &&
-            ( best < 0 || ( int32_t ) ( relayq[i].due_ms - relayq[best].due_ms ) < 0 ) )
+        if( relay_used[idx] && ( int32_t ) ( now - relayq[idx].due_ms ) >= 0 &&
+            ( best < 0 || ( int32_t ) ( relayq[idx].due_ms - relayq[best].due_ms ) < 0 ) )
         {
-            best = i;
+            best = idx;
         }
     }
     if( best >= 0 )
@@ -299,10 +299,10 @@ static void start_next_tx( uint32_t now )
 
     if( txq_ring.count > 0 )
     {
-        packet_t* p   = &txq[txq_ring.head];
+        packet_t* p_slot   = &txq[txq_ring.head];
         txq_ring.head = ring_slot( &txq_ring, 1, LORA_MESH_TXQ_LEN );
         txq_ring.count--;
-        if( lora_radio_start_tx( p->data, p->len ) )
+        if( lora_radio_start_tx( p_slot->data, p_slot->len ) )
         {
             in_flight = IN_FLIGHT_OWN;
         }
@@ -322,7 +322,7 @@ bool lora_mesh_init( uint8_t node_id )
     memset( relay_used, 0, sizeof( relay_used ) );
     memset( heard, 0, sizeof( heard ) );
     memset( relayed_from, 0, sizeof( relayed_from ) );
-    last_recv_valid = false;
+    b_last_recv_valid = false;
     txq_ring  = ( ring_t ){ 0 };
     rxq_ring  = ( ring_t ){ 0 };
     in_flight = IN_FLIGHT_NONE;
@@ -333,34 +333,34 @@ bool lora_mesh_init( uint8_t node_id )
     return lora_radio_init( );
 }
 
-bool lora_mesh_send( uint8_t dst, const uint8_t* payload, uint16_t len )
+bool lora_mesh_send( uint8_t dst, const uint8_t* p_payload, uint16_t len )
 {
-    if( len == 0 || len > MAX_PAYLOAD || payload == NULL )
+    if( len == 0 || len > MAX_PAYLOAD || p_payload == NULL )
     {
         return false;
     }
-    return enqueue_own( dst, payload, len );
+    return enqueue_own( dst, p_payload, len );
 }
 
-int lora_mesh_recv( uint8_t* src, uint8_t* buf, uint16_t buf_size )
+int lora_mesh_recv( uint8_t* p_src, uint8_t* p_buf, uint16_t buf_size )
 {
     if( rxq_ring.count == 0 )
     {
         return MESH_RECV_NONE;
     }
-    const delivery_t* d = &rxq[rxq_ring.head];
+    const delivery_t* p_item = &rxq[rxq_ring.head];
     rxq_ring.head       = ring_slot( &rxq_ring, 1, LORA_MESH_RXQ_LEN );
     rxq_ring.count--;
 
-    if( d->len > buf_size )
+    if( p_item->len > buf_size )
     {
         return MESH_RECV_BUF_TOO_SMALL;
     }
-    memcpy( buf, d->data, d->len );
-    *src            = d->src;
-    last_recv_valid = true;
-    last_recv_hops  = d->hops;
-    return d->len;
+    memcpy( p_buf, p_item->data, p_item->len );
+    *p_src            = p_item->src;
+    b_last_recv_valid = true;
+    last_recv_hops  = p_item->hops;
+    return p_item->len;
 }
 
 void lora_mesh_poll( void )
@@ -368,7 +368,7 @@ void lora_mesh_poll( void )
     uint32_t now = now_ms( );
 
     // Handle a few radio events per call, without ever spinning here
-    for( int i = 0; i < 4; i++ )
+    for( int idx = 0; idx < 4; idx++ )
     {
         uint8_t                  len;
         int8_t                   rssi, snr;
@@ -390,7 +390,7 @@ void lora_mesh_poll( void )
         case LORA_EVT_TX_DONE:
             if( in_flight == IN_FLIGHT_OWN )
             {
-                stats.tx++;
+                stats.tx_count++;
             }
             else if( in_flight == IN_FLIGHT_RELAY )
             {
@@ -426,13 +426,13 @@ uint16_t lora_mesh_max_payload( void )
     return MAX_PAYLOAD;
 }
 
-bool lora_mesh_last_heard( uint8_t node_id, uint32_t* ms_since_boot )
+bool lora_mesh_last_heard( uint8_t node_id, uint32_t* p_ms_since_boot )
 {
     if( node_id > LORA_MESH_MAX_NODE_ID || !heard[node_id] )
     {
         return false;
     }
-    *ms_since_boot = heard_ms[node_id];
+    *p_ms_since_boot = heard_ms[node_id];
     return true;
 }
 
@@ -441,9 +441,9 @@ bool lora_mesh_tx_busy( void )
     return txq_ring.count > 0 || lora_radio_tx_active( );
 }
 
-void lora_mesh_get_stats( mesh_stats_t* out )
+void lora_mesh_get_stats( mesh_stats_t* p_out )
 {
-    *out = stats;
+    *p_out = stats;
 }
 
 void lora_mesh_set_drop_rate( float rate )
@@ -468,23 +468,23 @@ void lora_mesh_set_heartbeat( uint32_t interval_ms )
     heartbeat_next_ms     = now_ms( );
 }
 
-void lora_mesh_last_link_quality( int8_t* rssi_dbm, int8_t* snr_db )
+void lora_mesh_last_link_quality( int8_t* p_rssi_dbm, int8_t* p_snr_db )
 {
-    *rssi_dbm = last_rssi_dbm;
-    *snr_db   = last_snr_db;
+    *p_rssi_dbm = last_rssi_dbm;
+    *p_snr_db   = last_snr_db;
 }
 
-bool lora_mesh_last_recv_info( uint8_t* hops, uint8_t* prev_hop )
+bool lora_mesh_last_recv_info( uint8_t* p_hops, uint8_t* p_prev_hop )
 {
-    if( hops != NULL )
+    if( p_hops != NULL )
     {
-        *hops = last_recv_valid ? last_recv_hops : 0;
+        *p_hops = b_last_recv_valid ? last_recv_hops : 0;
     }
-    if( prev_hop != NULL )
+    if( p_prev_hop != NULL )
     {
-        *prev_hop = 0;  // unknown: the LoRa header has no relay field
+        *p_prev_hop = 0;  // unknown: the LoRa header has no relay field
     }
-    return last_recv_valid;
+    return b_last_recv_valid;
 }
 
 uint16_t lora_mesh_relayed_from( uint8_t src )
@@ -492,14 +492,14 @@ uint16_t lora_mesh_relayed_from( uint8_t src )
     return src < sizeof( relayed_from ) / sizeof( relayed_from[0] ) ? relayed_from[src] : 0;
 }
 
-const mesh_radio_t lora_mesh_radio = {
-    .name          = "lora",
-    .send          = lora_mesh_send,
-    .recv          = lora_mesh_recv,
-    .poll          = lora_mesh_poll,
-    .max_payload   = lora_mesh_max_payload,
-    .last_heard    = lora_mesh_last_heard,
-    .tx_busy       = lora_mesh_tx_busy,
-    .get_stats     = lora_mesh_get_stats,
-    .set_drop_rate = lora_mesh_set_drop_rate,
+const mesh_radio_t g_lora_mesh_radio = {
+    .p_name          = "lora",
+    .p_send          = lora_mesh_send,
+    .p_recv          = lora_mesh_recv,
+    .p_poll          = lora_mesh_poll,
+    .p_max_payload   = lora_mesh_max_payload,
+    .p_last_heard    = lora_mesh_last_heard,
+    .p_tx_busy       = lora_mesh_tx_busy,
+    .p_get_stats     = lora_mesh_get_stats,
+    .p_set_drop_rate = lora_mesh_set_drop_rate,
 };

@@ -23,27 +23,27 @@
 
 typedef struct
 {
-    const int8_t* feat;  /* per internal node: feature index */
-    const float* thr;    /* go left if f[feat] <= thr */
-    const int16_t* left; /* >= 0: internal node; < 0: leaf -(child + 1) */
-    const int16_t* right;
-    const uint8_t* leaf; /* n_leaves x n_classes, percent */
+    const int8_t* p_feat;  /* per internal node: feature index */
+    const float* p_thr;    /* go left if f[feat] <= thr */
+    const int16_t* p_left; /* >= 0: internal node; < 0: leaf -(child + 1) */
+    const int16_t* p_right;
+    const uint8_t* p_leaf; /* n_leaves x n_classes, percent */
     int16_t root;        /* 0, or a leaf code if the whole tree is one leaf */
 } sm_tree_t;
 
 typedef struct
 {
-    const sm_tree_t* trees;
+    const sm_tree_t* p_trees;
     uint8_t n_trees;
     uint8_t n_classes;
-    const uint8_t* classes; /* label id of each class */
+    const uint8_t* p_classes; /* label id of each class */
 } sm_model_t;
 
 /* One stage: label id of the winning class and its confidence 0-100. */
-void sm_predict(const sm_model_t* m, const float* f, uint8_t* label, uint8_t* conf);
+void sm_predict(const sm_model_t* p_model, const float* p_features, uint8_t* p_label, uint8_t* p_conf);
 
 /* Both stages + rejection. label_id: common/sound_classes.h. conf 0-100. */
-void sound_classify(const float f[SF_N_FEATURES], uint8_t* label_id, uint8_t* conf);
+void sound_classify(const float features[SF_N_FEATURES], uint8_t* p_label_id, uint8_t* p_conf);
 
 /* The rejection threshold the model was exported with (SOUND_STAGE2_MIN_CONF). */
 uint8_t sound_classify_min_conf(void);

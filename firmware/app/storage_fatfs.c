@@ -17,230 +17,230 @@
 static FATFS g_fs;
 static FIL g_fil[MAX_OPEN];
 static bool g_used[MAX_OPEN];
-static bool g_mounted;
+static bool gb_mounted;
 
 /* Diagnostics for 's' (storage_fatfs_status): the last FatFs error of any call except a missing
  * file on open-for-read (an expected answer, e.g. "does this name exist yet?"). */
 static FRESULT g_last_err = FR_OK;
-static const char* g_last_err_op = "";
+static const char* gp_last_err_op = "";
 static char g_last_err_path[64];
 static uint32_t g_err_count;
 
-static void note_err(const char* op, FRESULT r, const char* path)
+static void note_err(const char* p_op_name, FRESULT res, const char* p_path)
 {
-    if (r == FR_OK)
+    if (res == FR_OK)
     {
         return;
     }
-    g_last_err = r;
-    g_last_err_op = op;
-    snprintf(g_last_err_path, sizeof(g_last_err_path), "%s", path ? path : "");
+    g_last_err = res;
+    gp_last_err_op = p_op_name;
+    snprintf(g_last_err_path, sizeof(g_last_err_path), "%s", p_path ? p_path : "");
     g_err_count++;
 }
 
 static int take(void)
 {
-    for (int i = 0; i < MAX_OPEN; i++)
+    for (int idx = 0; idx < MAX_OPEN; idx++)
     {
-        if (!g_used[i])
+        if (!g_used[idx])
         {
-            g_used[i] = true;
-            return i;
+            g_used[idx] = true;
+            return idx;
         }
     }
     return -1;
 }
 
-static FIL* fil(int h)
+static FIL* fil(int handle)
 {
-    return (h >= 0 && h < MAX_OPEN && g_used[h]) ? &g_fil[h] : NULL;
+    return (handle >= 0 && handle < MAX_OPEN && g_used[handle]) ? &g_fil[handle] : NULL;
 }
 
-static int f_openmode(const char* path, BYTE mode)
+static int f_openmode(const char* p_path, BYTE mode)
 {
-    int h = take();
-    if (h < 0)
+    int handle = take();
+    if (handle < 0)
     {
-        note_err("open (no free handle)", FR_TOO_MANY_OPEN_FILES, path);
+        note_err("open (no free handle)", FR_TOO_MANY_OPEN_FILES, p_path);
         return -1;
     }
-    FRESULT r = f_open(&g_fil[h], path, mode);
-    if (r != FR_OK)
+    FRESULT res = f_open(&g_fil[handle], p_path, mode);
+    if (res != FR_OK)
     {
-        if (!(mode == FA_READ && (r == FR_NO_FILE || r == FR_NO_PATH)))
+        if (!(mode == FA_READ && (res == FR_NO_FILE || res == FR_NO_PATH)))
         {
-            note_err(mode == FA_READ ? "open_r" : "open_w", r, path);
+            note_err(mode == FA_READ ? "open_r" : "open_w", res, p_path);
         }
-        g_used[h] = false;
+        g_used[handle] = false;
         return -1;
     }
-    return h;
+    return handle;
 }
 
-static int s_open_read(void* c, const char* path)
+static int s_open_read(void* p_ctx, const char* p_path)
 {
-    (void)c;
-    return f_openmode(path, FA_READ);
+    (void)p_ctx;
+    return f_openmode(p_path, FA_READ);
 }
 
-static int s_open_write(void* c, const char* path)
+static int s_open_write(void* p_ctx, const char* p_path)
 {
-    (void)c;
-    return f_openmode(path, FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
+    (void)p_ctx;
+    return f_openmode(p_path, FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
 }
 
-static int s_read_at(void* c, int h, uint32_t off, uint8_t* buf, uint16_t len)
+static int s_read_at(void* p_ctx, int handle, uint32_t off, uint8_t* p_buf, uint16_t len)
 {
-    (void)c;
-    FIL* f = fil(h);
+    (void)p_ctx;
+    FIL* p_file = fil(handle);
     UINT got = 0;
-    FRESULT r = f ? f_lseek(f, off) : FR_INVALID_OBJECT;
-    if (r == FR_OK)
+    FRESULT res = p_file ? f_lseek(p_file, off) : FR_INVALID_OBJECT;
+    if (res == FR_OK)
     {
-        r = f_read(f, buf, len, &got);
+        res = f_read(p_file, p_buf, len, &got);
     }
-    if (r != FR_OK)
+    if (res != FR_OK)
     {
-        note_err("read", r, "");
+        note_err("read", res, "");
         return -1;
     }
     return (int)got;
 }
 
-static int s_write_at(void* c, int h, uint32_t off, const uint8_t* buf, uint16_t len)
+static int s_write_at(void* p_ctx, int handle, uint32_t off, const uint8_t* p_buf, uint16_t len)
 {
-    (void)c;
-    FIL* f = fil(h);
+    (void)p_ctx;
+    FIL* p_file = fil(handle);
     UINT put = 0;
     /* f_lseek past the end of a file opened for writing extends it, which is exactly what
      * out-of-order fragments need. */
-    FRESULT r = f ? f_lseek(f, off) : FR_INVALID_OBJECT;
-    if (r == FR_OK)
+    FRESULT res = p_file ? f_lseek(p_file, off) : FR_INVALID_OBJECT;
+    if (res == FR_OK)
     {
-        r = f_write(f, buf, len, &put);
+        res = f_write(p_file, p_buf, len, &put);
     }
-    if (r != FR_OK)
+    if (res != FR_OK)
     {
-        note_err("write", r, "");
+        note_err("write", res, "");
         return -1;
     }
     return (int)put;
 }
 
-static int32_t s_size(void* c, int h)
+static int32_t s_size(void* p_ctx, int handle)
 {
-    (void)c;
-    FIL* f = fil(h);
-    return f ? (int32_t)f_size(f) : -1;
+    (void)p_ctx;
+    FIL* p_file = fil(handle);
+    return p_file ? (int32_t)f_size(p_file) : -1;
 }
 
-static int s_close(void* c, int h)
+static int s_close(void* p_ctx, int handle)
 {
-    (void)c;
-    FIL* f = fil(h);
-    if (!f)
+    (void)p_ctx;
+    FIL* p_file = fil(handle);
+    if (!p_file)
     {
         return -1;
     }
-    FRESULT r = f_close(f);
-    note_err("close", r, "");
-    g_used[h] = false;
-    return r == FR_OK ? 0 : -1;
+    FRESULT res = f_close(p_file);
+    note_err("close", res, "");
+    g_used[handle] = false;
+    return res == FR_OK ? 0 : -1;
 }
 
-static int s_remove(void* c, const char* path)
+static int s_remove(void* p_ctx, const char* p_path)
 {
-    (void)c;
-    return f_unlink(path) == FR_OK ? 0 : -1;
+    (void)p_ctx;
+    return f_unlink(p_path) == FR_OK ? 0 : -1;
 }
 
-static int s_rename(void* c, const char* from, const char* to)
+static int s_rename(void* p_ctx, const char* p_from, const char* p_to_path)
 {
-    (void)c;
-    f_unlink(to); /* FatFs refuses to rename onto an existing file */
-    FRESULT r = f_rename(from, to);
-    note_err("rename", r, to);
-    return r == FR_OK ? 0 : -1;
+    (void)p_ctx;
+    f_unlink(p_to_path); /* FatFs refuses to rename onto an existing file */
+    FRESULT res = f_rename(p_from, p_to_path);
+    note_err("rename", res, p_to_path);
+    return res == FR_OK ? 0 : -1;
 }
 
-static int s_list(void* c, const char* dir, void (*fn)(const char*, void*), void* user)
+static int s_list(void* p_ctx, const char* p_dir, void (*p_callback)(const char*, void*), void* p_user)
 {
-    (void)c;
-    DIR d;
-    FILINFO fi;
-    if (f_opendir(&d, dir) != FR_OK)
+    (void)p_ctx;
+    DIR dir_handle;
+    FILINFO file_info;
+    if (f_opendir(&dir_handle, p_dir) != FR_OK)
     {
         return -1;
     }
-    while (f_readdir(&d, &fi) == FR_OK && fi.fname[0])
+    while (f_readdir(&dir_handle, &file_info) == FR_OK && file_info.fname[0])
     {
-        if (!(fi.fattrib & AM_DIR))
+        if (!(file_info.fattrib & AM_DIR))
         {
-            fn(fi.fname, user);
+            p_callback(file_info.fname, p_user);
         }
     }
-    f_closedir(&d);
+    f_closedir(&dir_handle);
     return 0;
 }
 
-static int s_mkdir(void* c, const char* dir)
+static int s_mkdir(void* p_ctx, const char* p_dir)
 {
-    (void)c;
-    FRESULT r = f_mkdir(dir);
-    if (r != FR_EXIST)
+    (void)p_ctx;
+    FRESULT res = f_mkdir(p_dir);
+    if (res != FR_EXIST)
     {
-        note_err("mkdir", r, dir);
+        note_err("mkdir", res, p_dir);
     }
-    return (r == FR_OK || r == FR_EXIST) ? 0 : -1;
+    return (res == FR_OK || res == FR_EXIST) ? 0 : -1;
 }
 
 bool storage_fatfs_mount(void)
 {
-    if (!g_mounted)
+    if (!gb_mounted)
     {
-        FRESULT r = f_mount(&g_fs, "", 1);
-        if (r != FR_OK)
+        FRESULT res = f_mount(&g_fs, "", 1);
+        if (res != FR_OK)
         {
-            printf("sd: mount failed (%d). Card inserted? FAT32 formatted?\n", (int)r);
+            printf("sd: mount failed (%d). Card inserted? FAT32 formatted?\n", (int)res);
             return false;
         }
-        g_mounted = true;
+        gb_mounted = true;
     }
     return true;
 }
 
-void storage_fatfs_status(char* out, size_t cap)
+void storage_fatfs_status(char* p_out, size_t cap)
 {
     int used = 0;
-    for (int i = 0; i < MAX_OPEN; i++)
+    for (int idx = 0; idx < MAX_OPEN; idx++)
     {
-        used += g_used[i] ? 1 : 0;
+        used += g_used[idx] ? 1 : 0;
     }
     if (g_err_count == 0)
     {
-        snprintf(out, cap, "sd handles in use %d/%d | no SD errors", used, MAX_OPEN);
+        snprintf(p_out, cap, "sd handles in use %d/%d | no SD errors", used, MAX_OPEN);
     }
     else
     {
-        snprintf(out, cap, "sd handles in use %d/%d | %lu SD errors, last: %s FR=%d on %s", used, MAX_OPEN,
-                 (unsigned long)g_err_count, g_last_err_op, (int)g_last_err, g_last_err_path);
+        snprintf(p_out, cap, "sd handles in use %d/%d | %lu SD errors, last: %s FR=%d on %s", used, MAX_OPEN,
+                 (unsigned long)g_err_count, gp_last_err_op, (int)g_last_err, g_last_err_path);
     }
 }
 
 const alfp_storage_t* storage_fatfs(void)
 {
-    static const alfp_storage_t st = {
-        .ctx = NULL,
-        .open_read = s_open_read,
-        .open_write = s_open_write,
-        .read_at = s_read_at,
-        .write_at = s_write_at,
-        .size = s_size,
-        .close = s_close,
-        .remove = s_remove,
-        .rename = s_rename,
-        .list = s_list,
-        .mkdir = s_mkdir,
+    static const alfp_storage_t store = {
+        .p_ctx = NULL,
+        .p_open_read = s_open_read,
+        .p_open_write = s_open_write,
+        .p_read_at = s_read_at,
+        .p_write_at = s_write_at,
+        .p_size = s_size,
+        .p_close = s_close,
+        .p_remove = s_remove,
+        .p_rename = s_rename,
+        .p_list = s_list,
+        .p_mkdir = s_mkdir,
     };
-    return &st;
+    return &store;
 }

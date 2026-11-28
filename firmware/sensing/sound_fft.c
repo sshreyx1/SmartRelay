@@ -3,47 +3,47 @@
  */
 #include "sound_fft.h"
 
-static uint32_t bitrev8(uint32_t v)
+static uint32_t bitrev8(uint32_t value)
 {
-    v = ((v & 0xF0u) >> 4) | ((v & 0x0Fu) << 4);
-    v = ((v & 0xCCu) >> 2) | ((v & 0x33u) << 2);
-    v = ((v & 0xAAu) >> 1) | ((v & 0x55u) << 1);
-    return v;
+    value = ((value & 0xF0u) >> 4) | ((value & 0x0Fu) << 4);
+    value = ((value & 0xCCu) >> 2) | ((value & 0x33u) << 2);
+    value = ((value & 0xAAu) >> 1) | ((value & 0x55u) << 1);
+    return value;
 }
 
-void sound_fft256(int16_t* re, int16_t* im)
+void sound_fft256(int16_t* p_real, int16_t* p_imag)
 {
-    for (uint32_t i = 0; i < SOUND_FFT_N; i++)
+    for (uint32_t idx = 0; idx < SOUND_FFT_N; idx++)
     {
-        uint32_t j = bitrev8(i);
-        if (j > i)
+        uint32_t jdx = bitrev8(idx);
+        if (jdx > idx)
         {
-            int16_t t = re[i];
-            re[i] = re[j];
-            re[j] = t;
-            t = im[i];
-            im[i] = im[j];
-            im[j] = t;
+            int16_t swap = p_real[idx];
+            p_real[idx] = p_real[jdx];
+            p_real[jdx] = swap;
+            swap = p_imag[idx];
+            p_imag[idx] = p_imag[jdx];
+            p_imag[jdx] = swap;
         }
     }
     /* decimation in time; W = cos - j*sin; each stage: a' = (a + W*b) / 2, b' = (a - W*b) / 2 */
     for (uint32_t half = 1, step = SOUND_FFT_N / 2; half < SOUND_FFT_N; half <<= 1, step >>= 1)
     {
-        for (uint32_t k = 0; k < half; k++)
+        for (uint32_t kdx = 0; kdx < half; kdx++)
         {
-            const int32_t wr = sound_twiddle_cos[k * step];
-            const int32_t wi = -sound_twiddle_sin[k * step];
-            for (uint32_t i = k; i < SOUND_FFT_N; i += half << 1)
+            const int32_t w_real = g_sound_twiddle_cos[kdx * step];
+            const int32_t w_imag = -g_sound_twiddle_sin[kdx * step];
+            for (uint32_t idx = kdx; idx < SOUND_FFT_N; idx += half << 1)
             {
-                const uint32_t j = i + half;
+                const uint32_t jdx = idx + half;
                 /* Q15 complex multiply with rounding; sound_asr32() is a well-defined arithmetic shift */
-                const int32_t tr = sound_asr32(wr * re[j] - wi * im[j] + SOUND_Q15_HALF, 15u);
-                const int32_t ti = sound_asr32(wr * im[j] + wi * re[j] + SOUND_Q15_HALF, 15u);
-                const int32_t ar = re[i], ai = im[i];
-                re[i] = (int16_t)sound_asr32(ar + tr, 1u);
-                im[i] = (int16_t)sound_asr32(ai + ti, 1u);
-                re[j] = (int16_t)sound_asr32(ar - tr, 1u);
-                im[j] = (int16_t)sound_asr32(ai - ti, 1u);
+                const int32_t twid_real = sound_asr32(w_real * p_real[jdx] - w_imag * p_imag[jdx] + SOUND_Q15_HALF, 15u);
+                const int32_t twid_imag = sound_asr32(w_real * p_imag[jdx] + w_imag * p_real[jdx] + SOUND_Q15_HALF, 15u);
+                const int32_t real_a = p_real[idx], imag_a = p_imag[idx];
+                p_real[idx] = (int16_t)sound_asr32(real_a + twid_real, 1u);
+                p_imag[idx] = (int16_t)sound_asr32(imag_a + twid_imag, 1u);
+                p_real[jdx] = (int16_t)sound_asr32(real_a - twid_real, 1u);
+                p_imag[jdx] = (int16_t)sound_asr32(imag_a - twid_imag, 1u);
             }
         }
     }

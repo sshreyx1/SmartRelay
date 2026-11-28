@@ -21,14 +21,14 @@
  * @param Pin GPIO pin number
  * @param Mode GPIO mode: 0 or GPIO_MODE_INPUT for input, others for output
  */
-void DEV_GPIO_Mode(uint16_t Pin, uint16_t Mode)
+void DEV_GPIO_Mode(uint16_t pin, uint16_t mode)
 {
-    gpio_init(Pin);
-    if(Mode == 0 || Mode == GPIO_IN) {
-        gpio_set_dir(Pin, GPIO_IN);
-        gpio_pull_up(Pin);
+    gpio_init(pin);
+    if(mode == 0 || mode == GPIO_IN) {
+        gpio_set_dir(pin, GPIO_IN);
+        gpio_pull_up(pin);
     } else {
-        gpio_set_dir(Pin, GPIO_OUT);
+        gpio_set_dir(pin, GPIO_OUT);
     }
 
 }
@@ -42,9 +42,9 @@ void DEV_GPIO_Mode(uint16_t Pin, uint16_t Mode)
  * @param Pin GPIO pin number
  * @param isr_handler Pointer to the interrupt handler function
  */
-void DEV_GPIO_INT(int32_t Pin, gpio_irq_callback_t isr_handler)
+void DEV_GPIO_INT(int32_t pin, gpio_irq_callback_t p_isr_handler)
 {
-    gpio_set_irq_enabled_with_callback(Pin,GPIO_IRQ_EDGE_RISE,true,isr_handler);
+    gpio_set_irq_enabled_with_callback(pin,GPIO_IRQ_EDGE_RISE,true,p_isr_handler);
 }
 
 /**
@@ -55,9 +55,9 @@ void DEV_GPIO_INT(int32_t Pin, gpio_irq_callback_t isr_handler)
  * @param Pin GPIO pin number
  * @param Value Logic level: 0 for low, 1 for high
  */
-void DEV_Digital_Write(uint16_t Pin, uint8_t Value)
+void DEV_Digital_Write(uint16_t pin, uint8_t value)
 {
-    gpio_put(Pin, Value); // Set the GPIO pin level
+    gpio_put(pin, value); // Set the GPIO pin level
 }
 
 /**
@@ -68,7 +68,7 @@ void DEV_Digital_Write(uint16_t Pin, uint8_t Value)
  * @param Pin GPIO pin number
  * @return uint8_t Logic level: 0 for low, 1 for high
  */
-uint8_t DEV_Digital_Read(uint16_t Pin)
+uint8_t DEV_Digital_Read(uint16_t pin)
 {
-    return gpio_get(Pin); // Get the GPIO pin level
+    return gpio_get(pin); // Get the GPIO pin level
 }

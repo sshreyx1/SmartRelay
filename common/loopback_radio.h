@@ -12,11 +12,11 @@
 
 #include "mesh_radio.h"
 
-extern const mesh_radio_t loopback_a;
-extern const mesh_radio_t loopback_b;
+extern const mesh_radio_t g_loopback_a;
+extern const mesh_radio_t g_loopback_b;
 
 /* now_ms / rand32 supplied by the platform; airtime_ms models how long tx_busy() stays true. */
-void loopback_init(uint32_t (*now_ms)(void), uint32_t (*rand32)(void), uint16_t max_payload, uint32_t airtime_ms,
+void loopback_init(uint32_t (*p_now_ms)(void), uint32_t (*p_rand32)(void), uint16_t max_payload, uint32_t airtime_ms,
                    uint32_t latency_ms);
 void loopback_set_loss(float loss); /* both directions */
 

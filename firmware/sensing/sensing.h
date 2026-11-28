@@ -28,14 +28,14 @@
 
 typedef struct
 {
-    void (*wait_ms)(uint32_t ms); /* sleep without hogging the CPU */
-    void (*timing_begin)(void);   /* make the next few ms uninterrupted (DHT22 bit timing), may be NULL */
-    void (*timing_end)(void);
+    void (*p_wait_ms)(uint32_t msec); /* sleep without hogging the CPU */
+    void (*p_timing_begin)(void);   /* make the next few ms uninterrupted (DHT22 bit timing), may be NULL */
+    void (*p_timing_end)(void);
 } sensing_hooks_t;
 
 typedef struct
 {
-    bool dht_ok;       /* a good DHT22 reading in the last SENSING_DHT_STALE_MS */
+    bool b_dht_ok;       /* a good DHT22 reading in the last SENSING_DHT_STALE_MS */
     float temp_c;      /* valid if dht_ok */
     float hum_pct;     /* valid if dht_ok */
     uint16_t light;    /* 0-4095 */
@@ -48,7 +48,7 @@ typedef struct
 #define SENSING_DHT_STALE_MS 10000u /* older than this = "missing" in the metadata */
 #define SENSING_COOLDOWN_MS 5000u   /* their main.c: 5 s PIR settle time after a capture */
 
-void sensing_init(const sensing_hooks_t* hooks);
+void sensing_init(const sensing_hooks_t* p_hooks);
 
 /* Call every loop. Reads the DHT22 + light every SENSING_DHT_PERIOD_MS. Returns true when a new
  * DHT22 attempt was made (good or bad) so the caller can log. */
@@ -68,14 +68,14 @@ bool sensing_dual_trigger(uint32_t now_ms);
  * the recording time. The sound fields are Rhaylene's on-node classifier (sound_classify.h):
  * sound_class = label id (common/sound_classes.h), sound_conf 0-100, sound_rms DC-corrected,
  * sound_zcr crossings/s; all unknown/missing if the recording failed. */
-void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* m, audio_result_t* audio);
+void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* p_meta, audio_result_t* p_audio);
 
 /* What the last recording heard (sensing_capture() or sensing_record_sound()). In SOUND_LEGACY_MODE:
  * label_id is AMBIENT for mic.c's AMBIENT_NOISE and unknown for its other two classes (the label table has
  * no LOUD_ANIMAL_CALL / HIGH_FREQ_RUSTLE), conf is unknown, rms/zcr are mic.c's, the timings are 0. */
 typedef struct
 {
-    bool ok;          /* false: no DMA channel, nothing below is valid */
+    bool b_is_ok;          /* false: no DMA channel, nothing below is valid */
     uint8_t label_id; /* common/sound_classes.h */
     uint8_t conf;     /* 0-100 */
     uint16_t rms;     /* DC-corrected, ADC counts */
@@ -88,7 +88,7 @@ typedef struct
 
 /* Record `seconds` of audio and classify it, without touching the trigger cooldown. Fills *audio
  * (legacy mic.c features) and the result returned by sensing_last_sound(). */
-bool sensing_record_sound(uint32_t seconds, audio_result_t* audio);
+bool sensing_record_sound(uint32_t seconds, audio_result_t* p_audio);
 
 const sensing_sound_t* sensing_last_sound(void);
 
@@ -96,6 +96,6 @@ const sensing_sound_t* sensing_last_sound(void);
  * plus a warning if the CPU budget (25% of the recording) or the ring slack is at risk. */
 void sensing_log_sound(void);
 
-const char* sensing_weather_name(int w);
+const char* sensing_weather_name(int weather);
 
 #endif

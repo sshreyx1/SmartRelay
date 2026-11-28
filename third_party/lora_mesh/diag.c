@@ -20,48 +20,48 @@ static bool is_driven( uint pin )
 {
     gpio_pull_up( pin );
     sleep_us( 200 );
-    const int up = gpio_get( pin );
+    const int link_up = gpio_get( pin );
     gpio_pull_down( pin );
     sleep_us( 200 );
     const int down = gpio_get( pin );
     gpio_disable_pulls( pin );
-    return up == down;
+    return link_up == down;
 }
 
 /* Returns ms until BUSY went low, or -1 if it stayed high */
 static int wait_busy_low( uint32_t timeout_ms )
 {
-    const absolute_time_t t0 = get_absolute_time( );
+    const absolute_time_t start_t = get_absolute_time( );
     while( gpio_get( RADIO_BUSY ) )
     {
-        if( absolute_time_diff_us( t0, get_absolute_time( ) ) > ( int64_t ) timeout_ms * 1000 )
+        if( absolute_time_diff_us( start_t, get_absolute_time( ) ) > ( int64_t ) timeout_ms * 1000 )
             return -1;
     }
-    return ( int ) ( absolute_time_diff_us( t0, get_absolute_time( ) ) / 1000 );
+    return ( int ) ( absolute_time_diff_us( start_t, get_absolute_time( ) ) / 1000 );
 }
 
 /* Sends GetVersion and prints the 5 reply bytes. Returns true if the chip said "LR1121". */
-static bool get_version_raw( uint baud, bool miso_pull_up )
+static bool get_version_raw( uint baud, bool b_miso_pull_up )
 {
     uint8_t cmd[2] = { 0x01, 0x01 };  // GetVersion
-    uint8_t rx[5]  = { 0 };
+    uint8_t rx_buf[5]  = { 0 };
 
     spi_set_baudrate( SPI_PORT, baud );
-    if( miso_pull_up ) gpio_pull_up( RADIO_MISO ); else gpio_pull_down( RADIO_MISO );
+    if( b_miso_pull_up ) gpio_pull_up( RADIO_MISO ); else gpio_pull_down( RADIO_MISO );
 
     gpio_put( RADIO_CS, 0 );
     spi_write_blocking( SPI_PORT, cmd, 2 );
     gpio_put( RADIO_CS, 1 );
     wait_busy_low( 1000 );
     gpio_put( RADIO_CS, 0 );
-    spi_read_blocking( SPI_PORT, 0x00, rx, 5 );
+    spi_read_blocking( SPI_PORT, 0x00, rx_buf, 5 );
     gpio_put( RADIO_CS, 1 );
     gpio_disable_pulls( RADIO_MISO );
 
-    const bool ok = rx[2] == 0x03;
-    printf( "  %4u kHz, MISO pull-%-4s: %02X %02X %02X %02X %02X%s\n", baud / 1000, miso_pull_up ? "up" : "down",
-            rx[0], rx[1], rx[2], rx[3], rx[4], ok ? "  <- LR1121 OK" : "" );
-    return ok;
+    const bool b_is_ok = rx_buf[2] == 0x03;
+    printf( "  %4u kHz, MISO pull-%-4s: %02X %02X %02X %02X %02X%s\n", baud / 1000, b_miso_pull_up ? "up" : "down",
+            rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3], rx_buf[4], b_is_ok ? "  <- LR1121 OK" : "" );
+    return b_is_ok;
 }
 
 /* With CS high the chip lets go of MISO, so a GP11->GP12 jumper makes the Pico hear itself */
@@ -72,10 +72,10 @@ static bool loopback( void )
     spi_set_baudrate( SPI_PORT, 1000 * 1000 );
     gpio_put( RADIO_CS, 1 );
     spi_write_read_blocking( SPI_PORT, pattern, back, 4 );
-    const bool ok = back[0] == 0xA5 && back[1] == 0x5A && back[2] == 0x0F && back[3] == 0xF0;
+    const bool b_is_ok = back[0] == 0xA5 && back[1] == 0x5A && back[2] == 0x0F && back[3] == 0xF0;
     printf( "4. Loopback (needs jumper GP11->GP12): sent A5 5A 0F F0, got %02X %02X %02X %02X%s\n", back[0], back[1],
-            back[2], back[3], ok ? "  <- Pico SPI pins OK" : "" );
-    return ok;
+            back[2], back[3], b_is_ok ? "  <- Pico SPI pins OK" : "" );
+    return b_is_ok;
 }
 
 int main( void )
@@ -115,14 +115,14 @@ int main( void )
         else printf( "went low after %d ms\n", boot_ms );
 
         // 2. Is each input wire actually connected to something?
-        const bool busy_driven = is_driven( RADIO_BUSY );
+        const bool b_busy_driven = is_driven( RADIO_BUSY );
         gpio_init( RADIO_MISO );  // plain input for this test
         gpio_put( RADIO_CS, 0 );  // chip drives MISO only while CS is low
         sleep_us( 50 );
-        const bool miso_driven = is_driven( RADIO_MISO );
+        const bool b_miso_driven = is_driven( RADIO_MISO );
         gpio_put( RADIO_CS, 1 );
-        printf( "2. Wire test: BUSY %s, MISO %s\n", busy_driven ? "connected" : "FLOATING",
-                miso_driven ? "connected" : "FLOATING" );
+        printf( "2. Wire test: BUSY %s, MISO %s\n", b_busy_driven ? "connected" : "FLOATING",
+                b_miso_driven ? "connected" : "FLOATING" );
 
         // 3. Raw GetVersion over SPI, fast and slow, with MISO pulled both ways
         printf( "3. GetVersion (the 3rd byte should be 03):\n" );
@@ -130,28 +130,28 @@ int main( void )
         gpio_set_function( RADIO_MISO, GPIO_FUNC_SPI );
         gpio_set_function( RADIO_CLK, GPIO_FUNC_SPI );
         gpio_set_function( RADIO_MOSI, GPIO_FUNC_SPI );
-        bool chip_ok = false;
-        chip_ok |= get_version_raw( 1000 * 1000, true );
-        chip_ok |= get_version_raw( 1000 * 1000, false );
-        chip_ok |= get_version_raw( 100 * 1000, true );
-        chip_ok |= get_version_raw( 100 * 1000, false );
+        bool b_chip_ok = false;
+        b_chip_ok |= get_version_raw( 1000 * 1000, true );
+        b_chip_ok |= get_version_raw( 1000 * 1000, false );
+        b_chip_ok |= get_version_raw( 100 * 1000, true );
+        b_chip_ok |= get_version_raw( 100 * 1000, false );
 
         // 4. Pico-only SPI check
-        const bool loop_ok = loopback( );
+        const bool b_loop_ok = loopback( );
         spi_deinit( SPI_PORT );
 
         // Plain-English verdict, most important finding first
         printf( "VERDICT: " );
-        if( chip_ok )
+        if( b_chip_ok )
             printf( "ALL GOOD - the LR1121 answered. Flash lora_mesh.uf2 now.\n" );
-        else if( loop_ok )
+        else if( b_loop_ok )
             printf( "Jumper test PASSED - the Pico's SPI pins work. So the fault is in the wires/module:\n"
                     "         remove the jumper, put module MISO back on GP12, then re-check CLK (GP10) and MOSI (GP11).\n" );
         else if( boot_ms < 0 || !busy_after_reset )
             printf( "The module is not booting. Check 3V3 -> pin 36, GND, RESET -> GP5, BUSY -> GP14.\n" );
-        else if( !busy_driven )
+        else if( !b_busy_driven )
             printf( "BUSY wire (GP14) is not connected to the module.\n" );
-        else if( !miso_driven )
+        else if( !b_miso_driven )
             printf( "MISO wire (GP12) is not connected to the module's MISO pin\n"
                     "         (or the jumper test is set up: then the Pico's SPI pins FAILED the loopback).\n" );
         else
@@ -159,7 +159,7 @@ int main( void )
                     "         add a jumper GP11->GP12, plug in, and read this verdict again.\n" );
 
         // Always flag a module that did not boot, even when another verdict was printed first
-        if( !chip_ok && ( boot_ms < 0 || !busy_after_reset ) )
+        if( !b_chip_ok && ( boot_ms < 0 || !busy_after_reset ) )
             printf( "WARNING: the module did NOT boot this round (BUSY never went high after reset).\n"
                     "         Check 3V3 -> pin 36, GND, RESET -> GP5 before anything else.\n" );
 

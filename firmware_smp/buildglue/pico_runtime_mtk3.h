@@ -19,7 +19,7 @@ extern "C"
     bool smartrelay_in_task(void);
 
     /* Every printf/puts/putchar byte lands here. Weak default discards; the firmware overrides it. */
-    void smartrelay_stdout_putc(char c);
+    void smartrelay_stdout_putc(char chr);
 
     /* Bytes of the newlib heap handed out so far (it never shrinks). */
     uint32_t smartrelay_heap_used(void);

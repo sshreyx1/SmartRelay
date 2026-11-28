@@ -58,9 +58,9 @@ enum
 #undef SC_ENUM
 };
 
-static inline bool sound_class_valid(uint8_t id)
+static inline bool sound_class_valid(uint8_t label_id)
 {
-    switch (id)
+    switch (label_id)
     {
 #define SC_CASE(id, name, group, kind, prefix) case id:
         SOUND_CLASS_LIST(SC_CASE)
@@ -75,10 +75,10 @@ static inline bool sound_class_valid(uint8_t id)
  * transfer of control (BARR-C 6.3.b.iv) and each function has one exit point. */
 
 /* "DOG"; "UNKNOWN" for 0xFF; "INVALID" for an id not in the table */
-static inline const char* sound_class_name(uint8_t id)
+static inline const char* sound_class_name(uint8_t label_id)
 {
     const char* p_result;
-    switch (id)
+    switch (label_id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \
@@ -87,17 +87,17 @@ static inline const char* sound_class_name(uint8_t id)
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
         default:
-            p_result = (SC_UNKNOWN == id) ? "UNKNOWN" : "INVALID";
+            p_result = (SC_UNKNOWN == label_id) ? "UNKNOWN" : "INVALID";
             break;
     }
     return p_result;
 }
 
 /* group id (0-6) of a label; SC_UNKNOWN for unknown / invalid ids */
-static inline uint8_t sound_class_group(uint8_t id)
+static inline uint8_t sound_class_group(uint8_t label_id)
 {
     uint8_t result;
-    switch (id)
+    switch (label_id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \
@@ -112,10 +112,10 @@ static inline uint8_t sound_class_group(uint8_t id)
     return result;
 }
 
-static inline uint8_t sound_class_kind(uint8_t id)
+static inline uint8_t sound_class_kind(uint8_t label_id)
 {
     uint8_t result;
-    switch (id)
+    switch (label_id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \
@@ -131,10 +131,10 @@ static inline uint8_t sound_class_kind(uint8_t id)
 }
 
 /* image prefix ("dog"); NULL for unknown / invalid ids */
-static inline const char* sound_class_prefix(uint8_t id)
+static inline const char* sound_class_prefix(uint8_t label_id)
 {
     const char* p_result;
-    switch (id)
+    switch (label_id)
     {
 #define SC_CASE(id, name, group, kind, prefix)                                                                         \
     case id:                                                                                                           \

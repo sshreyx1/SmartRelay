@@ -8,212 +8,212 @@
 
 #include "alfp_crc.h"
 
-static const char B64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /* "@D " + 64 base64 characters + "\n" + NUL, with room to spare; also holds the header line. */
 #define LINE_MAX_CHARS (64 + 200)
 
-static void b64_line(const uint8_t* in, int n, char* out)
+static void b64_line(const uint8_t* p_input, int len, char* p_out)
 {
-    int o = 0;
-    out[o++] = '@';
-    out[o++] = 'D';
-    out[o++] = ' ';
-    for (int i = 0; i < n; i += 3)
+    int off = 0;
+    p_out[off++] = '@';
+    p_out[off++] = 'D';
+    p_out[off++] = ' ';
+    for (int idx = 0; idx < len; idx += 3)
     {
-        uint32_t v = (uint32_t)in[i] << 16;
-        if (i + 1 < n)
+        uint32_t value = (uint32_t)p_input[idx] << 16;
+        if (idx + 1 < len)
         {
-            v |= (uint32_t)in[i + 1] << 8;
+            value |= (uint32_t)p_input[idx + 1] << 8;
         }
-        if (i + 2 < n)
+        if (idx + 2 < len)
         {
-            v |= in[i + 2];
+            value |= p_input[idx + 2];
         }
-        out[o++] = B64[(v >> 18) & 63];
-        out[o++] = B64[(v >> 12) & 63];
-        out[o++] = i + 1 < n ? B64[(v >> 6) & 63] : '=';
-        out[o++] = i + 2 < n ? B64[v & 63] : '=';
+        p_out[off++] = b64[(value >> 18) & 63];
+        p_out[off++] = b64[(value >> 12) & 63];
+        p_out[off++] = idx + 1 < len ? b64[(value >> 6) & 63] : '=';
+        p_out[off++] = idx + 2 < len ? b64[value & 63] : '=';
     }
-    out[o++] = '\n';
-    out[o] = 0;
+    p_out[off++] = '\n';
+    p_out[off] = 0;
 }
 
-static void copy_report(uplink_job_t* j, const alfp_rx_report_t* r)
+static void copy_report(uplink_job_t* p_jdx, const alfp_rx_report_t* p_rep)
 {
-    memset(j, 0, sizeof(*j));
-    j->src = r->src;
-    j->sid = r->sid;
-    snprintf(j->radio, sizeof(j->radio), "%s", r->radio ? r->radio : "?");
-    snprintf(j->path, sizeof(j->path), "%s", r->path ? r->path : "");
-    j->file_size = r->file_size;
-    j->frag_count = r->frag_count;
-    j->file_crc32 = r->file_crc32;
-    j->first_ms = r->first_ms;
-    j->done_ms = r->done_ms;
-    j->nacks = r->nacks_sent;
-    j->dups = r->duplicates;
-    j->meta_len = r->meta_len < ALFP_MAX_META ? r->meta_len : (uint8_t)ALFP_MAX_META;
-    if (r->meta != NULL && j->meta_len != 0u)
+    memset(p_jdx, 0, sizeof(*p_jdx));
+    p_jdx->src = p_rep->src;
+    p_jdx->sid = p_rep->sid;
+    snprintf(p_jdx->radio, sizeof(p_jdx->radio), "%s", p_rep->p_radio ? p_rep->p_radio : "?");
+    snprintf(p_jdx->path, sizeof(p_jdx->path), "%s", p_rep->p_path ? p_rep->p_path : "");
+    p_jdx->file_size = p_rep->file_size;
+    p_jdx->frag_count = p_rep->frag_count;
+    p_jdx->file_crc32 = p_rep->file_crc32;
+    p_jdx->first_ms = p_rep->first_ms;
+    p_jdx->done_ms = p_rep->done_ms;
+    p_jdx->nacks = p_rep->nacks_sent;
+    p_jdx->dups = p_rep->duplicates;
+    p_jdx->meta_len = p_rep->meta_len < ALFP_MAX_META ? p_rep->meta_len : (uint8_t)ALFP_MAX_META;
+    if (p_rep->p_meta != NULL && p_jdx->meta_len != 0u)
     {
-        memcpy(j->meta, r->meta, j->meta_len);
+        memcpy(p_jdx->meta, p_rep->p_meta, p_jdx->meta_len);
     }
 }
 
 /* "@ALFP FILE ... meta=<hex>\n" as ONE write, so a log line printed between two writes can never land
  * inside it. meta= stays last (its hex runs to the end of the line). */
-static void write_header(const uplink_job_t* j, uplink_write_fn out, void* user)
+static void write_header(const uplink_job_t* p_jdx, uplink_write_fn p_out, void* p_user)
 {
     char line[200 + 2 * ALFP_MAX_META];
-    int n = snprintf(line, sizeof(line),
+    int len = snprintf(line, sizeof(line),
                      "@ALFP FILE v1 src=%u sid=%05u size=%lu crc=%08lx radio=%s frags=%u first=%lu done=%lu nacks=%u "
                      "dups=%u meta=",
-                     (unsigned)j->src, (unsigned)j->sid, (unsigned long)j->file_size, (unsigned long)j->file_crc32,
-                     j->radio, (unsigned)j->frag_count, (unsigned long)j->first_ms, (unsigned long)j->done_ms,
-                     (unsigned)j->nacks, (unsigned)j->dups);
-    size_t o = (n > 0 && (size_t)n < sizeof(line)) ? (size_t)n : 0u;
-    for (unsigned i = 0; i < j->meta_len && o + 3u < sizeof(line); i++)
+                     (unsigned)p_jdx->src, (unsigned)p_jdx->sid, (unsigned long)p_jdx->file_size, (unsigned long)p_jdx->file_crc32,
+                     p_jdx->radio, (unsigned)p_jdx->frag_count, (unsigned long)p_jdx->first_ms, (unsigned long)p_jdx->done_ms,
+                     (unsigned)p_jdx->nacks, (unsigned)p_jdx->dups);
+    size_t off = (len > 0 && (size_t)len < sizeof(line)) ? (size_t)len : 0u;
+    for (unsigned idx = 0; idx < p_jdx->meta_len && off + 3u < sizeof(line); idx++)
     {
-        snprintf(line + o, 3, "%02x", j->meta[i]);
-        o += 2u;
+        snprintf(line + off, 3, "%02x", p_jdx->meta[idx]);
+        off += 2u;
     }
-    line[o++] = '\n';
-    line[o] = 0;
-    out(line, user);
+    line[off++] = '\n';
+    line[off] = 0;
+    p_out(line, p_user);
 }
 
 /* Read the next chunk of the file into q->buf. The file stays open from the first chunk to the
  * END line (one SD handle; opening it again per chunk meant one directory lookup per chunk). */
-static bool fill_chunk(uplink_queue_t* q, const uplink_job_t* j)
+static bool fill_chunk(uplink_queue_t* p_queue, const uplink_job_t* p_jdx)
 {
-    uint32_t left = j->file_size - q->off;
-    uint16_t n = (uint16_t)(left < UPLINK_CHUNK_BYTES ? left : UPLINK_CHUNK_BYTES);
-    if (q->h < 0)
+    uint32_t left = p_jdx->file_size - p_queue->off;
+    uint16_t len = (uint16_t)(left < UPLINK_CHUNK_BYTES ? left : UPLINK_CHUNK_BYTES);
+    if (p_queue->handle < 0)
     {
-        q->h = q->st->open_read(q->st->ctx, j->path);
-        if (q->h < 0)
+        p_queue->handle = p_queue->p_store->p_open_read(p_queue->p_store->p_ctx, p_jdx->path);
+        if (p_queue->handle < 0)
         {
             return false;
         }
     }
-    bool ok = q->st->read_at(q->st->ctx, q->h, q->off, q->buf, n) == (int)n;
-    q->buf_len = ok ? n : 0u;
-    q->buf_pos = 0;
-    return ok;
+    bool b_is_ok = p_queue->p_store->p_read_at(p_queue->p_store->p_ctx, p_queue->handle, p_queue->off, p_queue->buf, len) == (int)len;
+    p_queue->buf_len = b_is_ok ? len : 0u;
+    p_queue->buf_pos = 0;
+    return b_is_ok;
 }
 
-static void finish_job(uplink_queue_t* q, bool ok)
+static void finish_job(uplink_queue_t* p_queue, bool b_is_ok)
 {
-    if (q->h >= 0)
+    if (p_queue->handle >= 0)
     {
-        q->st->close(q->st->ctx, q->h);
-        q->h = -1;
+        p_queue->p_store->p_close(p_queue->p_store->p_ctx, p_queue->handle);
+        p_queue->handle = -1;
     }
-    if (ok)
+    if (b_is_ok)
     {
-        q->sent_ok++;
+        p_queue->sent_ok++;
     }
     else
     {
-        q->sent_bad++;
+        p_queue->sent_bad++;
     }
-    q->head = (uint8_t)((q->head + 1u) % UPLINK_QUEUE_DEPTH);
-    q->count--;
-    q->started = false;
+    p_queue->head = (uint8_t)((p_queue->head + 1u) % UPLINK_QUEUE_DEPTH);
+    p_queue->count--;
+    p_queue->b_started = false;
 }
 
-void uplink_queue_init(uplink_queue_t* q, const alfp_storage_t* st)
+void uplink_queue_init(uplink_queue_t* p_queue, const alfp_storage_t* p_store)
 {
-    memset(q, 0, sizeof(*q));
-    q->st = st;
-    q->h = -1;
+    memset(p_queue, 0, sizeof(*p_queue));
+    p_queue->p_store = p_store;
+    p_queue->handle = -1;
 }
 
-bool uplink_queue_add(uplink_queue_t* q, const alfp_rx_report_t* r)
+bool uplink_queue_add(uplink_queue_t* p_queue, const alfp_rx_report_t* p_rep)
 {
-    if (q->count >= UPLINK_QUEUE_DEPTH)
+    if (p_queue->count >= UPLINK_QUEUE_DEPTH)
     {
-        q->queue_full++;
+        p_queue->queue_full++;
         return false;
     }
-    copy_report(&q->jobs[(q->head + q->count) % UPLINK_QUEUE_DEPTH], r);
-    q->count++;
-    if (q->count > q->max_waiting)
+    copy_report(&p_queue->jobs[(p_queue->head + p_queue->count) % UPLINK_QUEUE_DEPTH], p_rep);
+    p_queue->count++;
+    if (p_queue->count > p_queue->max_waiting)
     {
-        q->max_waiting = q->count;
+        p_queue->max_waiting = p_queue->count;
     }
     return true;
 }
 
-unsigned uplink_queue_waiting(const uplink_queue_t* q)
+unsigned uplink_queue_waiting(const uplink_queue_t* p_queue)
 {
-    return q->count;
+    return p_queue->count;
 }
 
-unsigned uplink_queue_service(uplink_queue_t* q, unsigned max_lines, uplink_write_fn out, void* user)
+unsigned uplink_queue_service(uplink_queue_t* p_queue, unsigned max_lines, uplink_write_fn p_out, void* p_user)
 {
     unsigned lines = 0;
     char line[LINE_MAX_CHARS];
-    while (lines < max_lines && q->count != 0u)
+    while (lines < max_lines && p_queue->count != 0u)
     {
-        const uplink_job_t* j = &q->jobs[q->head];
-        if (!q->started)
+        const uplink_job_t* p_jdx = &p_queue->jobs[p_queue->head];
+        if (!p_queue->b_started)
         {
-            write_header(j, out, user);
-            q->started = true;
-            q->off = 0;
-            q->crc = ALFP_CRC32_INIT;
-            q->buf_len = 0;
-            q->buf_pos = 0;
+            write_header(p_jdx, p_out, p_user);
+            p_queue->b_started = true;
+            p_queue->off = 0;
+            p_queue->crc = ALFP_CRC32_INIT;
+            p_queue->buf_len = 0;
+            p_queue->buf_pos = 0;
             lines++;
             continue;
         }
-        if (q->off >= j->file_size)
+        if (p_queue->off >= p_jdx->file_size)
         {
-            snprintf(line, sizeof(line), "@ALFP END crc=%08lx\n", (unsigned long)q->crc);
-            out(line, user);
+            snprintf(line, sizeof(line), "@ALFP END crc=%08lx\n", (unsigned long)p_queue->crc);
+            p_out(line, p_user);
             lines++;
-            finish_job(q, q->crc == j->file_crc32);
+            finish_job(p_queue, p_queue->crc == p_jdx->file_crc32);
             continue;
         }
-        if (q->buf_pos >= q->buf_len && !fill_chunk(q, j))
+        if (p_queue->buf_pos >= p_queue->buf_len && !fill_chunk(p_queue, p_jdx))
         {
-            out("@ALFP ABORT read error\n", user);
+            p_out("@ALFP ABORT read error\n", p_user);
             lines++;
-            finish_job(q, false);
+            finish_job(p_queue, false);
             continue;
         }
-        uint16_t n = (uint16_t)(q->buf_len - q->buf_pos);
-        if (n > UPLINK_LINE_BYTES)
+        uint16_t len = (uint16_t)(p_queue->buf_len - p_queue->buf_pos);
+        if (len > UPLINK_LINE_BYTES)
         {
-            n = UPLINK_LINE_BYTES;
+            len = UPLINK_LINE_BYTES;
         }
-        q->crc = alfp_crc32(q->crc, q->buf + q->buf_pos, n);
-        b64_line(q->buf + q->buf_pos, n, line);
-        out(line, user);
-        q->buf_pos = (uint16_t)(q->buf_pos + n);
-        q->off += n;
+        p_queue->crc = alfp_crc32(p_queue->crc, p_queue->buf + p_queue->buf_pos, len);
+        b64_line(p_queue->buf + p_queue->buf_pos, len, line);
+        p_out(line, p_user);
+        p_queue->buf_pos = (uint16_t)(p_queue->buf_pos + len);
+        p_queue->off += len;
         lines++;
     }
     return lines;
 }
 
-int uplink_send_file(const alfp_storage_t* st, const alfp_rx_report_t* r, uplink_write_fn out, void* user)
+int uplink_send_file(const alfp_storage_t* p_store, const alfp_rx_report_t* p_rep, uplink_write_fn p_out, void* p_user)
 {
     /* the queue is large (one chunk buffer + jobs), so a static one; this is only ever called from
      * one task at a time (the bridge's comms task, the self-test, the host tests) */
-    static uplink_queue_t q;
-    int h = st->open_read(st->ctx, r->path);
-    if (h < 0)
+    static uplink_queue_t queue;
+    int handle = p_store->p_open_read(p_store->p_ctx, p_rep->p_path);
+    if (handle < 0)
     {
         return -1;
     }
-    st->close(st->ctx, h);
-    uplink_queue_init(&q, st);
-    (void)uplink_queue_add(&q, r);
-    while (uplink_queue_waiting(&q) != 0u)
+    p_store->p_close(p_store->p_ctx, handle);
+    uplink_queue_init(&queue, p_store);
+    (void)uplink_queue_add(&queue, p_rep);
+    while (uplink_queue_waiting(&queue) != 0u)
     {
-        (void)uplink_queue_service(&q, 64u, out, user);
+        (void)uplink_queue_service(&queue, 64u, p_out, p_user);
     }
-    return q.sent_ok == 1u ? 0 : -1;
+    return queue.sent_ok == 1u ? 0 : -1;
 }

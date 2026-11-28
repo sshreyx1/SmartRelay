@@ -15,6 +15,6 @@
 
 #include "capture_meta.h"
 
-bool app_request_capture(const capture_meta_t* sensors);
+bool app_request_capture(const capture_meta_t* p_sensors);
 
 #endif

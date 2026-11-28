@@ -28,12 +28,12 @@
 
 typedef struct
 {
-    alfp_ctx_t* alfp;
-    const mesh_radio_t* const* radios; /* preference order, e.g. {wifi, lora} */
+    alfp_ctx_t* p_alfp;
+    const mesh_radio_t* const* pp_radios; /* preference order, e.g. {wifi, lora} */
     uint8_t n_radios;
     uint8_t bridge_id;
     uint32_t fresh_ms; /* bridge must have been heard this recently (10 s agreed) */
-    const char* dir;
+    const char* p_dir;
     /* 0 (the default after alfp_outbox_init()) = legacy behaviour: alfp_outbox_pump() calls
      * alfp_select_radio() (preference order only). Non-zero = alfp_select_radio_for_size() with
      * this byte threshold. Set with alfp_outbox_set_size_threshold(); never written directly. */
@@ -41,8 +41,8 @@ typedef struct
     /* Optional (NULL = off), set after alfp_outbox_init(): called with the job's metadata (a copy
      * loaded from the SD card) right before alfp_send_file(), once per attempt, so the caller can
      * stamp send-time values into it. The outbox never looks inside the metadata. */
-    void (*prepare_meta)(uint8_t* meta, uint8_t len, void* user);
-    void* prepare_user;
+    void (*p_prepare_meta)(uint8_t* p_meta, uint8_t len, void* p_user);
+    void* p_prepare_user;
     /* state */
     uint32_t next_seq;
     uint16_t count;
@@ -57,23 +57,23 @@ typedef struct
 /* Scans dir to recover jobs left from before a reboot. Size-based selection starts OFF
  * (size_threshold == 0, i.e. today's alfp_select_radio() behaviour); call
  * alfp_outbox_set_size_threshold() afterwards to turn it on. */
-void alfp_outbox_init(alfp_outbox_t* ob, alfp_ctx_t* alfp, const mesh_radio_t* const* radios, uint8_t n_radios,
-                      uint8_t bridge_id, uint32_t fresh_ms, const char* dir);
+void alfp_outbox_init(alfp_outbox_t* p_outbox, alfp_ctx_t* p_alfp, const mesh_radio_t* const* pp_radios, uint8_t n_radios,
+                      uint8_t bridge_id, uint32_t fresh_ms, const char* p_dir);
 
 /* Additive, optional: turn on size-based radio choice (alfp_select_radio_for_size()) for jobs
  * picked up by alfp_outbox_pump() from now on. threshold == 0 turns it back off. Does not affect
  * a transfer already in progress (radio choice happens once per attempt, see above). */
-void alfp_outbox_set_size_threshold(alfp_outbox_t* ob, uint32_t threshold);
+void alfp_outbox_set_size_threshold(alfp_outbox_t* p_outbox, uint32_t threshold);
 
 /* Queue a capture. Returns false only if the SD card write fails. */
-bool alfp_outbox_add(alfp_outbox_t* ob, const char* image_path, const uint8_t* meta, uint8_t meta_len);
+bool alfp_outbox_add(alfp_outbox_t* p_outbox, const char* p_image_path, const uint8_t* p_meta, uint8_t meta_len);
 
 /* Start the next transfer if the sender is idle and a radio can reach the bridge. Call every loop. */
-void alfp_outbox_pump(alfp_outbox_t* ob);
+void alfp_outbox_pump(alfp_outbox_t* p_outbox);
 
 /* Call from the alfp on_tx_done callback. */
-void alfp_outbox_on_tx_done(alfp_outbox_t* ob, const alfp_tx_report_t* r);
+void alfp_outbox_on_tx_done(alfp_outbox_t* p_outbox, const alfp_tx_report_t* p_rep);
 
-uint16_t alfp_outbox_count(const alfp_outbox_t* ob);
+uint16_t alfp_outbox_count(const alfp_outbox_t* p_outbox);
 
 #endif

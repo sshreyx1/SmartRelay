@@ -30,15 +30,15 @@
 #include "pico.h"
 #include "sd_card.h"
 
-void sd_sdio_ctor(sd_card_t* sd_card_p)
+void sd_sdio_ctor(sd_card_t* p_sd_card_p)
 {
-    (void)sd_card_p;
+    (void)p_sd_card_p;
     panic("sd: SDIO interface is not built into the SMP firmware (use SD_IF_SPI)");
 }
 
-bool rp2040_sdio_get_sd_status(sd_card_t* sd_card_p, uint8_t response[64])
+bool rp2040_sdio_get_sd_status(sd_card_t* p_sd_card_p, uint8_t response[64])
 {
-    (void)sd_card_p;
+    (void)p_sd_card_p;
     (void)response;
     return false;
 }
@@ -48,20 +48,20 @@ DWORD get_fattime(void)
     return 0; /* what my_rtc.c's get_fattime() returns while the RTC has never been set */
 }
 
-void capture_assert(const char* file, int line, const char* func, const char* pred)
+void capture_assert(const char* p_file, int line, const char* p_func, const char* p_pred)
 {
-    printf("assertion \"%s\" failed: %s:%d (%s)\n", pred, file, line, func);
+    printf("assertion \"%s\" failed: %s:%d (%s)\n", p_pred, p_file, line, p_func);
     panic("assertion failed in the SD card driver");
 }
 
-void capture_assert_case_not(const char* file, int line, const char* func, int v)
+void capture_assert_case_not(const char* p_file, int line, const char* p_func, int value)
 {
-    printf("unexpected case %d: %s:%d (%s)\n", v, file, line, func);
+    printf("unexpected case %d: %s:%d (%s)\n", value, p_file, line, p_func);
     panic("unexpected case in the SD card driver");
 }
 
-lr11xx_hal_status_t lr11xx_hal_abort_blocking_cmd(const void* context)
+lr11xx_hal_status_t lr11xx_hal_abort_blocking_cmd(const void* p_context)
 {
-    (void)context;
+    (void)p_context;
     return LR11XX_HAL_STATUS_ERROR;
 }

@@ -34,7 +34,7 @@ static lr11xx_radio_pkt_params_lora_t pkt_params = {
     .iq                   = LR11XX_RADIO_LORA_IQ_STANDARD,
 };
 
-static bool     tx_active;
+static bool     b_tx_active;
 static uint32_t tx_deadline_ms;
 static uint32_t last_irq_check_ms;
 
@@ -134,8 +134,8 @@ static bool system_init( void )
 
 static bool modem_init( void )
 {
-    const smtc_shield_lr11xx_pa_pwr_cfg_t* pa = smtc_shield_lr1121mb1gis_get_pa_pwr_cfg( LORA_FREQ_HZ, LORA_TX_POWER_DBM );
-    if( pa == NULL )
+    const smtc_shield_lr11xx_pa_pwr_cfg_t* p_path_a = smtc_shield_lr1121mb1gis_get_pa_pwr_cfg( LORA_FREQ_HZ, LORA_TX_POWER_DBM );
+    if( p_path_a == NULL )
     {
         printf( "lora_radio: invalid frequency/power combination\n" );
         return false;
@@ -165,11 +165,11 @@ static bool modem_init( void )
     {
         return false;
     }
-    if( lr11xx_radio_set_pa_cfg( &radio, &pa->pa_config ) != LR11XX_STATUS_OK )
+    if( lr11xx_radio_set_pa_cfg( &radio, &p_path_a->pa_config ) != LR11XX_STATUS_OK )
     {
         return false;
     }
-    if( lr11xx_radio_set_tx_params( &radio, pa->power, LR11XX_RADIO_RAMP_48_US ) != LR11XX_STATUS_OK )
+    if( lr11xx_radio_set_tx_params( &radio, p_path_a->power, LR11XX_RADIO_RAMP_48_US ) != LR11XX_STATUS_OK )
     {
         return false;
     }
@@ -220,16 +220,16 @@ bool lora_radio_init( void )
         return false;
     }
 
-    tx_active         = false;
+    b_tx_active         = false;
     last_irq_check_ms = now_ms( );
     printf( "lora_radio: %lu Hz, SF%d BW125 CR4/5, %d dBm, CRC on\n", ( unsigned long ) LORA_FREQ_HZ,
             ( int ) LORA_SF, LORA_TX_POWER_DBM );
     return start_rx( );
 }
 
-bool lora_radio_start_tx( const uint8_t* buf, uint8_t len )
+bool lora_radio_start_tx( const uint8_t* p_buf, uint8_t len )
 {
-    if( tx_active || len == 0 )
+    if( b_tx_active || len == 0 )
     {
         return false;
     }
@@ -239,31 +239,31 @@ bool lora_radio_start_tx( const uint8_t* buf, uint8_t len )
     pkt_params.pld_len_in_bytes = len;
     if( lr11xx_system_set_standby( &radio, LR11XX_SYSTEM_STANDBY_CFG_XOSC ) != LR11XX_STATUS_OK ||
         lr11xx_radio_set_lora_pkt_params( &radio, &pkt_params ) != LR11XX_STATUS_OK ||
-        lr11xx_regmem_write_buffer8( &radio, buf, len ) != LR11XX_STATUS_OK ||
+        lr11xx_regmem_write_buffer8( &radio, p_buf, len ) != LR11XX_STATUS_OK ||
         lr11xx_radio_set_tx( &radio, toa_ms + TX_WATCHDOG_MARGIN_MS ) != LR11XX_STATUS_OK )
     {
         start_rx( );
         return false;
     }
 
-    tx_active      = true;
+    b_tx_active      = true;
     tx_deadline_ms = now_ms( ) + toa_ms + TX_WATCHDOG_MARGIN_MS + 100;
     return true;
 }
 
 bool lora_radio_tx_active( void )
 {
-    return tx_active;
+    return b_tx_active;
 }
 
-lora_radio_event_t lora_radio_service( uint8_t* buf, uint8_t* len, int8_t* rssi_dbm, int8_t* snr_db )
+lora_radio_event_t lora_radio_service( uint8_t* p_buf, uint8_t* p_len, int8_t* p_rssi_dbm, int8_t* p_snr_db )
 {
     const uint32_t now = now_ms( );
 
     // Software watchdog in case the TX-done IRQ never arrives
-    if( tx_active && ( int32_t ) ( now - tx_deadline_ms ) > 0 )
+    if( b_tx_active && ( int32_t ) ( now - tx_deadline_ms ) > 0 )
     {
-        tx_active = false;
+        b_tx_active = false;
         start_rx( );
         return LORA_EVT_TX_FAIL;
     }
@@ -288,7 +288,7 @@ lora_radio_event_t lora_radio_service( uint8_t* buf, uint8_t* len, int8_t* rssi_
 
     if( irq & LR11XX_SYSTEM_IRQ_TX_DONE )
     {
-        tx_active = false;
+        b_tx_active = false;
         start_rx( );
         return LORA_EVT_TX_DONE;
     }
@@ -296,9 +296,9 @@ lora_radio_event_t lora_radio_service( uint8_t* buf, uint8_t* len, int8_t* rssi_
     if( irq & LR11XX_SYSTEM_IRQ_TIMEOUT )
     {
         start_rx( );
-        if( tx_active )
+        if( b_tx_active )
         {
-            tx_active = false;
+            b_tx_active = false;
             return LORA_EVT_TX_FAIL;
         }
         return LORA_EVT_NONE;
@@ -314,21 +314,21 @@ lora_radio_event_t lora_radio_service( uint8_t* buf, uint8_t* len, int8_t* rssi_
         lr11xx_radio_rx_buffer_status_t status;
         lr11xx_radio_pkt_status_lora_t  pkt_status;
         if( lr11xx_radio_get_rx_buffer_status( &radio, &status ) != LR11XX_STATUS_OK || status.pld_len_in_bytes == 0 ||
-            lr11xx_regmem_read_buffer8( &radio, buf, status.buffer_start_pointer, status.pld_len_in_bytes ) !=
+            lr11xx_regmem_read_buffer8( &radio, p_buf, status.buffer_start_pointer, status.pld_len_in_bytes ) !=
                 LR11XX_STATUS_OK )
         {
             return LORA_EVT_RX_ERROR;
         }
-        *len = status.pld_len_in_bytes;
+        *p_len = status.pld_len_in_bytes;
         if( lr11xx_radio_get_lora_pkt_status( &radio, &pkt_status ) == LR11XX_STATUS_OK )
         {
-            *rssi_dbm = pkt_status.rssi_pkt_in_dbm;
-            *snr_db   = pkt_status.snr_pkt_in_db;
+            *p_rssi_dbm = pkt_status.rssi_pkt_in_dbm;
+            *p_snr_db   = pkt_status.snr_pkt_in_db;
         }
         else
         {
-            *rssi_dbm = 0;
-            *snr_db   = 0;
+            *p_rssi_dbm = 0;
+            *p_snr_db   = 0;
         }
         return LORA_EVT_RX_DONE;
     }
@@ -338,7 +338,7 @@ lora_radio_event_t lora_radio_service( uint8_t* buf, uint8_t* len, int8_t* rssi_
 
 uint32_t lora_radio_time_on_air_ms( uint8_t len )
 {
-    lr11xx_radio_pkt_params_lora_t p = pkt_params;
-    p.pld_len_in_bytes               = len;
-    return lr11xx_radio_get_lora_time_on_air_in_ms( &p, &mod_params );
+    lr11xx_radio_pkt_params_lora_t pkt_cfg = pkt_params;
+    pkt_cfg.pld_len_in_bytes               = len;
+    return lr11xx_radio_get_lora_time_on_air_in_ms( &pkt_cfg, &mod_params );
 }

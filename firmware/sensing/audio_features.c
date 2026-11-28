@@ -5,72 +5,72 @@
 
 #include <math.h>
 
-void audio_feat_reset(audio_feat_t* f)
+void audio_feat_reset(audio_feat_t* p_feat)
 {
-    f->sum_sq = 0;
-    f->sum = 0;
-    f->crossings = 0;
-    f->n = 0;
-    f->prev = 0;
+    p_feat->sum_sq = 0;
+    p_feat->sum = 0;
+    p_feat->crossings = 0;
+    p_feat->count = 0;
+    p_feat->prev = 0;
 }
 
-void audio_feat_add(audio_feat_t* f, const uint16_t* s, uint32_t n)
+void audio_feat_add(audio_feat_t* p_feat, const uint16_t* p_samples, uint32_t count)
 {
-    for (uint32_t i = 0; i < n; i++)
+    for (uint32_t idx = 0; idx < count; idx++)
     {
-        int16_t centered = (int16_t)((int16_t)s[i] - 2048);
-        f->sum_sq += (uint64_t)((int32_t)centered * centered);
-        f->sum += s[i];
-        if (f->n > 0)
+        int16_t centered = (int16_t)((int16_t)p_samples[idx] - 2048);
+        p_feat->sum_sq += (uint64_t)((int32_t)centered * centered);
+        p_feat->sum += p_samples[idx];
+        if (p_feat->count > 0)
         {
-            int16_t p = f->prev;
-            if ((centered >= 0 && p < 0) || (centered < 0 && p >= 0))
+            int16_t prev = p_feat->prev;
+            if ((centered >= 0 && prev < 0) || (centered < 0 && prev >= 0))
             {
-                f->crossings++;
+                p_feat->crossings++;
             }
         }
-        f->prev = centered;
-        f->n++;
+        p_feat->prev = centered;
+        p_feat->count++;
     }
 }
 
-void audio_feat_finish(const audio_feat_t* f, uint32_t sample_rate, audio_result_t* out)
+void audio_feat_finish(const audio_feat_t* p_feat, uint32_t sample_rate, audio_result_t* p_out)
 {
-    out->samples = f->n;
-    if (f->n == 0)
+    p_out->samples = p_feat->count;
+    if (p_feat->count == 0)
     {
-        out->energy = 0.0f;
-        out->zcr = 0.0f;
-        out->class_id = 0;
-        out->label = "AMBIENT_NOISE";
-        out->rms = 0;
-        out->zcr_per_s = 0;
-        out->mean_adc = 0;
+        p_out->energy = 0.0f;
+        p_out->zcr = 0.0f;
+        p_out->class_id = 0;
+        p_out->p_label = "AMBIENT_NOISE";
+        p_out->rms = 0;
+        p_out->zcr_per_s = 0;
+        p_out->mean_adc = 0;
         return;
     }
     /* mic.c: (float)(energy_acc / num_samples) with a double accumulator holding exact integers */
-    out->energy = (float)((double)f->sum_sq / (double)(int)f->n);
-    out->zcr = (float)f->crossings / (float)(int)f->n;
+    p_out->energy = (float)((double)p_feat->sum_sq / (double)(int)p_feat->count);
+    p_out->zcr = (float)p_feat->crossings / (float)(int)p_feat->count;
 
-    if (out->energy > AUDIO_ENERGY_LOUD)
+    if (p_out->energy > AUDIO_ENERGY_LOUD)
     {
-        out->class_id = 1;
-        out->label = "LOUD_ANIMAL_CALL";
+        p_out->class_id = 1;
+        p_out->p_label = "LOUD_ANIMAL_CALL";
     }
-    else if (out->zcr > AUDIO_ZCR_RUSTLE)
+    else if (p_out->zcr > AUDIO_ZCR_RUSTLE)
     {
-        out->class_id = 2;
-        out->label = "HIGH_FREQ_RUSTLE";
+        p_out->class_id = 2;
+        p_out->p_label = "HIGH_FREQ_RUSTLE";
     }
     else
     {
-        out->class_id = 0;
-        out->label = "AMBIENT_NOISE";
+        p_out->class_id = 0;
+        p_out->p_label = "AMBIENT_NOISE";
     }
 
-    float rms = sqrtf(out->energy);
-    out->rms = (uint16_t)(rms > 65534.0f ? 65534.0f : rms + 0.5f);
-    float zps = out->zcr * (float)sample_rate;
-    out->zcr_per_s = (uint16_t)(zps > 65534.0f ? 65534.0f : zps + 0.5f);
-    out->mean_adc = (uint16_t)(f->sum / f->n);
+    float rms = sqrtf(p_out->energy);
+    p_out->rms = (uint16_t)(rms > 65534.0f ? 65534.0f : rms + 0.5f);
+    float zps = p_out->zcr * (float)sample_rate;
+    p_out->zcr_per_s = (uint16_t)(zps > 65534.0f ? 65534.0f : zps + 0.5f);
+    p_out->mean_adc = (uint16_t)(p_feat->sum / p_feat->count);
 }

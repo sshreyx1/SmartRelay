@@ -57,7 +57,7 @@
 extern int32_t tk_dly_tsk(int32_t dlytim);
 extern int32_t tk_get_tid(void);
 extern int32_t tk_slp_tsk(int32_t tmout);
-extern void tm_usb_console_put(const uint8_t* buf, int32_t size);
+extern void tm_usb_console_put(const uint8_t* p_buf, int32_t size);
 
 #define KERNEL_TMO_FEVR (-1)
 
@@ -143,63 +143,63 @@ void smartrelay_runtime_init(void)
 
 /* ---- pico/mutex.h ----------------------------------------------------------------------- */
 
-void mutex_init(mutex_t* mtx)
+void mutex_init(mutex_t* p_mtx)
 {
     uint32_t save = spin_lock_blocking(glue_lock());
-    mtx->owner = LOCK_INVALID_OWNER_ID;
-    mtx->core.spin_lock = glue_lock();
+    p_mtx->owner = LOCK_INVALID_OWNER_ID;
+    p_mtx->core.spin_lock = glue_lock();
     spin_unlock(glue_lock(), save);
 }
 
 /* auto_init_mutex() objects start all-zero (spin_lock == NULL): initialise on first use. */
-static void mutex_lazy_init(mutex_t* mtx)
+static void mutex_lazy_init(mutex_t* p_mtx)
 {
-    if (mtx->core.spin_lock == NULL)
+    if (p_mtx->core.spin_lock == NULL)
     {
         uint32_t save = spin_lock_blocking(glue_lock());
-        if (mtx->core.spin_lock == NULL)
+        if (p_mtx->core.spin_lock == NULL)
         {
-            mtx->owner = LOCK_INVALID_OWNER_ID;
-            mtx->core.spin_lock = glue_lock();
+            p_mtx->owner = LOCK_INVALID_OWNER_ID;
+            p_mtx->core.spin_lock = glue_lock();
         }
         spin_unlock(glue_lock(), save);
     }
 }
 
-bool mutex_try_enter(mutex_t* mtx, uint32_t* owner_out)
+bool mutex_try_enter(mutex_t* p_mtx, uint32_t* p_owner_out)
 {
-    mutex_lazy_init(mtx);
-    lock_owner_id_t me = (lock_owner_id_t)self_id();
-    bool ok;
+    mutex_lazy_init(p_mtx);
+    lock_owner_id_t caller_id = (lock_owner_id_t)self_id();
+    bool b_is_ok;
     uint32_t save = spin_lock_blocking(glue_lock());
-    if (mtx->owner == LOCK_INVALID_OWNER_ID)
+    if (p_mtx->owner == LOCK_INVALID_OWNER_ID)
     {
-        mtx->owner = me;
-        ok = true;
+        p_mtx->owner = caller_id;
+        b_is_ok = true;
     }
     else
     {
-        if (owner_out != NULL)
+        if (p_owner_out != NULL)
         {
-            *owner_out = (uint32_t)(int32_t)mtx->owner;
+            *p_owner_out = (uint32_t)(int32_t)p_mtx->owner;
         }
-        ok = false;
+        b_is_ok = false;
     }
     spin_unlock(glue_lock(), save);
-    return ok;
+    return b_is_ok;
 }
 
-void mutex_enter_blocking(mutex_t* mtx)
+void mutex_enter_blocking(mutex_t* p_mtx)
 {
-    while (!mutex_try_enter(mtx, NULL))
+    while (!mutex_try_enter(p_mtx, NULL))
     {
         glue_yield();
     }
 }
 
-bool mutex_enter_block_until(mutex_t* mtx, absolute_time_t until)
+bool mutex_enter_block_until(mutex_t* p_mtx, absolute_time_t until)
 {
-    while (!mutex_try_enter(mtx, NULL))
+    while (!mutex_try_enter(p_mtx, NULL))
     {
         if (time_reached(until))
         {
@@ -210,49 +210,49 @@ bool mutex_enter_block_until(mutex_t* mtx, absolute_time_t until)
     return true;
 }
 
-bool mutex_enter_timeout_ms(mutex_t* mtx, uint32_t timeout_ms)
+bool mutex_enter_timeout_ms(mutex_t* p_mtx, uint32_t timeout_ms)
 {
-    return mutex_enter_block_until(mtx, make_timeout_time_ms(timeout_ms));
+    return mutex_enter_block_until(p_mtx, make_timeout_time_ms(timeout_ms));
 }
 
-bool mutex_enter_timeout_us(mutex_t* mtx, uint32_t timeout_us)
+bool mutex_enter_timeout_us(mutex_t* p_mtx, uint32_t timeout_us)
 {
-    return mutex_enter_block_until(mtx, make_timeout_time_us(timeout_us));
+    return mutex_enter_block_until(p_mtx, make_timeout_time_us(timeout_us));
 }
 
-void mutex_exit(mutex_t* mtx)
+void mutex_exit(mutex_t* p_mtx)
 {
     uint32_t save = spin_lock_blocking(glue_lock());
-    mtx->owner = LOCK_INVALID_OWNER_ID;
+    p_mtx->owner = LOCK_INVALID_OWNER_ID;
     spin_unlock(glue_lock(), save);
 }
 
 /* ---- pico/time.h sleeps ------------------------------------------------------------------ */
 
-void sleep_us(uint64_t us)
+void sleep_us(uint64_t usec)
 {
-    if (us >= 1000u && smartrelay_in_task())
+    if (usec >= 1000u && smartrelay_in_task())
     {
-        (void)tk_dly_tsk((int32_t)(us / 1000u));
-        busy_wait_us_32((uint32_t)(us % 1000u));
+        (void)tk_dly_tsk((int32_t)(usec / 1000u));
+        busy_wait_us_32((uint32_t)(usec % 1000u));
     }
     else
     {
-        busy_wait_us(us);
+        busy_wait_us(usec);
     }
 }
 
-void sleep_ms(uint32_t ms)
+void sleep_ms(uint32_t msec)
 {
-    sleep_us((uint64_t)ms * 1000u);
+    sleep_us((uint64_t)msec * 1000u);
 }
 
 void sleep_until(absolute_time_t target)
 {
-    int64_t d = absolute_time_diff_us(get_absolute_time(), target);
-    if (d > 0)
+    int64_t delta = absolute_time_diff_us(get_absolute_time(), target);
+    if (delta > 0)
     {
-        sleep_us((uint64_t)d);
+        sleep_us((uint64_t)delta);
     }
 }
 
@@ -276,7 +276,7 @@ uint64_t get_rand_64(void)
     if (s_rng_state == 0u)
     {
         uint64_t seed = time_us_64();
-        for (int i = 0; i < 64; i++)
+        for (int idx = 0; idx < 64; idx++)
         {
             seed = (seed << 1) ^ (seed >> 63) ^ (uint64_t)(rosc_hw->randombit & 1u);
             busy_wait_at_least_cycles(37);
@@ -284,13 +284,13 @@ uint64_t get_rand_64(void)
         s_rng_state = seed | 1u;
     }
     /* xorshift64*, mixed with the free-running timer on every draw */
-    uint64_t x = s_rng_state ^ (time_us_64() << 17);
-    x ^= x >> 12;
-    x ^= x << 25;
-    x ^= x >> 27;
-    s_rng_state = x ? x : 0x9E3779B97F4A7C15ull;
+    uint64_t value_x = s_rng_state ^ (time_us_64() << 17);
+    value_x ^= value_x >> 12;
+    value_x ^= value_x << 25;
+    value_x ^= value_x >> 27;
+    s_rng_state = value_x ? value_x : 0x9E3779B97F4A7C15ull;
     spin_unlock(glue_lock(), save);
-    return x * 0x2545F4914F6CDD1Dull;
+    return value_x * 0x2545F4914F6CDD1Dull;
 }
 
 uint32_t get_rand_32(void)
@@ -310,9 +310,9 @@ void* _sbrk(ptrdiff_t incr)
         errno = ENOMEM;
         return (void*)-1;
     }
-    void* p = &s_heap[s_heap_used];
+    void* p_block = &s_heap[s_heap_used];
     s_heap_used += (size_t)incr;
-    return p;
+    return p_block;
 }
 
 uint32_t smartrelay_heap_used(void)
@@ -323,16 +323,16 @@ uint32_t smartrelay_heap_used(void)
 static volatile int32_t s_malloc_owner; /* 0 = free */
 static uint32_t s_malloc_depth;
 
-void __malloc_lock(struct _reent* r)
+void __malloc_lock(struct _reent* p_reent)
 {
-    (void)r;
-    int32_t me = self_id();
+    (void)p_reent;
+    int32_t caller_id = self_id();
     for (;;)
     {
         uint32_t save = spin_lock_blocking(glue_lock());
-        if (s_malloc_owner == 0 || s_malloc_owner == me)
+        if (s_malloc_owner == 0 || s_malloc_owner == caller_id)
         {
-            s_malloc_owner = me;
+            s_malloc_owner = caller_id;
             s_malloc_depth++;
             spin_unlock(glue_lock(), save);
             return;
@@ -342,9 +342,9 @@ void __malloc_lock(struct _reent* r)
     }
 }
 
-void __malloc_unlock(struct _reent* r)
+void __malloc_unlock(struct _reent* p_reent)
 {
-    (void)r;
+    (void)p_reent;
     uint32_t save = spin_lock_blocking(glue_lock());
     if (s_malloc_depth > 0u && --s_malloc_depth == 0u)
     {
@@ -356,78 +356,78 @@ void __malloc_unlock(struct _reent* r)
 /* ---- stdout --------------------------------------------------------------------------------- */
 
 /* pico_printf (compiled with PICO_PRINTF_ALWAYS_INCLUDED=1, see sources.mk) */
-extern int __wrap_vsnprintf(char* buffer, size_t count, const char* format, va_list va);
-extern int vfctprintf(void (*out)(char character, void* arg), void* arg, const char* format, va_list va);
+extern int __wrap_vsnprintf(char* p_buffer, size_t count, const char* p_format, va_list args);
+extern int vfctprintf(void (*p_out)(char character, void* p_arg), void* p_arg, const char* p_format, va_list args);
 
-__attribute__((weak)) void smartrelay_stdout_putc(char c)
+__attribute__((weak)) void smartrelay_stdout_putc(char chr)
 {
-    (void)c;
+    (void)chr;
 }
 
-static void out_char(char c, void* arg)
+static void out_char(char chr, void* p_arg)
 {
-    (void)arg;
-    smartrelay_stdout_putc(c);
+    (void)p_arg;
+    smartrelay_stdout_putc(chr);
 }
 
-int vsnprintf(char* buffer, size_t count, const char* format, va_list va)
+int vsnprintf(char* p_buffer, size_t count, const char* p_format, va_list args)
 {
-    return __wrap_vsnprintf(buffer, count, format, va);
+    return __wrap_vsnprintf(p_buffer, count, p_format, args);
 }
 
-int snprintf(char* buffer, size_t count, const char* format, ...)
+int snprintf(char* p_buffer, size_t count, const char* p_format, ...)
 {
-    va_list va;
-    va_start(va, format);
-    int n = __wrap_vsnprintf(buffer, count, format, va);
-    va_end(va);
-    return n;
+    va_list args;
+    va_start(args, p_format);
+    int len = __wrap_vsnprintf(p_buffer, count, p_format, args);
+    va_end(args);
+    return len;
 }
 
-int sprintf(char* buffer, const char* format, ...)
+int sprintf(char* p_buffer, const char* p_format, ...)
 {
-    va_list va;
-    va_start(va, format);
-    int n = __wrap_vsnprintf(buffer, (size_t)-1, format, va);
-    va_end(va);
-    return n;
+    va_list args;
+    va_start(args, p_format);
+    int len = __wrap_vsnprintf(p_buffer, (size_t)-1, p_format, args);
+    va_end(args);
+    return len;
 }
 
-int vsprintf(char* buffer, const char* format, va_list va)
+int vsprintf(char* p_buffer, const char* p_format, va_list args)
 {
-    return __wrap_vsnprintf(buffer, (size_t)-1, format, va);
+    return __wrap_vsnprintf(p_buffer, (size_t)-1, p_format, args);
 }
 
-int vprintf(const char* format, va_list va)
+int vprintf(const char* p_format, va_list args)
 {
-    return vfctprintf(out_char, NULL, format, va);
+    return vfctprintf(out_char, NULL, p_format, args);
 }
 
-int printf(const char* format, ...)
+int printf(const char* p_format, ...)
 {
-    va_list va;
-    va_start(va, format);
-    int n = vfctprintf(out_char, NULL, format, va);
-    va_end(va);
-    return n;
+    va_list args;
+    va_start(args, p_format);
+    int len = vfctprintf(out_char, NULL, p_format, args);
+    va_end(args);
+    return len;
 }
 
-int puts(const char* s)
+int puts(const char* p_str)
 {
-    int n = 0;
-    while (s[n] != '\0')
+    int len = 0;
+    while (p_str[len] != '\0')
     {
-        smartrelay_stdout_putc(s[n]);
-        n++;
+        smartrelay_stdout_putc(p_str[len]);
+        len++;
     }
     smartrelay_stdout_putc('\n');
-    return n + 1;
+    return len + 1;
 }
 
-int putchar(int c)
+int putchar(int chr)
 {
-    smartrelay_stdout_putc((char)c);
-    return c;
+    smartrelay_stdout_putc((char)chr);
+    return chr;
 }
 
 /* pico/stdio.h: lines leave as soon as they are complete (log.c), nothing to flush. */
@@ -436,29 +436,29 @@ void stdio_flush(void)
 }
 
 /* newlib's own stdio (if any library code reaches it) ends up here for stdout/stderr. */
-int _write(int fd, const char* buf, int len)
+int _write(int file_desc, const char* p_buf, int len)
 {
-    if (fd != 1 && fd != 2)
+    if (file_desc != 1 && file_desc != 2)
     {
         errno = EBADF;
         return -1;
     }
-    for (int i = 0; i < len; i++)
+    for (int idx = 0; idx < len; idx++)
     {
-        smartrelay_stdout_putc(buf[i]);
+        smartrelay_stdout_putc(p_buf[idx]);
     }
     return len;
 }
 
 /* ---- fatal errors (usb_sdk_compat_overlay.c's panic()/hard_assertion_failure()) ---------- */
 
-void smartrelay_fatal(const char* msg)
+void smartrelay_fatal(const char* p_msg)
 {
     static const char prefix[] = "\r\nFATAL: ";
     tm_usb_console_put((const uint8_t*)prefix, (int32_t)(sizeof(prefix) - 1u));
-    if (msg != NULL)
+    if (p_msg != NULL)
     {
-        tm_usb_console_put((const uint8_t*)msg, (int32_t)strlen(msg));
+        tm_usb_console_put((const uint8_t*)p_msg, (int32_t)strlen(p_msg));
     }
     tm_usb_console_put((const uint8_t*)"\r\n", 2);
     if (smartrelay_in_task())
@@ -486,13 +486,13 @@ void __unhandled_user_irq(void)
  * from the console without touching the button. Same ROM call Pico SDK's reset_usb_boot() makes. */
 void smartrelay_reboot_to_bootsel(void)
 {
-    typedef void* (*rom_table_lookup_fn)(uint16_t* table, uint32_t code);
+    typedef void* (*rom_table_lookup_fn)(uint16_t* p_table, uint32_t code);
     typedef void (*rom_reset_usb_boot_fn)(uint32_t gpio_mask, uint32_t disable_interface_mask);
-    uint16_t* func_table = (uint16_t*)(uintptr_t)(*(uint16_t*)0x14u);
-    rom_table_lookup_fn lookup = (rom_table_lookup_fn)(uintptr_t)(*(uint16_t*)0x18u);
-    rom_reset_usb_boot_fn reset_usb_boot
-        = (rom_reset_usb_boot_fn)lookup(func_table, (uint32_t)'U' | ((uint32_t)'B' << 8));
-    reset_usb_boot(0u, 0u);
+    uint16_t* p_func_table = (uint16_t*)(uintptr_t)(*(uint16_t*)0x14u);
+    rom_table_lookup_fn p_lookup = (rom_table_lookup_fn)(uintptr_t)(*(uint16_t*)0x18u);
+    rom_reset_usb_boot_fn p_reset_usb_boot
+        = (rom_reset_usb_boot_fn)p_lookup(p_func_table, (uint32_t)'U' | ((uint32_t)'B' << 8));
+    p_reset_usb_boot(0u, 0u);
     for (;;)
     {
     }

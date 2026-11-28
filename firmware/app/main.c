@@ -90,36 +90,36 @@
 
 static alfp_ctx_t g_alfp;
 static alfp_outbox_t g_outbox;
-static QueueHandle_t g_capture_q;
+static QueueHandle_t gp_capture_q;
 static const mesh_radio_t* g_radios[2]; /* preference: WiFi first, then LoRa */
 static uint32_t g_capture_id;           /* last id used; restored from the SD card at boot */
 static uint32_t g_boot_first_id;        /* first capture id issued in this boot (ids only grow) */
 static char g_payload_names[TEST_PAYLOADS_MAX][32];
 static uint8_t g_n_payloads, g_next_payload;
 static sip_table_t g_images; /* samples/<prefix>_NN.jpg found at boot */
-static volatile bool g_want_stats, g_toggle_drop, g_force_capture, g_want_env, g_toggle_topo;
-static volatile bool g_want_test_payload; /* console 'p' (test A.3): send the next size-ladder file */
-static volatile bool g_toggle_hold;       /* console 'H' (test T6): comms stops taking captures off g_capture_q */
-static volatile bool g_comms_ready;
+static volatile bool gb_want_stats, gb_toggle_drop, gb_force_capture, gb_want_env, gb_toggle_topo;
+static volatile bool gb_want_test_payload; /* console 'p' (test A.3): send the next size-ladder file */
+static volatile bool gb_toggle_hold;       /* console 'H' (test T6): comms stops taking captures off g_capture_q */
+static volatile bool gb_comms_ready;
 
 /* ---- platform --------------------------------------------------------------------------- */
 
-static uint32_t p_now(void* c)
+static uint32_t p_now(void* p_ctx)
 {
-    (void)c;
+    (void)p_ctx;
     return to_ms_since_boot(get_absolute_time());
 }
 
-static uint32_t p_rand(void* c)
+static uint32_t p_rand(void* p_ctx)
 {
-    (void)c;
+    (void)p_ctx;
     return get_rand_32();
 }
 
-static void p_log(void* c, const char* m)
+static void p_log(void* p_ctx, const char* p_msg)
 {
-    (void)c;
-    printf("%s\n", m);
+    (void)p_ctx;
+    printf("%s\n", p_msg);
 }
 
 static const alfp_platform_t k_plat = { NULL, p_now, p_rand, p_log };
@@ -128,50 +128,50 @@ static const alfp_platform_t k_plat = { NULL, p_now, p_rand, p_log };
 
 #define TEL_DIR "tel" /* tiny per-capture telemetry files made only by handle_capture(), see below */
 
-static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
+static void on_tx_done(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
 {
-    (void)ctx;
-    printf("tx %s: %s via %s, %u frags, %u rounds, %u resent, %.1f s\n", r->path, alfp_tx_result_str(r->result),
-           r->radio, r->frag_count, r->rounds, r->data_resent, (r->finished_ms - r->started_ms) / 1000.0);
-    if (r->result == ALFP_TX_DONE && strncmp(r->path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u) == 0)
+    (void)p_ctx;
+    printf("tx %s: %s via %s, %u frags, %u rounds, %u resent, %.1f s\n", p_rep->p_path, alfp_tx_result_str(p_rep->result),
+           p_rep->p_radio, p_rep->frag_count, p_rep->rounds, p_rep->data_resent, (p_rep->finished_ms - p_rep->started_ms) / 1000.0);
+    if (p_rep->result == ALFP_TX_DONE && strncmp(p_rep->p_path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u) == 0)
     {
         /* The telemetry job's "file" was a temp copy of its own meta made just for this transfer
          * (unlike the image, which is a reused sample on the SD card): remove it once sent, same
          * as the outbox already removes the job descriptor itself in alfp_outbox_on_tx_done(). */
-        storage_fatfs()->remove(storage_fatfs()->ctx, r->path);
+        storage_fatfs()->p_remove(storage_fatfs()->p_ctx, p_rep->p_path);
     }
-    alfp_outbox_on_tx_done(&g_outbox, r);
+    alfp_outbox_on_tx_done(&g_outbox, p_rep);
 }
 
 /* ---- sender's own serial (TRANSFER_VISIBILITY.md 3.5): only the person at this node sees these ---- */
 
-static void on_tx_start(alfp_ctx_t* ctx, const alfp_tx_t* tx)
+static void on_tx_start(alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session)
 {
-    (void)ctx;
-    capture_meta_t m;
-    if (capture_meta_unpack(tx->meta, tx->meta_len, &m) != 0)
+    (void)p_ctx;
+    capture_meta_t meta;
+    if (capture_meta_unpack(p_tx_session->meta, p_tx_session->meta_len, &meta) != 0)
     {
-        printf("tx start: %s %lu B via %s, %u frags x %u B, sid %u\n", tx->path, (unsigned long)tx->file_size,
-               tx->radio->name, tx->frag_count, tx->frag_size, tx->sid);
+        printf("tx start: %s %lu B via %s, %u frags x %u B, sid %u\n", p_tx_session->path, (unsigned long)p_tx_session->file_size,
+               p_tx_session->p_radio->p_name, p_tx_session->frag_count, p_tx_session->frag_size, p_tx_session->sid);
         return;
     }
-    uint8_t rec = capture_meta_record_len(tx->meta, tx->meta_len);
-    size_t ml = strlen(APP_TELEMETRY_MARKER);
-    bool tel = tx->meta_len == rec + ml && memcmp(tx->meta + rec, APP_TELEMETRY_MARKER, ml) == 0;
-    char id[CAPTURE_ID_STR_MAX];
-    capture_id_format(id, sizeof(id), m.node_id, m.capture_id);
+    uint8_t rec = capture_meta_record_len(p_tx_session->meta, p_tx_session->meta_len);
+    size_t total_len = strlen(APP_TELEMETRY_MARKER);
+    bool b_tel = p_tx_session->meta_len == rec + total_len && memcmp(p_tx_session->meta + rec, APP_TELEMETRY_MARKER, total_len) == 0;
+    char id_str[CAPTURE_ID_STR_MAX];
+    capture_id_format(id_str, sizeof(id_str), meta.node_id, meta.capture_id);
     char waited[32] = "";
-    if (m.queued_ms != CM_MISSING_U32)
+    if (meta.queued_ms != CM_MISSING_U32)
     {
-        snprintf(waited, sizeof(waited), ", waited %.1f s", m.queued_ms / 1000.0);
+        snprintf(waited, sizeof(waited), ", waited %.1f s", meta.queued_ms / 1000.0);
     }
-    printf("tx start: capture %s %s %lu B via %s, %u frags x %u B, sid %u%s\n", id, tel ? "telemetry" : "image",
-           (unsigned long)tx->file_size, tx->radio->name, tx->frag_count, tx->frag_size, tx->sid, waited);
+    printf("tx start: capture %s %s %lu B via %s, %u frags x %u B, sid %u%s\n", id_str, b_tel ? "telemetry" : "image",
+           (unsigned long)p_tx_session->file_size, p_tx_session->p_radio->p_name, p_tx_session->frag_count, p_tx_session->frag_size, p_tx_session->sid, waited);
 }
 
-static void on_tx_nack(alfp_ctx_t* ctx, uint16_t sid, uint8_t round, uint16_t missing)
+static void on_tx_nack(alfp_ctx_t* p_ctx, uint16_t sid, uint8_t round, uint16_t missing)
 {
-    (void)ctx;
+    (void)p_ctx;
     if (missing != 0u)
     {
         printf("tx: bridge missing %u fragment%s (round %u, sid %u), resending\n", missing, missing == 1u ? "" : "s",
@@ -183,36 +183,36 @@ static void on_tx_nack(alfp_ctx_t* ctx, uint16_t sid, uint8_t round, uint16_t mi
 static void relay_log(void)
 {
     static uint16_t last[2][6];
-    static bool primed;
-    for (int i = 0; i < 2; i++)
+    static bool b_primed;
+    for (int idx = 0; idx < 2; idx++)
     {
         char from[96] = "";
-        size_t o = 0;
+        size_t off = 0;
         unsigned total = 0;
         for (uint8_t src = 1; src <= 5; src++)
         {
-            uint16_t now = radios_relayed_from(g_radios[i], src);
-            unsigned d = (uint16_t)(now - last[i][src]); /* wraps cleanly at 65536 */
-            last[i][src] = now;
-            if (primed && d != 0u && o < sizeof(from))
+            uint16_t now = radios_relayed_from(g_radios[idx], src);
+            unsigned delta = (uint16_t)(now - last[idx][src]); /* wraps cleanly at 65536 */
+            last[idx][src] = now;
+            if (b_primed && delta != 0u && off < sizeof(from))
             {
-                int n = snprintf(from + o, sizeof(from) - o, "%snode %u: %u", total ? ", " : "", src, d);
-                o += n > 0 ? (size_t)n : 0u;
-                total += d;
+                int len = snprintf(from + off, sizeof(from) - off, "%snode %u: %u", total ? ", " : "", src, delta);
+                off += len > 0 ? (size_t)len : 0u;
+                total += delta;
             }
         }
         if (total != 0u)
         {
-            printf("relay %s: %u pkts in last 1 s (from %s)\n", g_radios[i]->name, total, from);
+            printf("relay %s: %u pkts in last 1 s (from %s)\n", g_radios[idx]->p_name, total, from);
         }
     }
-    primed = true;
+    b_primed = true;
 }
 
-static void uplink_out(const char* s, void* user)
+static void uplink_out(const char* p_str, void* p_user)
 {
-    (void)user;
-    fputs(s, stdout);
+    (void)p_user;
+    fputs(p_str, stdout);
 }
 
 /* Bridge -> laptop: finished files wait here and go out UPLINK_LINES_PER_PASS lines per comms
@@ -229,110 +229,110 @@ static uint8_t g_pkt_hops, g_pkt_prev;
 
 /* One whole line in one write, through the same stdout the uplink uses, so an event line can sit
  * between two "@D" lines but can never end up inside one. */
-static void evt_line(const char* fmt, ...)
+static void evt_line(const char* p_fmt, ...)
 {
     char line[300];
-    va_list ap;
-    va_start(ap, fmt);
-    int n = vsnprintf(line, sizeof(line) - 1u, fmt, ap);
-    va_end(ap);
-    if (n < 0)
+    va_list args;
+    va_start(args, p_fmt);
+    int printed = vsnprintf(line, sizeof(line) - 1u, p_fmt, args);
+    va_end(args);
+    if (printed < 0)
     {
         return;
     }
-    size_t len = (size_t)n < sizeof(line) - 2u ? (size_t)n : sizeof(line) - 2u;
+    size_t len = (size_t)printed < sizeof(line) - 2u ? (size_t)printed : sizeof(line) - 2u;
     line[len++] = '\n';
     line[len] = 0;
     fputs(line, stdout);
     fflush(stdout);
 }
 
-static void ev_rx_start(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* radio)
+static void ev_rx_start(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, const char* p_radio)
 {
-    (void)ctx;
-    evt_line("@EVT RXS src=%u sid=%u radio=%s t=%lu", src, sid, radio, (unsigned long)p_now(NULL));
+    (void)p_ctx;
+    evt_line("@EVT RXS src=%u sid=%u radio=%s t=%lu", src, sid, p_radio, (unsigned long)p_now(NULL));
 }
 
-static void ev_rx_manifest(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
-                           uint32_t file_size, uint32_t file_crc32, const uint8_t* meta, uint8_t meta_len)
+static void ev_rx_manifest(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
+                           uint32_t file_size, uint32_t file_crc32, const uint8_t* p_meta, uint8_t meta_len)
 {
-    (void)ctx;
+    (void)p_ctx;
     char hex[2 * ALFP_MAX_META + 1];
-    unsigned n = meta_len < ALFP_MAX_META ? meta_len : ALFP_MAX_META;
-    for (unsigned i = 0; i < n; i++)
+    unsigned len = meta_len < ALFP_MAX_META ? meta_len : ALFP_MAX_META;
+    for (unsigned idx = 0; idx < len; idx++)
     {
-        snprintf(hex + 2 * i, 3, "%02x", meta[i]);
+        snprintf(hex + 2 * idx, 3, "%02x", p_meta[idx]);
     }
-    hex[2 * n] = 0;
+    hex[2 * len] = 0;
     evt_line("@EVT RXM src=%u sid=%u frags=%u fsz=%u size=%lu crc=%08lx meta=%s t=%lu", src, sid, frag_count,
              frag_size, (unsigned long)file_size, (unsigned long)file_crc32, hex, (unsigned long)p_now(NULL));
 }
 
-static void ev_rx_frag(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool dup)
+static void ev_rx_frag(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool b_dup)
 {
-    (void)ctx;
-    if (APP_RXF_EVERY > 1 && round == 0 && !dup && seq % APP_RXF_EVERY != 0)
+    (void)p_ctx;
+    if (APP_RXF_EVERY > 1 && round == 0 && !b_dup && seq % APP_RXF_EVERY != 0)
     {
         return;
     }
     evt_line("@EVT RXF src=%u sid=%u seq=%u r=%u h=%u v=%u d=%u t=%lu", src, sid, seq, round, g_pkt_hops, g_pkt_prev,
-             dup ? 1u : 0u, (unsigned long)p_now(NULL));
+             b_dup ? 1u : 0u, (unsigned long)p_now(NULL));
 }
 
-static void ev_rx_nack(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing)
+static void ev_rx_nack(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing)
 {
-    (void)ctx;
+    (void)p_ctx;
     evt_line("@EVT NACK src=%u sid=%u r=%u miss=%u t=%lu", src, sid, round, missing, (unsigned long)p_now(NULL));
 }
 
-static void ev_rx_fail(alfp_ctx_t* ctx, uint8_t src, uint16_t sid, const char* why)
+static void ev_rx_fail(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, const char* p_why)
 {
-    (void)ctx;
-    evt_line("@EVT RXFAIL src=%u sid=%u why=%s t=%lu", src, sid, why, (unsigned long)p_now(NULL));
+    (void)p_ctx;
+    evt_line("@EVT RXFAIL src=%u sid=%u why=%s t=%lu", src, sid, p_why, (unsigned long)p_now(NULL));
 }
 
-static void on_rx_done(alfp_ctx_t* ctx, const alfp_rx_report_t* r)
+static void on_rx_done(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
 {
     if (APP_TRANSFER_EVENTS)
     {
-        evt_line("@EVT RXOK src=%u sid=%u first=%lu done=%lu nacks=%u dups=%u frags=%u t=%lu", r->src, r->sid,
-                 (unsigned long)r->first_ms, (unsigned long)r->done_ms, r->nacks_sent, r->duplicates, r->frag_count,
+        evt_line("@EVT RXOK src=%u sid=%u first=%lu done=%lu nacks=%u dups=%u frags=%u t=%lu", p_rep->src, p_rep->sid,
+                 (unsigned long)p_rep->first_ms, (unsigned long)p_rep->done_ms, p_rep->nacks_sent, p_rep->duplicates, p_rep->frag_count,
                  (unsigned long)p_now(NULL));
     }
-    printf("rx from node %u: %s, %lu bytes via %s, %u dup\n", r->src, r->path, (unsigned long)r->file_size, r->radio,
-           r->duplicates);
-    if (!uplink_queue_add(&g_uplink, r))
+    printf("rx from node %u: %s, %lu bytes via %s, %u dup\n", p_rep->src, p_rep->p_path, (unsigned long)p_rep->file_size, p_rep->p_radio,
+           p_rep->duplicates);
+    if (!uplink_queue_add(&g_uplink, p_rep))
     {
-        printf("uplink: queue full (%u files), sending %s inline\n", (unsigned)UPLINK_QUEUE_DEPTH, r->path);
-        uplink_send_file(ctx->cfg.storage, r, uplink_out, NULL);
+        printf("uplink: queue full (%u files), sending %s inline\n", (unsigned)UPLINK_QUEUE_DEPTH, p_rep->p_path);
+        uplink_send_file(p_ctx->cfg.p_storage, p_rep, uplink_out, NULL);
         fflush(stdout);
     }
 }
 
 /* ---- capture requests (any task) --------------------------------------------------------- */
 
-bool app_request_capture(const capture_meta_t* sensors)
+bool app_request_capture(const capture_meta_t* p_sensors)
 {
-    return g_capture_q && xQueueSend(g_capture_q, sensors, 0) == pdTRUE;
+    return gp_capture_q && xQueueSend(gp_capture_q, p_sensors, 0) == pdTRUE;
 }
 
-static void count_samples_cb(const char* name, void* user)
+static void count_samples_cb(const char* p_name, void* p_user)
 {
-    (void)user;
-    sip_add_file(&g_images, name);
+    (void)p_user;
+    sip_add_file(&g_images, p_name);
 }
 
-static void count_payloads_cb(const char* name, void* user)
+static void count_payloads_cb(const char* p_name, void* p_user)
 {
-    (void)user;
-    if (name[0] == '.')
+    (void)p_user;
+    if (p_name[0] == '.')
     {
         return; /* F1: macOS "._*" AppleDouble files and other hidden files are not payloads */
     }
-    size_t nl = strlen(name);
-    if (g_n_payloads < TEST_PAYLOADS_MAX && nl < sizeof(g_payload_names[0]))
+    size_t name_len = strlen(p_name);
+    if (g_n_payloads < TEST_PAYLOADS_MAX && name_len < sizeof(g_payload_names[0]))
     {
-        memcpy(g_payload_names[g_n_payloads], name, nl + 1u); /* + the NUL strlen() does not count */
+        memcpy(g_payload_names[g_n_payloads], p_name, name_len + 1u); /* + the NUL strlen() does not count */
         g_n_payloads++;
     }
 }
@@ -365,32 +365,32 @@ static void send_next_test_payload(void)
 #define ID_FILE "meta/next_id"
 #define ID_TMP "meta/next_id.tmp"
 
-static uint32_t read_u32_file(const alfp_storage_t* st, const char* path)
+static uint32_t read_u32_file(const alfp_storage_t* p_store, const char* p_path)
 {
-    int h = st->open_read(st->ctx, path);
-    if (h < 0)
+    int handle = p_store->p_open_read(p_store->p_ctx, p_path);
+    if (handle < 0)
     {
         return 0;
     }
     char txt[16] = { 0 };
-    int n = st->read_at(st->ctx, h, 0, (uint8_t*)txt, sizeof(txt) - 1);
-    st->close(st->ctx, h);
-    unsigned long v = 0;
-    return n > 0 && sscanf(txt, "%lu", &v) == 1 ? (uint32_t)v : 0;
+    int len = p_store->p_read_at(p_store->p_ctx, handle, 0, (uint8_t*)txt, sizeof(txt) - 1);
+    p_store->p_close(p_store->p_ctx, handle);
+    unsigned long value = 0;
+    return len > 0 && sscanf(txt, "%lu", &value) == 1 ? (uint32_t)value : 0;
 }
 
 /* write to a temp file, then rename over the real one: a power cut leaves one of the two intact */
-static void store_next_id(const alfp_storage_t* st, uint32_t next)
+static void store_next_id(const alfp_storage_t* p_store, uint32_t next)
 {
     char txt[16];
-    int n = snprintf(txt, sizeof(txt), "%lu\n", (unsigned long)next);
-    int h = st->open_write(st->ctx, ID_TMP);
-    bool ok = h >= 0 && st->write_at(st->ctx, h, 0, (const uint8_t*)txt, (uint16_t)n) == n;
-    if (h >= 0)
+    int len = snprintf(txt, sizeof(txt), "%lu\n", (unsigned long)next);
+    int handle = p_store->p_open_write(p_store->p_ctx, ID_TMP);
+    bool b_is_ok = handle >= 0 && p_store->p_write_at(p_store->p_ctx, handle, 0, (const uint8_t*)txt, (uint16_t)len) == len;
+    if (handle >= 0)
     {
-        st->close(st->ctx, h);
+        p_store->p_close(p_store->p_ctx, handle);
     }
-    if (!ok || st->rename(st->ctx, ID_TMP, ID_FILE) != 0)
+    if (!b_is_ok || p_store->p_rename(p_store->p_ctx, ID_TMP, ID_FILE) != 0)
     {
         printf("capture id: could not save %s (ids may repeat after a reboot)\n", ID_FILE);
     }
@@ -399,59 +399,59 @@ static void store_next_id(const alfp_storage_t* st, uint32_t next)
 static uint32_t s_job_seq[ALFP_OUTBOX_MAX + 8];
 static uint32_t s_n_jobs, s_highest_seen;
 
-static void scan_outbox_cb(const char* name, void* user)
+static void scan_outbox_cb(const char* p_name, void* p_user)
 {
-    (void)user;
+    (void)p_user;
     unsigned long seq;
-    if (name[0] == 'q' && sscanf(name + 1, "%8lu", &seq) == 1 && s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0]))
+    if (p_name[0] == 'q' && sscanf(p_name + 1, "%8lu", &seq) == 1 && s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0]))
     {
         s_job_seq[s_n_jobs++] = (uint32_t)seq;
     }
 }
 
-static void scan_clips_cb(const char* name, void* user)
+static void scan_clips_cb(const char* p_name, void* p_user)
 {
-    (void)user;
+    (void)p_user;
     uint8_t node;
-    uint32_t id;
-    if (capture_id_parse(name, &node, &id) && node == NODE_ID && id > s_highest_seen)
+    uint32_t cap_id;
+    if (capture_id_parse(p_name, &node, &cap_id) && node == NODE_ID && cap_id > s_highest_seen)
     {
-        s_highest_seen = id;
+        s_highest_seen = cap_id;
     }
 }
 
 /* Highest capture id still on the card: queued jobs (their meta) and stored clips (their names). */
-static uint32_t highest_id_on_card(const alfp_storage_t* st)
+static uint32_t highest_id_on_card(const alfp_storage_t* p_store)
 {
     s_n_jobs = 0;
     s_highest_seen = 0;
-    st->list(st->ctx, "outbox", scan_outbox_cb, NULL);
-    for (uint32_t i = 0; i < s_n_jobs; i++)
+    p_store->p_list(p_store->p_ctx, "outbox", scan_outbox_cb, NULL);
+    for (uint32_t idx = 0; idx < s_n_jobs; idx++)
     {
-        char p[32];
-        snprintf(p, sizeof(p), "outbox/q%08lu.job", (unsigned long)s_job_seq[i]);
+        char path[32];
+        snprintf(path, sizeof(path), "outbox/q%08lu.job", (unsigned long)s_job_seq[idx]);
         uint8_t buf[2 + 1 + ALFP_PATH_MAX + 1 + ALFP_MAX_META];
-        int h = st->open_read(st->ctx, p);
-        if (h < 0)
+        int handle = p_store->p_open_read(p_store->p_ctx, path);
+        if (handle < 0)
         {
             continue;
         }
-        int n = st->read_at(st->ctx, h, 0, buf, sizeof(buf));
-        st->close(st->ctx, h);
+        int len = p_store->p_read_at(p_store->p_ctx, handle, 0, buf, sizeof(buf));
+        p_store->p_close(p_store->p_ctx, handle);
         /* job file (alfp_outbox.c): 'Q' '1' | path_len | path | meta_len | meta */
-        if (n < 4 || buf[0] != 'Q' || buf[1] != '1' || 4 + buf[2] > n)
+        if (len < 4 || buf[0] != 'Q' || buf[1] != '1' || 4 + buf[2] > len)
         {
             continue;
         }
-        const uint8_t* meta = buf + 4 + buf[2];
-        uint8_t ml = buf[3 + buf[2]];
-        capture_meta_t m;
-        if (meta + ml <= buf + n && capture_meta_unpack(meta, ml, &m) == 0 && m.capture_id > s_highest_seen)
+        const uint8_t* p_meta = buf + 4 + buf[2];
+        uint8_t total_len = buf[3 + buf[2]];
+        capture_meta_t meta;
+        if (p_meta + total_len <= buf + len && capture_meta_unpack(p_meta, total_len, &meta) == 0 && meta.capture_id > s_highest_seen)
         {
-            s_highest_seen = m.capture_id;
+            s_highest_seen = meta.capture_id;
         }
     }
-    st->list(st->ctx, "clips", scan_clips_cb, NULL);
+    p_store->p_list(p_store->p_ctx, "clips", scan_clips_cb, NULL);
     return s_highest_seen;
 }
 
@@ -459,80 +459,80 @@ static uint32_t highest_id_on_card(const alfp_storage_t* st)
  * since its trigger into the v2 record's queued_ms. Only for captures made in THIS boot: uptime_ms
  * of a job queued before a reboot is from the old boot, so its wait cannot be measured and stays
  * missing (0xFFFFFFFF) instead of a made-up number. */
-static void stamp_queued_ms(uint8_t* meta, uint8_t len, void* user)
+static void stamp_queued_ms(uint8_t* p_meta, uint8_t len, void* p_user)
 {
-    (void)user;
-    capture_meta_t m;
-    if (len < CAPTURE_META_LEN_V2 || meta[0] != 2u || capture_meta_unpack(meta, len, &m) != 0)
+    (void)p_user;
+    capture_meta_t meta;
+    if (len < CAPTURE_META_LEN_V2 || p_meta[0] != 2u || capture_meta_unpack(p_meta, len, &meta) != 0)
     {
         return;
     }
     uint32_t now = p_now(NULL);
-    if (m.node_id == NODE_ID && m.capture_id >= g_boot_first_id && g_boot_first_id != 0u && now >= m.uptime_ms)
+    if (meta.node_id == NODE_ID && meta.capture_id >= g_boot_first_id && g_boot_first_id != 0u && now >= meta.uptime_ms)
     {
-        cm_put32(meta + CAPTURE_META_QUEUED_OFF, now - m.uptime_ms);
+        cm_put32(p_meta + CAPTURE_META_QUEUED_OFF, now - meta.uptime_ms);
     }
 }
 
-static void restore_capture_id(const alfp_storage_t* st)
+static void restore_capture_id(const alfp_storage_t* p_store)
 {
-    st->mkdir(st->ctx, "meta");
-    uint32_t next = read_u32_file(st, ID_FILE);
-    uint32_t tmp = read_u32_file(st, ID_TMP);
+    p_store->p_mkdir(p_store->p_ctx, "meta");
+    uint32_t next = read_u32_file(p_store, ID_FILE);
+    uint32_t tmp = read_u32_file(p_store, ID_TMP);
     next = tmp > next ? tmp : next;
-    uint32_t seen = highest_id_on_card(st);
+    uint32_t seen = highest_id_on_card(p_store);
     g_capture_id = next > seen + 1u ? next - 1u : seen;
     g_boot_first_id = g_capture_id + 1u;
-    char id[CAPTURE_ID_STR_MAX];
-    capture_id_format(id, sizeof(id), NODE_ID, g_capture_id + 1u);
-    printf("capture id: next is %s (saved next %lu, highest on card %lu)\n", id, (unsigned long)next,
+    char id_str[CAPTURE_ID_STR_MAX];
+    capture_id_format(id_str, sizeof(id_str), NODE_ID, g_capture_id + 1u);
+    printf("capture id: next is %s (saved next %lu, highest on card %lu)\n", id_str, (unsigned long)next,
            (unsigned long)seen);
 }
 
-static void handle_capture(const capture_meta_t* in)
+static void handle_capture(const capture_meta_t* p_request)
 {
-    const alfp_storage_t* st = storage_fatfs();
-    capture_meta_t m = *in;
-    m.node_id = NODE_ID;
-    m.capture_id = ++g_capture_id;
-    store_next_id(st, g_capture_id + 1u);
-    if (m.uptime_ms == 0)
+    const alfp_storage_t* p_store = storage_fatfs();
+    capture_meta_t meta = *p_request;
+    meta.node_id = NODE_ID;
+    meta.capture_id = ++g_capture_id;
+    store_next_id(p_store, g_capture_id + 1u);
+    if (meta.uptime_ms == 0)
     {
-        m.uptime_ms = p_now(NULL);
+        meta.uptime_ms = p_now(NULL);
     }
-    char id[CAPTURE_ID_STR_MAX];
-    capture_id_format(id, sizeof(id), NODE_ID, m.capture_id);
+    char id_str[CAPTURE_ID_STR_MAX];
+    capture_id_format(id_str, sizeof(id_str), NODE_ID, meta.capture_id);
 
     /* the image follows the sound: label -> its group -> generic img_NN (legacy: always img_NN, round robin) */
     /* Follow-up F6: sip_pick() now falls back to any group, so it fails only on a card with no
      * <prefix>_NN.jpg at all; even then the telemetry below is still sent. */
     char name[ALFP_MAX_META - CAPTURE_META_LEN + 1];
-    int nn = sip_pick(&g_images, SOUND_LEGACY_MODE ? SC_UNKNOWN : m.sound_class, name, sizeof(name));
+    int image_num = sip_pick(&g_images, SOUND_LEGACY_MODE ? SC_UNKNOWN : meta.sound_class, name, sizeof(name));
     char path[ALFP_PATH_MAX] = "";
-    if (nn >= 0)
+    if (image_num >= 0)
     {
-        m.image_index = (uint8_t)nn;
+        meta.image_index = (uint8_t)image_num;
         snprintf(path, sizeof(path), "samples/%s", name);
     }
-    const char* shown = nn >= 0 ? path : "no image (samples/ has no <prefix>_NN.jpg), telemetry only";
-    if (m.sound_class == CM_UNKNOWN_U8)
+    const char* p_shown = image_num >= 0 ? path : "no image (samples/ has no <prefix>_NN.jpg), telemetry only";
+    if (meta.sound_class == CM_UNKNOWN_U8)
     {
-        printf("capture %s: heard unknown (recording failed) -> %s\n", id, shown);
+        printf("capture %s: heard unknown (recording failed) -> %s\n", id_str, p_shown);
     }
-    else if (m.sound_conf == CM_UNKNOWN_U8) /* legacy thresholds give no confidence */
+    else if (meta.sound_conf == CM_UNKNOWN_U8) /* legacy thresholds give no confidence */
     {
-        printf("capture %s: heard %s -> %s\n", id, sound_class_name(m.sound_class), shown);
+        printf("capture %s: heard %s -> %s\n", id_str, sound_class_name(meta.sound_class), p_shown);
     }
     else
     {
-        printf("capture %s: heard %s (%u%%) -> %s\n", id, sound_class_name(m.sound_class), m.sound_conf, shown);
+        printf("capture %s: heard %s (%u%%) -> %s\n", id_str, sound_class_name(meta.sound_class), meta.sound_conf, p_shown);
     }
 
     /* meta = the 31-byte v2 record + the image's file name (the optional-name tail, <= 64 bytes in all) */
-    uint8_t mb[ALFP_MAX_META];
-    uint8_t meta_len = capture_meta_pack(&m, mb);
+    uint8_t meta_buf[ALFP_MAX_META];
+    uint8_t meta_len = capture_meta_pack(&meta, meta_buf);
 
-    if (APP_SPLIT_TELEMETRY || nn < 0)
+    if (APP_SPLIT_TELEMETRY || image_num < 0)
     {
         /* Telemetry: a tiny transfer tagged with APP_TELEMETRY_MARKER instead of an image name,
          * small enough that the size rule always sends it over LoRa. The "file" is just a temp
@@ -540,45 +540,45 @@ static void handle_capture(const capture_meta_t* in)
          * confirmed sent. */
         char tel_path[ALFP_PATH_MAX];
         char stem[CAPTURE_ID_STR_MAX];
-        capture_id_file_stem(stem, sizeof(stem), NODE_ID, m.capture_id);
+        capture_id_file_stem(stem, sizeof(stem), NODE_ID, meta.capture_id);
         snprintf(tel_path, sizeof(tel_path), TEL_DIR "/%s.bin", stem);
-        int th = st->open_write(st->ctx, tel_path);
-        bool tel_ok = th >= 0 && st->write_at(st->ctx, th, 0, mb, meta_len) == meta_len;
-        if (th >= 0)
+        int tel_handle = p_store->p_open_write(p_store->p_ctx, tel_path);
+        bool b_tel_ok = tel_handle >= 0 && p_store->p_write_at(p_store->p_ctx, tel_handle, 0, meta_buf, meta_len) == meta_len;
+        if (tel_handle >= 0)
         {
-            st->close(st->ctx, th);
+            p_store->p_close(p_store->p_ctx, tel_handle);
         }
         uint8_t tel_meta[ALFP_MAX_META];
-        memcpy(tel_meta, mb, meta_len);
+        memcpy(tel_meta, meta_buf, meta_len);
         size_t marker_len = strlen(APP_TELEMETRY_MARKER);
         memcpy(tel_meta + meta_len, APP_TELEMETRY_MARKER, marker_len);
         uint8_t tel_meta_len = (uint8_t)(meta_len + marker_len);
-        if (tel_ok && alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len))
+        if (b_tel_ok && alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len))
         {
-            printf("capture %s telemetry queued (%s)\n", id, tel_path);
+            printf("capture %s telemetry queued (%s)\n", id_str, tel_path);
         }
         else
         {
-            printf("capture %s: telemetry SD write failed%s\n", id, nn >= 0 ? ", image still sent" : "");
-            st->remove(st->ctx, tel_path);
+            printf("capture %s: telemetry SD write failed%s\n", id_str, image_num >= 0 ? ", image still sent" : "");
+            p_store->p_remove(p_store->p_ctx, tel_path);
         }
     }
-    if (nn < 0)
+    if (image_num < 0)
     {
         return;
     }
 
     /* Image: meta + the image's file name (the optional-name tail), exactly as before this round. */
-    size_t nl = strlen(name);
-    memcpy(mb + meta_len, name, nl);
-    uint8_t ml = (uint8_t)(meta_len + nl);
-    if (alfp_outbox_add(&g_outbox, path, mb, ml))
+    size_t name_len = strlen(name);
+    memcpy(meta_buf + meta_len, name, name_len);
+    uint8_t total_len = (uint8_t)(meta_len + name_len);
+    if (alfp_outbox_add(&g_outbox, path, meta_buf, total_len))
     {
-        printf("capture %s queued (%s), outbox %u\n", id, path, alfp_outbox_count(&g_outbox));
+        printf("capture %s queued (%s), outbox %u\n", id_str, path, alfp_outbox_count(&g_outbox));
     }
     else
     {
-        printf("capture %s: SD write failed\n", id);
+        printf("capture %s: SD write failed\n", id_str);
     }
 }
 
@@ -589,29 +589,29 @@ static void handle_capture(const capture_meta_t* in)
  * replies. The receive callbacks read g_pkt_hops / g_pkt_prev for the packet being handled. */
 static void comms_service(void)
 {
-    static uint8_t in[ALFP_MAX_PKT];
-    for (int i = 0; i < 2; i++)
+    static uint8_t input[ALFP_MAX_PKT];
+    for (int idx = 0; idx < 2; idx++)
     {
-        const mesh_radio_t* r = g_radios[i];
-        for (int k = 0; k < 16; k++)
+        const mesh_radio_t* p_radio = g_radios[idx];
+        for (int kdx = 0; kdx < 16; kdx++)
         {
             uint8_t src;
-            int n = r->recv(&src, in, sizeof(in));
-            if (n == MESH_RECV_NONE)
+            int len = p_radio->p_recv(&src, input, sizeof(input));
+            if (len == MESH_RECV_NONE)
             {
                 break;
             }
-            if (n < 0)
+            if (len < 0)
             {
                 g_alfp.stats.pkts_bad_other++;
                 continue;
             }
-            if (!radios_last_recv_info(r, &g_pkt_hops, &g_pkt_prev))
+            if (!radios_last_recv_info(p_radio, &g_pkt_hops, &g_pkt_prev))
             {
                 g_pkt_hops = 0;
                 g_pkt_prev = 0;
             }
-            alfp_handle_packet(&g_alfp, r, src, in, (uint16_t)n);
+            alfp_handle_packet(&g_alfp, p_radio, src, input, (uint16_t)len);
         }
     }
     alfp_step(&g_alfp);
@@ -619,32 +619,32 @@ static void comms_service(void)
 
 static void print_stats(void)
 {
-    const alfp_stats_t* s = &g_alfp.stats;
+    const alfp_stats_t* p_stats = &g_alfp.stats;
     printf("node %u | alfp in %lu badcrc %lu | tx ok %lu fail %lu | rx ok %lu crcfail %lu expired %lu | outbox %u\n",
-           (unsigned)NODE_ID, (unsigned long)s->pkts_in, (unsigned long)s->pkts_bad_crc, (unsigned long)s->tx_ok,
-           (unsigned long)s->tx_failed, (unsigned long)s->rx_ok, (unsigned long)s->rx_crc_fail,
-           (unsigned long)s->rx_expired, alfp_outbox_count(&g_outbox));
-    for (int i = 0; i < 2; i++)
+           (unsigned)NODE_ID, (unsigned long)p_stats->pkts_in, (unsigned long)p_stats->pkts_bad_crc, (unsigned long)p_stats->tx_ok,
+           (unsigned long)p_stats->tx_failed, (unsigned long)p_stats->rx_ok, (unsigned long)p_stats->rx_crc_fail,
+           (unsigned long)p_stats->rx_expired, alfp_outbox_count(&g_outbox));
+    for (int idx = 0; idx < 2; idx++)
     {
-        mesh_stats_t m;
-        g_radios[i]->get_stats(&m);
-        printf("  %s: tx %lu rx %lu delivered %lu relayed %lu dup %lu rxerr %lu\n", g_radios[i]->name,
-               (unsigned long)m.tx, (unsigned long)m.rx, (unsigned long)m.delivered, (unsigned long)m.relayed,
-               (unsigned long)m.dup_dropped, (unsigned long)m.rx_error);
+        mesh_stats_t stats;
+        g_radios[idx]->p_get_stats(&stats);
+        printf("  %s: tx %lu rx %lu delivered %lu relayed %lu dup %lu rxerr %lu\n", g_radios[idx]->p_name,
+               (unsigned long)stats.tx_count, (unsigned long)stats.rx_count, (unsigned long)stats.delivered, (unsigned long)stats.relayed,
+               (unsigned long)stats.dup_dropped, (unsigned long)stats.rx_error);
     }
-    const sensing_env_t* e = sensing_env();
-    printf("  dht22 good %lu fail %lu | lora %s | wifi %s\n", (unsigned long)e->dht_good, (unsigned long)e->dht_fail,
+    const sensing_env_t* p_env = sensing_env();
+    printf("  dht22 good %lu fail %lu | lora %s | wifi %s\n", (unsigned long)p_env->dht_good, (unsigned long)p_env->dht_fail,
            radios_lora_ok() ? "up" : "DOWN", radios_wifi_ok() ? "up" : "DOWN");
-    uint32_t t;
-    for (int i = 0; i < 2; i++)
+    uint32_t now_ms;
+    for (int idx = 0; idx < 2; idx++)
     {
-        if (g_radios[i]->last_heard(BRIDGE_ID, &t))
+        if (g_radios[idx]->p_last_heard(BRIDGE_ID, &now_ms))
         {
-            printf("  bridge last heard on %s %lu ms ago\n", g_radios[i]->name, (unsigned long)(p_now(NULL) - t));
+            printf("  bridge last heard on %s %lu ms ago\n", g_radios[idx]->p_name, (unsigned long)(p_now(NULL) - now_ms));
         }
         else
         {
-            printf("  bridge never heard on %s\n", g_radios[i]->name);
+            printf("  bridge never heard on %s\n", g_radios[idx]->p_name);
         }
     }
     printf("  comms stack free: %lu words, heap free %lu bytes\n", (unsigned long)uxTaskGetStackHighWaterMark(NULL),
@@ -660,9 +660,9 @@ static void print_stats(void)
     printf("\n");
 }
 
-static void comms_task(void* arg)
+static void comms_task(void* p_arg)
 {
-    (void)arg;
+    (void)p_arg;
     /* The SD card goes first: it must be switched to SPI mode before any LoRa traffic appears on
      * the shared SPI1 bus (board.h). */
     while (!storage_fatfs_mount())
@@ -670,25 +670,25 @@ static void comms_task(void* arg)
         printf("sd: mount failed (card in the Maker slot? FAT32?), retrying\n");
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
-    const alfp_storage_t* st = storage_fatfs();
-    st->mkdir(st->ctx, "samples");
-    st->mkdir(st->ctx, TEL_DIR); /* also used without APP_SPLIT_TELEMETRY when a capture has no image */
+    const alfp_storage_t* p_store = storage_fatfs();
+    p_store->p_mkdir(p_store->p_ctx, "samples");
+    p_store->p_mkdir(p_store->p_ctx, TEL_DIR); /* also used without APP_SPLIT_TELEMETRY when a capture has no image */
     sip_reset(&g_images);
-    st->list(st->ctx, "samples", count_samples_cb, NULL);
+    p_store->p_list(p_store->p_ctx, "samples", count_samples_cb, NULL);
     unsigned n_img = 0;
-    for (uint32_t i = 0; i < g_images.n; i++)
+    for (uint32_t idx = 0; idx < g_images.count; idx++)
     {
-        n_img += g_images.p[i].count;
+        n_img += g_images.prefixes[idx].count;
     }
-    printf("sd: mounted, %u sample images in %u groups:", n_img, g_images.n);
-    for (uint32_t i = 0; i < g_images.n; i++)
+    printf("sd: mounted, %u sample images in %u groups:", n_img, g_images.count);
+    for (uint32_t idx = 0; idx < g_images.count; idx++)
     {
-        printf(" %s %u", g_images.p[i].prefix, g_images.p[i].count);
+        printf(" %s %u", g_images.prefixes[idx].prefix, g_images.prefixes[idx].count);
     }
     printf("\n");
-    st->list(st->ctx, TEST_PAYLOADS_DIR, count_payloads_cb, NULL);
+    p_store->p_list(p_store->p_ctx, TEST_PAYLOADS_DIR, count_payloads_cb, NULL);
     printf("sd: %u test payload file(s) in %s/\n", g_n_payloads, TEST_PAYLOADS_DIR);
-    restore_capture_id(st);
+    restore_capture_id(p_store);
 
     if (!radios_init(NODE_ID))
     {
@@ -700,48 +700,48 @@ static void comms_task(void* arg)
     alfp_cfg_t cfg = {
         .node_id = NODE_ID,
         .bridge_id = BRIDGE_ID,
-        .storage = st,
-        .platform = &k_plat,
-        .inbox_dir = "rcv", /* rcv/<xx>/, see alfp.h; an old flat inbox/ is left alone, never read */
-        .tmp_dir = "rx",
-        .on_tx_done = on_tx_done,
-        .on_rx_done = on_rx_done,
+        .p_storage = p_store,
+        .p_platform = &k_plat,
+        .p_inbox_dir = "rcv", /* rcv/<xx>/, see alfp.h; an old flat inbox/ is left alone, never read */
+        .p_tmp_dir = "rx",
+        .p_on_tx_done = on_tx_done,
+        .p_on_rx_done = on_rx_done,
     };
     if (NODE_ID != BRIDGE_ID)
     {
-        cfg.on_tx_start = on_tx_start;
-        cfg.on_tx_nack = on_tx_nack;
+        cfg.p_on_tx_start = on_tx_start;
+        cfg.p_on_tx_nack = on_tx_nack;
     }
     if (APP_TRANSFER_EVENTS && NODE_ID == BRIDGE_ID)
     {
-        cfg.on_rx_start = ev_rx_start;
-        cfg.on_rx_manifest = ev_rx_manifest;
-        cfg.on_rx_frag = ev_rx_frag;
-        cfg.on_rx_nack = ev_rx_nack;
-        cfg.on_rx_fail = ev_rx_fail;
+        cfg.p_on_rx_start = ev_rx_start;
+        cfg.p_on_rx_manifest = ev_rx_manifest;
+        cfg.p_on_rx_frag = ev_rx_frag;
+        cfg.p_on_rx_nack = ev_rx_nack;
+        cfg.p_on_rx_fail = ev_rx_fail;
     }
     alfp_init(&g_alfp, &cfg);
-    uplink_queue_init(&g_uplink, st);
+    uplink_queue_init(&g_uplink, p_store);
     alfp_outbox_init(&g_outbox, &g_alfp, g_radios, 2, BRIDGE_ID, BRIDGE_FRESH_MS, "outbox");
     alfp_outbox_set_size_threshold(&g_outbox, APP_RADIO_SIZE_THRESHOLD);
-    g_outbox.prepare_meta = stamp_queued_ms;
+    g_outbox.p_prepare_meta = stamp_queued_ms;
     printf("node %u ready (%s), outbox has %u queued, radio size threshold %u B\n", (unsigned)NODE_ID,
            NODE_ID == BRIDGE_ID ? "bridge" : "field node", alfp_outbox_count(&g_outbox),
            (unsigned)APP_RADIO_SIZE_THRESHOLD);
 
-    g_comms_ready = true;
-    bool dropping = false, topo = true, hold = false;
+    gb_comms_ready = true;
+    bool b_dropping = false, b_topo = true, b_hold = false;
     uint32_t next_relay_log = p_now(NULL) + 1000u;
     for (;;)
     {
         uint32_t loop_start = p_now(NULL);
-        g_radios[0]->poll();
-        g_radios[1]->poll();
+        g_radios[0]->p_poll();
+        g_radios[1]->p_poll();
         comms_service();
         if (NODE_ID != BRIDGE_ID)
         {
             capture_meta_t req;
-            while (!hold && xQueueReceive(g_capture_q, &req, 0) == pdTRUE)
+            while (!b_hold && xQueueReceive(gp_capture_q, &req, 0) == pdTRUE)
             {
                 handle_capture(&req);
             }
@@ -766,38 +766,38 @@ static void comms_task(void* arg)
         {
             g_longest_comms_loop_ms = loop_ms;
         }
-        if (g_want_stats)
+        if (gb_want_stats)
         {
-            g_want_stats = false;
+            gb_want_stats = false;
             print_stats();
         }
-        if (g_toggle_drop)
+        if (gb_toggle_drop)
         {
-            g_toggle_drop = false;
-            dropping = !dropping;
-            g_radios[0]->set_drop_rate(dropping ? 0.3f : 0.0f);
-            g_radios[1]->set_drop_rate(dropping ? 0.3f : 0.0f);
-            printf("injected loss %s\n", dropping ? "30%" : "off");
+            gb_toggle_drop = false;
+            b_dropping = !b_dropping;
+            g_radios[0]->p_set_drop_rate(b_dropping ? 0.3f : 0.0f);
+            g_radios[1]->p_set_drop_rate(b_dropping ? 0.3f : 0.0f);
+            printf("injected loss %s\n", b_dropping ? "30%" : "off");
         }
-        if (g_toggle_hold)
+        if (gb_toggle_hold)
         {
-            g_toggle_hold = false;
-            hold = !hold;
+            gb_toggle_hold = false;
+            b_hold = !b_hold;
             printf("capture queue %s (%u waiting)\n",
-                   hold ? "HELD for test T6: captures stay in the 4-slot queue" : "released, sending what waited",
-                   (unsigned)uxQueueMessagesWaiting(g_capture_q));
+                   b_hold ? "HELD for test T6: captures stay in the 4-slot queue" : "released, sending what waited",
+                   (unsigned)uxQueueMessagesWaiting(gp_capture_q));
         }
-        if (g_want_test_payload)
+        if (gb_want_test_payload)
         {
-            g_want_test_payload = false;
+            gb_want_test_payload = false;
             send_next_test_payload();
         }
-        if (g_toggle_topo)
+        if (gb_toggle_topo)
         {
-            g_toggle_topo = false;
-            topo = !topo;
-            radios_set_wifi_topology_filter(topo);
-            printf("wifi topology filter %s\n", topo ? "ON (demo layout, forces multi-hop)" : "OFF (hear everyone)");
+            gb_toggle_topo = false;
+            b_topo = !b_topo;
+            radios_set_wifi_topology_filter(b_topo);
+            printf("wifi topology filter %s\n", b_topo ? "ON (demo layout, forces multi-hop)" : "OFF (hear everyone)");
         }
         /* vTaskDelay, not vTaskDelayUntil: after a slow iteration (SD busy, USB uplink) DelayUntil
          * would not sleep at all while it caught up, starving the sensors task */
@@ -807,9 +807,9 @@ static void comms_task(void* arg)
 
 /* ---- sensors (Maryam + Rhaylene) ---------------------------------------------------------- */
 
-static void rtos_wait_ms(uint32_t ms)
+static void rtos_wait_ms(uint32_t msec)
 {
-    vTaskDelay(pdMS_TO_TICKS(ms ? ms : 1));
+    vTaskDelay(pdMS_TO_TICKS(msec ? msec : 1));
 }
 
 /* DHT22.c times the sensor's bits by counting loop iterations, so it must not be interrupted by
@@ -828,54 +828,54 @@ static void dht_end(void)
 
 static void print_env(void)
 {
-    const sensing_env_t* e = sensing_env();
-    if (e->dht_ok)
+    const sensing_env_t* p_env = sensing_env();
+    if (p_env->b_dht_ok)
     {
-        printf("[ENV] Temp: %.1f C | Hum: %.1f%% | Light: %u | Weather: %s | PIR %d Sound %d\n", e->temp_c, e->hum_pct,
-               e->light, sensing_weather_name(e->weather), sensing_pir(), sensing_sound_trigger());
+        printf("[ENV] Temp: %.1f C | Hum: %.1f%% | Light: %u | Weather: %s | PIR %d Sound %d\n", p_env->temp_c, p_env->hum_pct,
+               p_env->light, sensing_weather_name(p_env->weather), sensing_pir(), sensing_sound_trigger());
     }
     else
     {
         printf("[ENV] DHT22: no reading (%lu fails) | Light: %u | Weather: unknown | PIR %d Sound %d\n",
-               (unsigned long)e->dht_fail, e->light, sensing_pir(), sensing_sound_trigger());
+               (unsigned long)p_env->dht_fail, p_env->light, sensing_pir(), sensing_sound_trigger());
     }
 }
 
-static void sensors_task(void* arg)
+static void sensors_task(void* p_arg)
 {
-    (void)arg;
+    (void)p_arg;
     const sensing_hooks_t hooks = { rtos_wait_ms, dht_begin, dht_end };
     sensing_init(&hooks);
     gpio_init(BOARD_BUTTON_GPIO);
     gpio_set_dir(BOARD_BUTTON_GPIO, GPIO_IN);
     gpio_pull_up(BOARD_BUTTON_GPIO);
-    while (!g_comms_ready)
+    while (!gb_comms_ready)
     {
         vTaskDelay(pdMS_TO_TICKS(100)); /* let the radios print their start-up lines first */
     }
     printf("sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20\n");
 
-    bool was_down = false;
+    bool b_was_down = false;
     uint32_t last_env_print = 0;
     for (;;)
     {
         uint32_t now = p_now(NULL);
         sensing_env_poll(now);
-        if (g_want_env || now - last_env_print >= 10000)
+        if (gb_want_env || now - last_env_print >= 10000)
         {
-            g_want_env = false;
+            gb_want_env = false;
             last_env_print = now;
             print_env();
         }
 
-        bool down = !gpio_get(BOARD_BUTTON_GPIO);
-        bool pressed = down && !was_down;
-        was_down = down;
-        bool forced = pressed || g_force_capture;
-        g_force_capture = false;
-        bool dual = sensing_dual_trigger(now);
+        bool b_down = !gpio_get(BOARD_BUTTON_GPIO);
+        bool b_pressed = b_down && !b_was_down;
+        b_was_down = b_down;
+        bool b_forced = b_pressed || gb_force_capture;
+        gb_force_capture = false;
+        bool b_dual = sensing_dual_trigger(now);
 
-        if (dual || forced)
+        if (b_dual || b_forced)
         {
             uint8_t flags
                 = (uint8_t)((sensing_pir() ? CM_TRIG_PIR : 0) | (sensing_sound_trigger() ? CM_TRIG_SOUND : 0));
@@ -884,16 +884,16 @@ static void sensors_task(void* arg)
                 printf("\n[ALERT] trigger on the bridge: the bridge only receives, no capture is sent\n");
             }
             printf("\n[ALERT] %s (PIR %d, sound %d). Recording %us of audio...\n",
-                   dual ? "Dual trigger fired" : "Manual capture", (flags & CM_TRIG_PIR) != 0,
+                   b_dual ? "Dual trigger fired" : "Manual capture", (flags & CM_TRIG_PIR) != 0,
                    (flags & CM_TRIG_SOUND) != 0, (unsigned)AUDIO_SECONDS);
-            capture_meta_t m;
-            audio_result_t a;
-            sensing_capture(now, flags, &m, &a);
-            printf("[AUDIO] legacy mic.c: %s energy %.1f zcr %.3f mean %u, %lu samples\n", a.label, a.energy, a.zcr,
-                   a.mean_adc, (unsigned long)a.samples);
+            capture_meta_t meta;
+            audio_result_t audio;
+            sensing_capture(now, flags, &meta, &audio);
+            printf("[AUDIO] legacy mic.c: %s energy %.1f zcr %.3f mean %u, %lu samples\n", audio.p_label, audio.energy, audio.zcr,
+                   audio.mean_adc, (unsigned long)audio.samples);
             sensing_log_sound();
             print_env();
-            if (NODE_ID != BRIDGE_ID && !app_request_capture(&m))
+            if (NODE_ID != BRIDGE_ID && !app_request_capture(&meta))
             {
                 printf("[ALERT] capture queue full, dropped\n");
             }
@@ -908,43 +908,43 @@ static void print_help(void)
            "filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | h help\n");
 }
 
-static void console_task(void* arg)
+static void console_task(void* p_arg)
 {
-    (void)arg;
+    (void)p_arg;
     for (;;)
     {
-        int ch = getchar_timeout_us(0);
-        if (ch == 'c')
+        int chan = getchar_timeout_us(0);
+        if (chan == 'c')
         {
-            g_force_capture = true;
+            gb_force_capture = true;
         }
-        else if (ch == 'e')
+        else if (chan == 'e')
         {
-            g_want_env = true;
+            gb_want_env = true;
         }
-        else if (ch == 't')
+        else if (chan == 't')
         {
-            g_toggle_topo = true;
+            gb_toggle_topo = true;
         }
-        else if (ch == 'H')
+        else if (chan == 'H')
         {
-            g_toggle_hold = true;
+            gb_toggle_hold = true;
         }
-        else if (ch == 'h' || ch == '?')
+        else if (chan == 'h' || chan == '?')
         {
             print_help();
         }
-        else if (ch == 's')
+        else if (chan == 's')
         {
-            g_want_stats = true;
+            gb_want_stats = true;
         }
-        else if (ch == 'd')
+        else if (chan == 'd')
         {
-            g_toggle_drop = true;
+            gb_toggle_drop = true;
         }
-        else if (ch == 'p')
+        else if (chan == 'p')
         {
-            g_want_test_payload = true;
+            gb_want_test_payload = true;
         }
         else
         {
@@ -964,7 +964,7 @@ int main(void)
     {
         printf("sound: LEGACY mode (mic.c thresholds, img_NN.jpg round robin), not the on-node classifier\n");
     }
-    g_capture_q = xQueueCreate(4, sizeof(capture_meta_t));
+    gp_capture_q = xQueueCreate(4, sizeof(capture_meta_t));
     xTaskCreate(comms_task, "comms", 2048, NULL, 3, NULL);
     xTaskCreate(sensors_task, "sensors", 1024, NULL, 2, NULL);
     print_help();

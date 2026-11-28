@@ -25,13 +25,13 @@
 
 static int sock = -1, self;
 static double loss;
-static wst_link_stats_t st;
+static wst_link_stats_t stats;
 static struct
 {
     uint8_t len;
-    uint8_t b[WST_MAX_PKT];
-} q[WST_TX_QUEUE];
-static int qh, qn;
+    uint8_t buf[WST_MAX_PKT];
+} queue[WST_TX_QUEUE];
+static int queue_head, queue_count;
 static uint64_t busy_until_us;
 
 void fake_wst_set_node(int node_id)
@@ -53,11 +53,11 @@ static uint64_t frame_us(uint8_t len)
 void wst_link_init(void)
 {
     sock = socket(AF_INET, SOCK_DGRAM, 0);
-    struct sockaddr_in a = {0};
-    a.sin_family = AF_INET;
-    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    a.sin_port = htons((uint16_t)(BASE_PORT + self));
-    if (bind(sock, (struct sockaddr*)&a, sizeof(a)) != 0)
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = htons((uint16_t)(BASE_PORT + self));
+    if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0)
     {
         perror("bind");
         /* DEVIATION (BARR-C 8.5.b, exit()): host integration-test stand-in for wst_link.c, never
@@ -67,73 +67,73 @@ void wst_link_init(void)
         exit(5);
     }
     fcntl(sock, F_SETFL, O_NONBLOCK);
-    const char* l = getenv("WIFI_LOSS");
-    loss = l ? atof(l) : 0.0;
+    const char* p_loss_env = getenv("WIFI_LOSS");
+    loss = p_loss_env ? atof(p_loss_env) : 0.0;
     srand((unsigned)(self * 104729));
     printf("fake WST: node %d (WST-%d MAC) on udp %d, loss %.0f%%\n", self, self, BASE_PORT + self, loss * 100);
 }
 
-bool wst_link_send(const uint8_t* pkt, uint8_t len)
+bool wst_link_send(const uint8_t* p_pkt, uint8_t len)
 {
     if (len == 0 || len > WST_MAX_PKT)
     {
         return false;
     }
-    if (qn == WST_TX_QUEUE)
+    if (queue_count == WST_TX_QUEUE)
     {
-        st.tx_queue_full++;
+        stats.tx_queue_full++;
         return false;
     }
-    if (qn == 0)
+    if (queue_count == 0)
     {
         busy_until_us = now_us() + frame_us(len);
     }
-    int i = (qh + qn) % WST_TX_QUEUE;
-    q[i].len = len;
-    memcpy(q[i].b, pkt, len);
-    qn++;
-    st.tx_queued++;
+    int idx = (queue_head + queue_count) % WST_TX_QUEUE;
+    queue[idx].len = len;
+    memcpy(queue[idx].buf, p_pkt, len);
+    queue_count++;
+    stats.tx_queued++;
     return true;
 }
 
 void wst_link_poll(void)
 {
-    uint64_t t = now_us();
-    if (qn && t >= busy_until_us)
+    uint64_t now_t = now_us();
+    if (queue_count && now_t >= busy_until_us)
     {
         /* the frame at the head has finished its UART + air time: broadcast it */
         uint8_t out[6 + WST_MAX_PKT];
-        memcpy(out, WIFI_MESH_MACS[self], 6);
-        memcpy(out + 6, q[qh].b, q[qh].len);
-        for (int n = 1; n <= 5; n++)
+        memcpy(out, wifi_mesh_macs[self], 6);
+        memcpy(out + 6, queue[queue_head].buf, queue[queue_head].len);
+        for (int node = 1; node <= 5; node++)
         {
-            if (n == self)
+            if (node == self)
             {
                 continue;
             }
-            struct sockaddr_in a = {0};
-            a.sin_family = AF_INET;
-            a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-            a.sin_port = htons((uint16_t)(BASE_PORT + n));
-            sendto(sock, out, (size_t)(6 + q[qh].len), 0, (struct sockaddr*)&a, sizeof(a));
+            struct sockaddr_in addr = {0};
+            addr.sin_family = AF_INET;
+            addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            addr.sin_port = htons((uint16_t)(BASE_PORT + node));
+            sendto(sock, out, (size_t)(6 + queue[queue_head].len), 0, (struct sockaddr*)&addr, sizeof(addr));
         }
-        st.tx_ok++;
-        qh = (qh + 1) % WST_TX_QUEUE;
-        qn--;
-        if (qn)
+        stats.tx_ok++;
+        queue_head = (queue_head + 1) % WST_TX_QUEUE;
+        queue_count--;
+        if (queue_count)
         {
-            busy_until_us = t + frame_us(q[qh].len);
+            busy_until_us = now_t + frame_us(queue[queue_head].len);
         }
     }
 }
 
-bool wst_link_recv(wst_rx_pkt_t* out)
+bool wst_link_recv(wst_rx_pkt_t* p_out)
 {
     for (;;)
     {
         uint8_t tmp[6 + WST_MAX_PKT];
-        ssize_t r = recv(sock, tmp, sizeof(tmp), 0);
-        if (r <= 6)
+        ssize_t ret = recv(sock, tmp, sizeof(tmp), 0);
+        if (ret <= 6)
         {
             return false;
         }
@@ -141,41 +141,41 @@ bool wst_link_recv(wst_rx_pkt_t* out)
         {
             continue; /* lost in the air */
         }
-        memcpy(out->mac, tmp, 6);
-        out->len = (uint8_t)(r - 6);
-        memcpy(out->data, tmp + 6, out->len);
-        st.rx_ok++;
+        memcpy(p_out->mac, tmp, 6);
+        p_out->len = (uint8_t)(ret - 6);
+        memcpy(p_out->data, tmp + 6, p_out->len);
+        stats.rx_ok++;
         return true;
     }
 }
 
 bool wst_link_tx_busy(void)
 {
-    return qn > 0;
+    return queue_count > 0;
 }
 
 bool wst_link_get_mac(uint8_t mac[6])
 {
-    memcpy(mac, WIFI_MESH_MACS[self], 6);
+    memcpy(mac, wifi_mesh_macs[self], 6);
     return true;
 }
 
 void wst_link_request_mac(void) {}
 
-void wst_link_get_stats(wst_link_stats_t* o)
+void wst_link_get_stats(wst_link_stats_t* p_out)
 {
-    *o = st;
+    *p_out = stats;
 }
 
-uint8_t wst_crc8(const uint8_t* d, uint32_t n, uint8_t c)
+uint8_t wst_crc8(const uint8_t* p_data, uint32_t len, uint8_t crc)
 {
-    while (n--)
+    while (len--)
     {
-        c ^= *d++;
-        for (int i = 0; i < 8; i++)
+        crc ^= *p_data++;
+        for (int idx = 0; idx < 8; idx++)
         {
-            c = (uint8_t)((c & 0x80) ? (c << 1) ^ 0x07 : c << 1);
+            crc = (uint8_t)((crc & 0x80) ? (crc << 1) ^ 0x07 : crc << 1);
         }
     }
-    return c;
+    return crc;
 }

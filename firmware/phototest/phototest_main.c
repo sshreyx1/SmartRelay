@@ -43,7 +43,7 @@
 #define MAX_FILE_BYTES (ALFP_MAX_FRAGS * 241u) /* 123,392 bytes */
 
 static alfp_ctx_t g_alfp;
-static const mesh_radio_t* const g_lora = &lora_mesh_radio;
+static const mesh_radio_t* const gp_lora = &g_lora_mesh_radio;
 
 /* Timing for this two-board test. With only two Picos nothing relays, so a short gap is safe.
  * 'g' switches to the mesh default (500 ms) for tests with a relay node in between. */
@@ -65,20 +65,20 @@ static uint32_t g_capture_id;
 
 /* ---- platform --------------------------------------------------------------------------- */
 
-static uint32_t p_now(void* c)
+static uint32_t p_now(void* p_ctx)
 {
-    (void)c;
+    (void)p_ctx;
     return to_ms_since_boot(get_absolute_time());
 }
-static uint32_t p_rand(void* c)
+static uint32_t p_rand(void* p_ctx)
 {
-    (void)c;
+    (void)p_ctx;
     return get_rand_32();
 }
-static void p_log(void* c, const char* m)
+static void p_log(void* p_ctx, const char* p_msg)
 {
-    (void)c;
-    printf("%s\n", m);
+    (void)p_ctx;
+    printf("%s\n", p_msg);
 }
 static const alfp_platform_t k_plat = {NULL, p_now, p_rand, p_log};
 
@@ -96,22 +96,22 @@ static void link_quality(void)
 
 static void print_stats(void)
 {
-    mesh_stats_t m;
-    g_lora->get_stats(&m);
-    const alfp_stats_t* a = &g_alfp.stats;
+    mesh_stats_t stats;
+    gp_lora->p_get_stats(&stats);
+    const alfp_stats_t* p_stats = &g_alfp.stats;
     printf("LoRa: tx %lu rx %lu delivered %lu relayed %lu dup %lu rx_error %lu tx_fail %lu drop_injected %lu\n",
-           (unsigned long)m.tx, (unsigned long)m.rx, (unsigned long)m.delivered, (unsigned long)m.relayed,
-           (unsigned long)m.dup_dropped, (unsigned long)m.rx_error, (unsigned long)m.tx_fail,
-           (unsigned long)m.drop_injected);
+           (unsigned long)stats.tx_count, (unsigned long)stats.rx_count, (unsigned long)stats.delivered, (unsigned long)stats.relayed,
+           (unsigned long)stats.dup_dropped, (unsigned long)stats.rx_error, (unsigned long)stats.tx_fail,
+           (unsigned long)stats.drop_injected);
     printf("ALFP: packets in %lu, bad CRC-16 %lu, sent ok %lu, failed %lu, received ok %lu, CRC-32 fails %lu\n",
-           (unsigned long)a->pkts_in, (unsigned long)a->pkts_bad_crc, (unsigned long)a->tx_ok,
-           (unsigned long)a->tx_failed, (unsigned long)a->rx_ok, (unsigned long)a->rx_crc_fail);
+           (unsigned long)p_stats->pkts_in, (unsigned long)p_stats->pkts_bad_crc, (unsigned long)p_stats->tx_ok,
+           (unsigned long)p_stats->tx_failed, (unsigned long)p_stats->rx_ok, (unsigned long)p_stats->rx_crc_fail);
     link_quality();
-    uint32_t t;
+    uint32_t now_ms;
     uint8_t other = IS_RECEIVER ? 2 : RECEIVER_ID;
-    if (g_lora->last_heard(other, &t))
+    if (gp_lora->p_last_heard(other, &now_ms))
     {
-        printf("  node %u last heard %lu ms ago\n", other, (unsigned long)(p_now(NULL) - t));
+        printf("  node %u last heard %lu ms ago\n", other, (unsigned long)(p_now(NULL) - now_ms));
     }
     else
     {
@@ -121,61 +121,61 @@ static void print_stats(void)
 
 /* ---- SD helpers ----------------------------------------------------------------------- */
 
-static bool is_photo_name(const char* n)
+static bool is_photo_name(const char* p_name)
 {
-    const char* dot = strrchr(n, '.');
-    if (!dot)
+    const char* p_dot = strrchr(p_name, '.');
+    if (!p_dot)
     {
         return false;
     }
     char ext[8] = {0};
-    for (int i = 0; i < 7 && dot[i + 1]; i++)
+    for (int idx = 0; idx < 7 && p_dot[idx + 1]; idx++)
     {
-        ext[i] = (char)tolower((unsigned char)dot[i + 1]);
+        ext[idx] = (char)tolower((unsigned char)p_dot[idx + 1]);
     }
     return !strcmp(ext, "jpg") || !strcmp(ext, "jpeg") || !strcmp(ext, "png") || !strcmp(ext, "bmp") ||
            !strcmp(ext, "gif");
 }
 
-static const char* g_scan_dir;
+static const char* gp_scan_dir;
 
-static void scan_cb(const char* name, void* user)
+static void scan_cb(const char* p_name, void* p_user)
 {
-    (void)user;
-    if (g_n_photos >= MAX_PHOTOS || !is_photo_name(name) || name[0] == '.')
+    (void)p_user;
+    if (g_n_photos >= MAX_PHOTOS || !is_photo_name(p_name) || p_name[0] == '.')
     {
         return;
     }
-    photo_t* p = &g_photos[g_n_photos];
-    if (g_scan_dir[0])
+    photo_t* p_photo = &g_photos[g_n_photos];
+    if (gp_scan_dir[0])
     {
-        snprintf(p->path, sizeof(p->path), "%s/%s", g_scan_dir, name);
+        snprintf(p_photo->path, sizeof(p_photo->path), "%s/%s", gp_scan_dir, p_name);
     }
     else
     {
-        snprintf(p->path, sizeof(p->path), "%s", name);
+        snprintf(p_photo->path, sizeof(p_photo->path), "%s", p_name);
     }
-    const alfp_storage_t* st = storage_fatfs();
-    int h = st->open_read(st->ctx, p->path);
-    if (h < 0)
+    const alfp_storage_t* p_store = storage_fatfs();
+    int handle = p_store->p_open_read(p_store->p_ctx, p_photo->path);
+    if (handle < 0)
     {
         return;
     }
-    p->size = (uint32_t)st->size(st->ctx, h);
-    st->close(st->ctx, h);
+    p_photo->size = (uint32_t)p_store->p_size(p_store->p_ctx, handle);
+    p_store->p_close(p_store->p_ctx, handle);
     g_n_photos++;
 }
 
 static void scan_photos(void)
 {
-    const alfp_storage_t* st = storage_fatfs();
+    const alfp_storage_t* p_store = storage_fatfs();
     g_n_photos = 0;
-    g_scan_dir = "";
-    st->list(st->ctx, "", scan_cb, NULL);
-    g_scan_dir = "photos";
-    st->list(st->ctx, "photos", scan_cb, NULL);
-    g_scan_dir = "samples";
-    st->list(st->ctx, "samples", scan_cb, NULL);
+    gp_scan_dir = "";
+    p_store->p_list(p_store->p_ctx, "", scan_cb, NULL);
+    gp_scan_dir = "photos";
+    p_store->p_list(p_store->p_ctx, "photos", scan_cb, NULL);
+    gp_scan_dir = "samples";
+    p_store->p_list(p_store->p_ctx, "samples", scan_cb, NULL);
 }
 
 static void list_photos(void)
@@ -186,19 +186,19 @@ static void list_photos(void)
         printf("  none found. Copy .jpg files onto the card and press l again.\n");
         return;
     }
-    for (int i = 0; i < g_n_photos; i++)
+    for (int idx = 0; idx < g_n_photos; idx++)
     {
-        uint16_t f = frags_for(g_photos[i].size);
-        double est = f * (0.40 + g_prof[0].gap_ms / 1000.0) + 2.0;
-        if (g_photos[i].size > MAX_FILE_BYTES)
+        uint16_t frags = frags_for(g_photos[idx].size);
+        double est = frags * (0.40 + g_prof[0].gap_ms / 1000.0) + 2.0;
+        if (g_photos[idx].size > MAX_FILE_BYTES)
         {
             printf("  %d  %-32s %7lu bytes  TOO BIG: max %u bytes, resize it (tools/make_sample_images.py)\n",
-                   i + 1, g_photos[i].path, (unsigned long)g_photos[i].size, (unsigned)MAX_FILE_BYTES);
+                   idx + 1, g_photos[idx].path, (unsigned long)g_photos[idx].size, (unsigned)MAX_FILE_BYTES);
         }
         else
         {
-            printf("  %d  %-32s %7lu bytes  %3u fragments  ~%.0f s over LoRa\n", i + 1, g_photos[i].path,
-                   (unsigned long)g_photos[i].size, f, est);
+            printf("  %d  %-32s %7lu bytes  %3u fragments  ~%.0f s over LoRa\n", idx + 1, g_photos[idx].path,
+                   (unsigned long)g_photos[idx].size, frags, est);
         }
     }
     printf("Press 1-%d to send one, a to send all.\n\n", g_n_photos);
@@ -206,11 +206,11 @@ static void list_photos(void)
 
 /* ---- sender ------------------------------------------------------------------------------ */
 
-static bool start_photo(int i)
+static bool start_photo(int idx)
 {
-    if (i < 0 || i >= g_n_photos)
+    if (idx < 0 || idx >= g_n_photos)
     {
-        printf("no photo %d (press l)\n", i + 1);
+        printf("no photo %d (press l)\n", idx + 1);
         return false;
     }
     if (alfp_tx_active(&g_alfp))
@@ -219,56 +219,56 @@ static bool start_photo(int i)
         return false;
     }
     /* Metadata: the standard 27-byte capture record, then the original file name. */
-    capture_meta_t m;
-    capture_meta_clear(&m);
-    m.node_id = NODE_ID;
-    m.capture_id = ++g_capture_id;
-    m.uptime_ms = p_now(NULL);
-    m.image_index = (uint8_t)i;
+    capture_meta_t cap_meta;
+    capture_meta_clear(&cap_meta);
+    cap_meta.node_id = NODE_ID;
+    cap_meta.capture_id = ++g_capture_id;
+    cap_meta.uptime_ms = p_now(NULL);
+    cap_meta.image_index = (uint8_t)idx;
     uint8_t meta[ALFP_MAX_META];
-    uint8_t ml = capture_meta_pack(&m, meta);
-    const char* base = strrchr(g_photos[i].path, '/');
-    base = base ? base + 1 : g_photos[i].path;
-    size_t bl = strlen(base);
-    if (bl > ALFP_MAX_META - ml)
+    uint8_t meta_len = capture_meta_pack(&cap_meta, meta);
+    const char* p_base = strrchr(g_photos[idx].path, '/');
+    p_base = p_base ? p_base + 1 : g_photos[idx].path;
+    size_t base_len = strlen(p_base);
+    if (base_len > ALFP_MAX_META - meta_len)
     {
-        bl = ALFP_MAX_META - ml;
+        base_len = ALFP_MAX_META - meta_len;
     }
-    memcpy(meta + ml, base, bl);
-    ml = (uint8_t)(ml + bl);
+    memcpy(meta + meta_len, p_base, base_len);
+    meta_len = (uint8_t)(meta_len + base_len);
 
-    alfp_err_t e = alfp_send_file(&g_alfp, g_lora, RECEIVER_ID, g_photos[i].path, meta, ml);
-    if (e != ALFP_OK)
+    alfp_err_t err = alfp_send_file(&g_alfp, gp_lora, RECEIVER_ID, g_photos[idx].path, meta, meta_len);
+    if (err != ALFP_OK)
     {
-        const char* why = e == ALFP_E_TOO_BIG ? "too big (resize to under 120 kB)"
-                          : e == ALFP_E_OPEN  ? "cannot open file"
-                          : e == ALFP_E_EMPTY ? "file is empty"
+        const char* p_why = err == ALFP_E_TOO_BIG ? "too big (resize to under 120 kB)"
+                          : err == ALFP_E_OPEN  ? "cannot open file"
+                          : err == ALFP_E_EMPTY ? "file is empty"
                                               : "error";
-        printf("cannot send %s: %s\n", g_photos[i].path, why);
+        printf("cannot send %s: %s\n", g_photos[idx].path, p_why);
         return false;
     }
-    g_sending = i;
-    printf("\nSENDING %s: %lu bytes as %u fragments of 241 bytes to node %u over LoRa\n", g_photos[i].path,
-           (unsigned long)g_photos[i].size, frags_for(g_photos[i].size), RECEIVER_ID);
+    g_sending = idx;
+    printf("\nSENDING %s: %lu bytes as %u fragments of 241 bytes to node %u over LoRa\n", g_photos[idx].path,
+           (unsigned long)g_photos[idx].size, frags_for(g_photos[idx].size), RECEIVER_ID);
     return true;
 }
 
-static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
+static void on_tx_done(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
 {
-    (void)ctx;
-    double secs = (r->finished_ms - r->started_ms) / 1000.0;
-    if (r->result == ALFP_TX_DONE)
+    (void)p_ctx;
+    double secs = (p_rep->finished_ms - p_rep->started_ms) / 1000.0;
+    if (p_rep->result == ALFP_TX_DONE)
     {
         printf("DONE  %s: receiver confirmed it. %lu bytes, CRC-32 %08lx, %u fragments, %u rounds, %u resent, "
                "%.1f s (%.0f bytes/s)\n",
-               r->path, (unsigned long)r->file_size, (unsigned long)r->file_crc32, r->frag_count, r->rounds,
-               r->data_resent, secs, secs > 0 ? r->file_size / secs : 0.0);
+               p_rep->p_path, (unsigned long)p_rep->file_size, (unsigned long)p_rep->file_crc32, p_rep->frag_count, p_rep->rounds,
+               p_rep->data_resent, secs, secs > 0 ? p_rep->file_size / secs : 0.0);
     }
     else
     {
-        printf("FAILED %s: %s after %u rounds, %.1f s. %s\n", r->path, alfp_tx_result_str(r->result), r->rounds,
+        printf("FAILED %s: %s after %u rounds, %.1f s. %s\n", p_rep->p_path, alfp_tx_result_str(p_rep->result), p_rep->rounds,
                secs,
-               r->why == 1 ? "No answer from the receiver: is it powered, flashed with lora_photo_rx, in range?"
+               p_rep->why == 1 ? "No answer from the receiver: is it powered, flashed with lora_photo_rx, in range?"
                            : "");
     }
     g_sending = -1;
@@ -276,68 +276,68 @@ static void on_tx_done(alfp_ctx_t* ctx, const alfp_tx_report_t* r)
 
 /* ---- receiver ---------------------------------------------------------------------------- */
 
-static void uplink_out(const char* s, void* user)
+static void uplink_out(const char* p_str, void* p_user)
 {
-    (void)user;
-    fputs(s, stdout);
+    (void)p_user;
+    fputs(p_str, stdout);
 }
 
-static void on_rx_done(alfp_ctx_t* ctx, const alfp_rx_report_t* r)
+static void on_rx_done(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
 {
-    const alfp_storage_t* st = ctx->cfg.storage;
+    const alfp_storage_t* p_store = p_ctx->cfg.p_storage;
     /* Give the file back its original name: inbox/n2_00042_photo1.jpg */
     char name[40] = "photo.bin";
-    uint8_t rec = capture_meta_record_len(r->meta, r->meta_len); /* 27 (v1) or 31 (v2) */
-    if (rec != 0u && r->meta_len > rec)
+    uint8_t rec = capture_meta_record_len(p_rep->p_meta, p_rep->meta_len); /* 27 (v1) or 31 (v2) */
+    if (rec != 0u && p_rep->meta_len > rec)
     {
-        size_t n = r->meta_len - rec;
-        if (n >= sizeof(name))
+        size_t len = p_rep->meta_len - rec;
+        if (len >= sizeof(name))
         {
-            n = sizeof(name) - 1;
+            len = sizeof(name) - 1;
         }
-        memcpy(name, r->meta + rec, n);
-        name[n] = 0;
+        memcpy(name, p_rep->p_meta + rec, len);
+        name[len] = 0;
     }
     char final_path[ALFP_PATH_MAX + 48];
-    snprintf(final_path, sizeof(final_path), "inbox/n%u_%05u_%s", r->src, r->sid, name);
-    const char* path = st->rename(st->ctx, r->path, final_path) == 0 ? final_path : r->path;
+    snprintf(final_path, sizeof(final_path), "inbox/n%u_%05u_%s", p_rep->src, p_rep->sid, name);
+    const char* p_path = p_store->p_rename(p_store->p_ctx, p_rep->p_path, final_path) == 0 ? final_path : p_rep->p_path;
 
-    double secs = (r->done_ms - r->first_ms) / 1000.0;
+    double secs = (p_rep->done_ms - p_rep->first_ms) / 1000.0;
     printf("\nRECEIVED %s from node %u: %lu bytes, CRC-32 %08lx verified, %u fragments, %u duplicates ignored, "
            "%.1f s\n",
-           path, r->src, (unsigned long)r->file_size, (unsigned long)r->file_crc32, r->frag_count, r->duplicates,
+           p_path, p_rep->src, (unsigned long)p_rep->file_size, (unsigned long)p_rep->file_crc32, p_rep->frag_count, p_rep->duplicates,
            secs);
     link_quality();
 
-    alfp_rx_report_t copy = *r;
-    copy.path = path;
-    uplink_send_file(st, &copy, uplink_out, NULL); /* the laptop's bridge_receiver.py saves this */
+    alfp_rx_report_t copy = *p_rep;
+    copy.p_path = p_path;
+    uplink_send_file(p_store, &copy, uplink_out, NULL); /* the laptop's bridge_receiver.py saves this */
     fflush(stdout);
 }
 
-static void list_cb(const char* name, void* user)
+static void list_cb(const char* p_name, void* p_user)
 {
-    (void)user;
-    char p[ALFP_PATH_MAX + 8];
-    snprintf(p, sizeof(p), "inbox/%s", name);
-    const alfp_storage_t* st = storage_fatfs();
-    int h = st->open_read(st->ctx, p);
-    if (h >= 0)
+    (void)p_user;
+    char path[ALFP_PATH_MAX + 8];
+    snprintf(path, sizeof(path), "inbox/%s", p_name);
+    const alfp_storage_t* p_store = storage_fatfs();
+    int handle = p_store->p_open_read(p_store->p_ctx, path);
+    if (handle >= 0)
     {
-        printf("  %-40s %7ld bytes\n", p, (long)st->size(st->ctx, h));
-        st->close(st->ctx, h);
+        printf("  %-40s %7ld bytes\n", path, (long)p_store->p_size(p_store->p_ctx, handle));
+        p_store->p_close(p_store->p_ctx, handle);
     }
 }
 
 static void receiver_progress(void)
 {
-    for (unsigned i = 0; i < ALFP_RX_SESSIONS; i++)
+    for (unsigned idx = 0; idx < ALFP_RX_SESSIONS; idx++)
     {
-        const alfp_rx_t* r = &g_alfp.rx[i];
-        if (r->state == RX_ACTIVE && !r->pending_ack && r->frag_count)
+        const alfp_rx_t* p_session = &g_alfp.rx_sessions[idx];
+        if (p_session->state == RX_ACTIVE && !p_session->b_pending_ack && p_session->frag_count)
         {
-            printf("  receiving from node %u: %u of %u fragments%s\n", r->src, r->n_have, r->frag_count,
-                   r->have_manifest ? "" : " (manifest not yet received)");
+            printf("  receiving from node %u: %u of %u fragments%s\n", p_session->src, p_session->n_have, p_session->frag_count,
+                   p_session->b_have_manifest ? "" : " (manifest not yet received)");
         }
     }
 }
@@ -348,8 +348,8 @@ int main(void)
 {
     board_spi1_idle(); /* LoRa CS + SD CS high: they share SPI1 */
     stdio_init_all();
-    uint32_t t0 = p_now(NULL);
-    while (!stdio_usb_connected() && p_now(NULL) - t0 < 4000)
+    uint32_t start_t = p_now(NULL);
+    while (!stdio_usb_connected() && p_now(NULL) - start_t < 4000)
     {
         sleep_ms(10);
     }
@@ -362,7 +362,7 @@ int main(void)
         printf("  check: card inserted, FAT32, wired to the pins above (not the Maker Pi Pico slot)\n");
         sleep_ms(3000);
     }
-    const alfp_storage_t* st = storage_fatfs();
+    const alfp_storage_t* p_store = storage_fatfs();
     printf("SD card mounted\n");
 
     while (!lora_mesh_init(NODE_ID))
@@ -372,19 +372,19 @@ int main(void)
         sleep_ms(2000);
     }
     board_spi1_after_lora();
-    printf("LoRa ready: %u bytes per packet, a full packet takes %lu ms on air\n", g_lora->max_payload(),
+    printf("LoRa ready: %u bytes per packet, a full packet takes %lu ms on air\n", gp_lora->p_max_payload(),
            (unsigned long)lora_radio_time_on_air_ms(255));
 
     alfp_cfg_t cfg = {
         .node_id = NODE_ID,
         .bridge_id = RECEIVER_ID,
-        .storage = st,
-        .platform = &k_plat,
-        .inbox_dir = "inbox",
-        .tmp_dir = "rx",
-        .on_tx_done = on_tx_done,
-        .on_rx_done = on_rx_done,
-        .profiles = g_prof,
+        .p_storage = p_store,
+        .p_platform = &k_plat,
+        .p_inbox_dir = "inbox",
+        .p_tmp_dir = "rx",
+        .p_on_tx_done = on_tx_done,
+        .p_on_rx_done = on_rx_done,
+        .p_profiles = g_prof,
         .n_profiles = 1,
     };
     alfp_init(&g_alfp, &cfg);
@@ -401,22 +401,22 @@ int main(void)
         printf("Keys: l list, 1-9 send, a send all, s stats, d toggle 30%% loss, g toggle gap 150/500 ms\n\n");
     }
 
-    const mesh_radio_t* radios[1] = {g_lora};
-    bool dropping = false;
+    const mesh_radio_t* radios[1] = {gp_lora};
+    bool b_dropping = false;
     uint32_t next_progress = p_now(NULL) + 3000;
     uint16_t last_sent_print = 0;
 
     for (;;)
     {
-        g_lora->poll();
+        gp_lora->p_poll();
         alfp_service(&g_alfp, radios, 1);
 
         /* "a": start the next photo once the previous one has finished */
         if (!IS_RECEIVER && g_send_all_next >= 0 && !alfp_tx_active(&g_alfp))
         {
-            int i = g_send_all_next;
-            g_send_all_next = (i + 1 < g_n_photos) ? i + 1 : -1;
-            start_photo(i);
+            int idx = g_send_all_next;
+            g_send_all_next = (idx + 1 < g_n_photos) ? idx + 1 : -1;
+            start_photo(idx);
         }
 
         uint32_t now = p_now(NULL);
@@ -427,11 +427,11 @@ int main(void)
             {
                 receiver_progress();
             }
-            else if (alfp_tx_active(&g_alfp) && g_alfp.tx.rep.data_sent != last_sent_print)
+            else if (alfp_tx_active(&g_alfp) && g_alfp.tx_session.rep.data_sent != last_sent_print)
             {
-                last_sent_print = g_alfp.tx.rep.data_sent;
-                printf("  sent %u data packets (round %u, %u of them resends)\n", g_alfp.tx.rep.data_sent,
-                       g_alfp.tx.round, g_alfp.tx.rep.data_resent);
+                last_sent_print = g_alfp.tx_session.rep.data_sent;
+                printf("  sent %u data packets (round %u, %u of them resends)\n", g_alfp.tx_session.rep.data_sent,
+                       g_alfp.tx_session.round, g_alfp.tx_session.rep.data_resent);
             }
             else
             {
@@ -439,23 +439,23 @@ int main(void)
             }
         }
 
-        int c = getchar_timeout_us(0);
-        if (c == 's')
+        int chr = getchar_timeout_us(0);
+        if (chr == 's')
         {
             print_stats();
         }
-        else if (c == 'd')
+        else if (chr == 'd')
         {
-            dropping = !dropping;
-            g_lora->set_drop_rate(dropping ? 0.3f : 0.0f);
-            printf("injected packet loss on this node: %s\n", dropping ? "30%" : "off");
+            b_dropping = !b_dropping;
+            gp_lora->p_set_drop_rate(b_dropping ? 0.3f : 0.0f);
+            printf("injected packet loss on this node: %s\n", b_dropping ? "30%" : "off");
         }
-        else if (c == 'l')
+        else if (chr == 'l')
         {
             if (IS_RECEIVER)
             {
                 printf("Received files on this SD card:\n");
-                st->list(st->ctx, "inbox", list_cb, NULL);
+                p_store->p_list(p_store->p_ctx, "inbox", list_cb, NULL);
             }
             else
             {
@@ -463,20 +463,20 @@ int main(void)
                 list_photos();
             }
         }
-        else if (!IS_RECEIVER && c >= '1' && c <= '9')
+        else if (!IS_RECEIVER && chr >= '1' && chr <= '9')
         {
-            start_photo(c - '1');
+            start_photo(chr - '1');
         }
-        else if (!IS_RECEIVER && c == 'a')
+        else if (!IS_RECEIVER && chr == 'a')
         {
             g_send_all_next = g_n_photos ? 0 : -1;
             printf("sending all %d photos\n", g_n_photos);
         }
-        else if (!IS_RECEIVER && c == 'g')
+        else if (!IS_RECEIVER && chr == 'g')
         {
-            uint32_t g = g_prof[0].gap_ms == 150u ? 500u : 150u;
-            g_prof[0].gap_ms = g_prof[0].gap_max_ms = g;
-            printf("gap between packets: %lu ms (applies to the next photo)\n", (unsigned long)g);
+            uint32_t gap_ms = g_prof[0].gap_ms == 150u ? 500u : 150u;
+            g_prof[0].gap_ms = g_prof[0].gap_max_ms = gap_ms;
+            printf("gap between packets: %lu ms (applies to the next photo)\n", (unsigned long)gap_ms);
         }
         else
         {

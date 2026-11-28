@@ -77,73 +77,73 @@ typedef struct
     uint32_t queued_ms; /* v2; CM_MISSING_U32 when unknown (always for a v1 record) */
 } capture_meta_t;
 
-static inline void capture_meta_clear(capture_meta_t* m)
+static inline void capture_meta_clear(capture_meta_t* p_meta)
 {
-    memset(m, 0, sizeof(*m));
-    m->temp_c_x10 = CM_MISSING_I16;
-    m->humidity_x10 = CM_MISSING_U16;
-    m->light_raw = CM_MISSING_U16;
-    m->weather_label = m->weather_conf = m->trigger_trust = CM_UNKNOWN_U8;
-    m->sound_class = m->sound_conf = CM_UNKNOWN_U8;
-    m->sound_rms = m->sound_zcr = CM_MISSING_U16;
-    m->queued_ms = CM_MISSING_U32;
+    memset(p_meta, 0, sizeof(*p_meta));
+    p_meta->temp_c_x10 = CM_MISSING_I16;
+    p_meta->humidity_x10 = CM_MISSING_U16;
+    p_meta->light_raw = CM_MISSING_U16;
+    p_meta->weather_label = p_meta->weather_conf = p_meta->trigger_trust = CM_UNKNOWN_U8;
+    p_meta->sound_class = p_meta->sound_conf = CM_UNKNOWN_U8;
+    p_meta->sound_rms = p_meta->sound_zcr = CM_MISSING_U16;
+    p_meta->queued_ms = CM_MISSING_U32;
 }
 
-static inline void cm_put16(uint8_t* p, uint16_t v)
+static inline void cm_put16(uint8_t* p_buf, uint16_t value)
 {
-    p[0] = (uint8_t)v;
-    p[1] = (uint8_t)(v >> 8);
+    p_buf[0] = (uint8_t)value;
+    p_buf[1] = (uint8_t)(value >> 8);
 }
 
-static inline void cm_put32(uint8_t* p, uint32_t v)
+static inline void cm_put32(uint8_t* p_buf, uint32_t value)
 {
-    cm_put16(p, (uint16_t)v);
-    cm_put16(p + 2, (uint16_t)(v >> 16));
+    cm_put16(p_buf, (uint16_t)value);
+    cm_put16(p_buf + 2, (uint16_t)(value >> 16));
 }
 
-static inline uint16_t cm_get16(const uint8_t* p)
+static inline uint16_t cm_get16(const uint8_t* p_buf)
 {
-    return (uint16_t)(p[0] | (p[1] << 8));
+    return (uint16_t)(p_buf[0] | (p_buf[1] << 8));
 }
 
-static inline uint32_t cm_get32(const uint8_t* p)
+static inline uint32_t cm_get32(const uint8_t* p_buf)
 {
-    return (uint32_t)cm_get16(p) | ((uint32_t)cm_get16(p + 2) << 16);
+    return (uint32_t)cm_get16(p_buf) | ((uint32_t)cm_get16(p_buf + 2) << 16);
 }
 
 /* Returns bytes written (CAPTURE_META_LEN, version 2). out must hold CAPTURE_META_LEN bytes.
  * queued_ms is always packed as missing: the sender fills it in just before sending. */
-static inline uint8_t capture_meta_pack(const capture_meta_t* m, uint8_t* out)
+static inline uint8_t capture_meta_pack(const capture_meta_t* p_meta, uint8_t* p_out)
 {
-    out[0] = CAPTURE_META_VERSION;
-    out[1] = m->node_id;
-    cm_put32(out + 2, m->capture_id);
-    cm_put32(out + 6, m->uptime_ms);
-    out[10] = m->trigger_flags;
-    cm_put16(out + 11, (uint16_t)m->temp_c_x10);
-    cm_put16(out + 13, m->humidity_x10);
-    cm_put16(out + 15, m->light_raw);
-    out[17] = m->weather_label;
-    out[18] = m->weather_conf;
-    out[19] = m->trigger_trust;
-    out[20] = m->sound_class;
-    out[21] = m->sound_conf;
-    cm_put16(out + 22, m->sound_rms);
-    cm_put16(out + 24, m->sound_zcr);
-    out[26] = m->image_index;
-    cm_put32(out + CAPTURE_META_QUEUED_OFF, CM_MISSING_U32);
+    p_out[0] = CAPTURE_META_VERSION;
+    p_out[1] = p_meta->node_id;
+    cm_put32(p_out + 2, p_meta->capture_id);
+    cm_put32(p_out + 6, p_meta->uptime_ms);
+    p_out[10] = p_meta->trigger_flags;
+    cm_put16(p_out + 11, (uint16_t)p_meta->temp_c_x10);
+    cm_put16(p_out + 13, p_meta->humidity_x10);
+    cm_put16(p_out + 15, p_meta->light_raw);
+    p_out[17] = p_meta->weather_label;
+    p_out[18] = p_meta->weather_conf;
+    p_out[19] = p_meta->trigger_trust;
+    p_out[20] = p_meta->sound_class;
+    p_out[21] = p_meta->sound_conf;
+    cm_put16(p_out + 22, p_meta->sound_rms);
+    cm_put16(p_out + 24, p_meta->sound_zcr);
+    p_out[26] = p_meta->image_index;
+    cm_put32(p_out + CAPTURE_META_QUEUED_OFF, CM_MISSING_U32);
     return CAPTURE_META_LEN;
 }
 
 /* Length of the fixed record at the start of in (27 for v1, 31 for v2), i.e. where the optional
  * name starts. 0 if in is not a capture record of a known version or is too short. */
-static inline uint8_t capture_meta_record_len(const uint8_t* in, uint8_t len)
+static inline uint8_t capture_meta_record_len(const uint8_t* p_input, uint8_t len)
 {
-    if (len >= CAPTURE_META_LEN_V2 && in[0] == 2u)
+    if (len >= CAPTURE_META_LEN_V2 && p_input[0] == 2u)
     {
         return (uint8_t)CAPTURE_META_LEN_V2;
     }
-    if (len >= CAPTURE_META_LEN_V1 && in[0] == 1u)
+    if (len >= CAPTURE_META_LEN_V1 && p_input[0] == 1u)
     {
         return (uint8_t)CAPTURE_META_LEN_V1;
     }
@@ -151,29 +151,29 @@ static inline uint8_t capture_meta_record_len(const uint8_t* in, uint8_t len)
 }
 
 /* Returns 0 on success, -1 if the bytes are not a version-1 or version-2 record. */
-static inline int capture_meta_unpack(const uint8_t* in, uint8_t len, capture_meta_t* m)
+static inline int capture_meta_unpack(const uint8_t* p_input, uint8_t len, capture_meta_t* p_meta)
 {
-    uint8_t rec = capture_meta_record_len(in, len);
+    uint8_t rec = capture_meta_record_len(p_input, len);
     if (rec == 0u)
     {
         return -1;
     }
-    m->node_id = in[1];
-    m->capture_id = cm_get32(in + 2);
-    m->uptime_ms = cm_get32(in + 6);
-    m->trigger_flags = in[10];
-    m->temp_c_x10 = (int16_t)cm_get16(in + 11);
-    m->humidity_x10 = cm_get16(in + 13);
-    m->light_raw = cm_get16(in + 15);
-    m->weather_label = in[17];
-    m->weather_conf = in[18];
-    m->trigger_trust = in[19];
-    m->sound_class = in[20];
-    m->sound_conf = in[21];
-    m->sound_rms = cm_get16(in + 22);
-    m->sound_zcr = cm_get16(in + 24);
-    m->image_index = in[26];
-    m->queued_ms = rec >= CAPTURE_META_LEN_V2 ? cm_get32(in + CAPTURE_META_QUEUED_OFF) : CM_MISSING_U32;
+    p_meta->node_id = p_input[1];
+    p_meta->capture_id = cm_get32(p_input + 2);
+    p_meta->uptime_ms = cm_get32(p_input + 6);
+    p_meta->trigger_flags = p_input[10];
+    p_meta->temp_c_x10 = (int16_t)cm_get16(p_input + 11);
+    p_meta->humidity_x10 = cm_get16(p_input + 13);
+    p_meta->light_raw = cm_get16(p_input + 15);
+    p_meta->weather_label = p_input[17];
+    p_meta->weather_conf = p_input[18];
+    p_meta->trigger_trust = p_input[19];
+    p_meta->sound_class = p_input[20];
+    p_meta->sound_conf = p_input[21];
+    p_meta->sound_rms = cm_get16(p_input + 22);
+    p_meta->sound_zcr = cm_get16(p_input + 24);
+    p_meta->image_index = p_input[26];
+    p_meta->queued_ms = rec >= CAPTURE_META_LEN_V2 ? cm_get32(p_input + CAPTURE_META_QUEUED_OFF) : CM_MISSING_U32;
     return 0;
 }
 

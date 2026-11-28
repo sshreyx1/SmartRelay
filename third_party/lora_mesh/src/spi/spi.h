@@ -23,7 +23,7 @@
 
 void DEV_SPI_Init();
 
-void DEV_SPI_Write_Bytes(const uint8_t* tx_buf, size_t length);
-void DEV_SPI_Read_Bytes(uint8_t* rx_buf, size_t length);
+void DEV_SPI_Write_Bytes(const uint8_t* p_tx_buf, size_t length);
+void DEV_SPI_Read_Bytes(uint8_t* p_rx_buf, size_t length);
 
 #endif

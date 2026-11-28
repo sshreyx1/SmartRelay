@@ -13,11 +13,11 @@ typedef struct {
     float energy;
     float zcr;
     int class_id;
-    const char *label;
+    const char *p_label;
 } SoundAnalysis;
 
 void mic_init(void);
-void mic_record_buffer(uint16_t *buffer, int num_samples);
-SoundAnalysis mic_analyze_buffer(uint16_t *buffer, int num_samples);
+void mic_record_buffer(uint16_t *p_buffer, int num_samples);
+SoundAnalysis mic_analyze_buffer(uint16_t *p_buffer, int num_samples);
 
 #endif

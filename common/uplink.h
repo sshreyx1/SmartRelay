@@ -31,10 +31,10 @@
 
 #include "alfp.h"
 
-typedef void (*uplink_write_fn)(const char* s, void* user);
+typedef void (*uplink_write_fn)(const char* p_str, void* p_user);
 
 /* Stream the finished file described by r. Returns 0 on success, -1 if the file cannot be read. */
-int uplink_send_file(const alfp_storage_t* st, const alfp_rx_report_t* r, uplink_write_fn out, void* user);
+int uplink_send_file(const alfp_storage_t* p_store, const alfp_rx_report_t* p_rep, uplink_write_fn p_out, void* p_user);
 
 /* Bytes of file per "@D" line (64 base64 characters). */
 #define UPLINK_LINE_BYTES 48u
@@ -66,12 +66,12 @@ typedef struct
 
 typedef struct
 {
-    const alfp_storage_t* st;
+    const alfp_storage_t* p_store;
     uplink_job_t jobs[UPLINK_QUEUE_DEPTH];
     uint8_t head, count;
     /* progress through jobs[head] */
-    bool started;
-    int h;        /* jobs[head]'s file, open from its header line to its END line; -1 = none */
+    bool b_started;
+    int handle;        /* jobs[head]'s file, open from its header line to its END line; -1 = none */
     uint32_t off; /* bytes of the file already sent as @D lines */
     uint32_t crc; /* running CRC-32 of those bytes */
     uint8_t buf[UPLINK_CHUNK_BYTES];
@@ -81,17 +81,17 @@ typedef struct
     uint8_t max_waiting;
 } uplink_queue_t;
 
-void uplink_queue_init(uplink_queue_t* q, const alfp_storage_t* st);
+void uplink_queue_init(uplink_queue_t* p_queue, const alfp_storage_t* p_store);
 
 /* Copy r into the queue. Returns false (and counts it) if the queue is full; the caller should then
  * fall back to uplink_send_file() so the file is never lost. */
-bool uplink_queue_add(uplink_queue_t* q, const alfp_rx_report_t* r);
+bool uplink_queue_add(uplink_queue_t* p_queue, const alfp_rx_report_t* p_rep);
 
 /* Send at most max_lines lines of the waiting files (header, @D and END lines all count as one).
  * Returns the number of lines written; 0 when nothing is waiting or max_lines is 0. */
-unsigned uplink_queue_service(uplink_queue_t* q, unsigned max_lines, uplink_write_fn out, void* user);
+unsigned uplink_queue_service(uplink_queue_t* p_queue, unsigned max_lines, uplink_write_fn p_out, void* p_user);
 
 /* Files waiting, including the one part-way through. */
-unsigned uplink_queue_waiting(const uplink_queue_t* q);
+unsigned uplink_queue_waiting(const uplink_queue_t* p_queue);
 
 #endif
