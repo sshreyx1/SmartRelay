@@ -41,13 +41,13 @@ bool DHT_read(float *p_temperature, float *p_humidity) {
     sleep_us(40);
     gpio_set_dir(DHT_PIN, GPIO_IN);
 
-    bool b_is_ok = expectPulse(0) != UINT32_MAX && expectPulse(1) != UINT32_MAX;
+    bool b_is_ok = (UINT32_MAX != expectPulse(0)) && (UINT32_MAX != expectPulse(1));
 
-    for (int idx = 0; b_is_ok && idx < 80; idx += 2) {
+    for (int idx = 0; b_is_ok && (idx < 80); idx += 2) {
         pulses[idx] = expectPulse(0);
         pulses[idx + 1] = expectPulse(1);
 
-        if (pulses[idx] == UINT32_MAX || pulses[idx + 1] == UINT32_MAX) {
+        if ((UINT32_MAX == pulses[idx]) || (UINT32_MAX == pulses[idx + 1])) {
             b_is_ok = false;
         }
     }

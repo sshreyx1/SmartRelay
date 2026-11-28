@@ -55,7 +55,7 @@ static bool bit_get(const uint8_t* p_bitmap, uint16_t idx)
 uint16_t alfp_enc_manifest(uint8_t* p_out, uint16_t cap, uint16_t sid, const alfp_manifest_t* p_manifest)
 {
     uint16_t len = (uint16_t)(ALFP_MANIFEST_OVERHEAD + p_manifest->meta_len);
-    if (len > cap || p_manifest->meta_len > ALFP_MAX_META)
+    if ((len > cap) || (p_manifest->meta_len > ALFP_MAX_META))
     {
         return 0;
     }
@@ -124,7 +124,7 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
     p_out[3] = flags;
     p_out[4] = round;
 
-    if (b_all || p_have_bitmap == NULL || frag_count == 0)
+    if (b_all || (NULL == p_have_bitmap) || (0 == frag_count))
     {
         p_out[5] = ALFP_NACK_FMT_ALL;
         return seal(p_out, 6);
@@ -136,7 +136,7 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
     {
         if (!bit_get(p_have_bitmap, idx))
         {
-            if (n_missing == 0)
+            if (0 == n_missing)
             {
                 first = idx;
             }
@@ -145,7 +145,7 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
         }
     }
 
-    if (n_missing == 0)
+    if (0 == n_missing)
     {
         p_out[5] = ALFP_NACK_FMT_NONE;
         return seal(p_out, 6);
@@ -208,7 +208,7 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
     {
         return ALFP_DEC_CRC;
     }
-    if ((p_buf[0] >> 4) != ALFP_VERSION)
+    if (ALFP_VERSION != (p_buf[0] >> 4))
     {
         return ALFP_DEC_VERSION;
     }
@@ -234,11 +234,11 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
             p_manifest->radio_id = p_buf[15];
             p_manifest->meta_len = p_buf[16];
             p_manifest->p_meta = p_buf + 17;
-            if ((uint32_t)17u + p_manifest->meta_len != body || p_manifest->meta_len > ALFP_MAX_META)
+            if (((uint32_t)17u + p_manifest->meta_len != body) || (p_manifest->meta_len > ALFP_MAX_META))
             {
                 return ALFP_DEC_BAD_FIELD;
             }
-            if (p_manifest->frag_size == 0 || p_manifest->frag_count == 0 || p_manifest->file_size == 0)
+            if ((0 == p_manifest->frag_size) || (0 == p_manifest->frag_count) || (0 == p_manifest->file_size))
             {
                 return ALFP_DEC_BAD_FIELD;
             }
@@ -261,21 +261,21 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
             p_data->frag_count = get16(p_buf + 5);
             p_data->p_payload = p_buf + 7;
             p_data->len = (uint16_t)(body - 7u);
-            if (p_data->frag_count == 0 || p_data->seq >= p_data->frag_count)
+            if ((0 == p_data->frag_count) || (p_data->seq >= p_data->frag_count))
             {
                 return ALFP_DEC_BAD_FIELD;
             }
             return ALFP_DEC_OK;
         }
         case ALFP_T_POLL:
-            if (len != ALFP_POLL_LEN)
+            if (ALFP_POLL_LEN != len)
             {
                 return ALFP_DEC_SHORT;
             }
             p_pkt->body.round = p_buf[3];
             return ALFP_DEC_OK;
         case ALFP_T_ACK:
-            if (len != ALFP_ACK_LEN)
+            if (ALFP_ACK_LEN != len)
             {
                 return ALFP_DEC_SHORT;
             }
@@ -295,7 +295,7 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
             {
                 case ALFP_NACK_FMT_ALL:
                 case ALFP_NACK_FMT_NONE:
-                    return body == 6u ? ALFP_DEC_OK : ALFP_DEC_BAD_FIELD;
+                    return 6u == body ? ALFP_DEC_OK : ALFP_DEC_BAD_FIELD;
                 case ALFP_NACK_FMT_LIST:
                     if (body < 7u)
                     {
@@ -312,7 +312,7 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
                     p_nack->base = get16(p_buf + 6);
                     p_nack->nbits = get16(p_buf + 8);
                     p_nack->p_bitmap = p_buf + 10;
-                    if (p_nack->nbits == 0 || 10u + (uint32_t)(p_nack->nbits + 7u) / 8u != body)
+                    if ((0 == p_nack->nbits) || (10u + (uint32_t)(p_nack->nbits + 7u) / 8u != body))
                     {
                         return ALFP_DEC_BAD_FIELD;
                     }

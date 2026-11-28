@@ -163,7 +163,7 @@ static void check1_core_ids(void)
 {
     char line[LOG_LINE_MAX];
     unsigned core_start = rtos_core_id();
-    bool b_is_ok = (core_start == RTOS_CORE_0);
+    bool b_is_ok = (RTOS_CORE_0 == core_start);
     tm_sprintf((UB*)line, (UB*)"%s check1_core_ids: core0_task on core %u (want %u)", b_is_ok ? "PASS" : "FAIL", core_start,
                (unsigned)RTOS_CORE_0);
     log_write_line(line);
@@ -186,7 +186,7 @@ static void check2_concurrency(void)
     /* Real concurrency: core0's rate barely changes with core1 also running (independent cores,
      * not one core time-sliced), and core1 made real, comparable progress. Not a speed-up claim,
      * just "both cores were actually counting during the same 1 s window". */
-    bool b_is_ok = both1 > 0 && both0 > solo0 / 2u; /* generous: just rule out "core1 starved core0" */
+    bool b_is_ok = (both1 > 0) && (both0 > solo0 / 2u); /* generous: just rule out "core1 starved core0" */
     tm_sprintf((UB*)line,
                (UB*)"%s check2_concurrency: solo core0=%lu both core0=%lu both core1=%lu ratio(both1/solo0)=%lu.%02lu",
                b_is_ok ? "PASS" : "FAIL", (unsigned long)solo0, (unsigned long)both0, (unsigned long)both1,
@@ -253,7 +253,7 @@ static void check4_msgq_stress(void)
     g_stress_lost = STRESS_COUNT - g_stress_received;
     rtos_flags_wait_any(g_flags, EVT_MSGQ_STRESS_DONE, &bits, 5000);
 
-    bool b_is_ok = g_stress_lost == 0 && g_stress_reordered == 0 && g_stress_bad_checksum == 0;
+    bool b_is_ok = (0 == g_stress_lost) && (0 == g_stress_reordered) && (0 == g_stress_bad_checksum);
     tm_sprintf((UB*)line, (UB*)"%s check4_msgq_stress: received=%lu/%lu lost=%lu reordered=%lu bad_checksum=%lu",
                b_is_ok ? "PASS" : "FAIL", (unsigned long)g_stress_received, (unsigned long)STRESS_COUNT,
                (unsigned long)g_stress_lost, (unsigned long)g_stress_reordered, (unsigned long)g_stress_bad_checksum);
@@ -263,9 +263,9 @@ static void check4_msgq_stress(void)
      * an otherwise-empty, never-drained queue must be refused, not block and not silently drop
      * something already queued. */
     uint32_t value = 0;
-    bool b_ok4 = rtos_msgq_send_nowait(g_capq, &value, sizeof(value)) && rtos_msgq_send_nowait(g_capq, &value, sizeof(value))
-        && rtos_msgq_send_nowait(g_capq, &value, sizeof(value)) && rtos_msgq_send_nowait(g_capq, &value, sizeof(value))
-        && !rtos_msgq_send_nowait(g_capq, &value, sizeof(value)); /* 5th must be refused */
+    bool b_ok4 = (rtos_msgq_send_nowait(g_capq, &value, sizeof(value))) && (rtos_msgq_send_nowait(g_capq, &value, sizeof(value)))
+        && (rtos_msgq_send_nowait(g_capq, &value, sizeof(value))) && (rtos_msgq_send_nowait(g_capq, &value, sizeof(value)))
+        && (!rtos_msgq_send_nowait(g_capq, &value, sizeof(value))); /* 5th must be refused */
     tm_sprintf((UB*)line, (UB*)"%s check4_capqueue_full: depth=%u, 5th send %s", b_ok4 ? "PASS" : "FAIL",
                (unsigned)CAPQ_DEPTH, b_ok4 ? "correctly refused" : "NOT refused (bug)");
     log_write_line(line);
@@ -297,9 +297,9 @@ static void check5_event_flags(void)
      * TWF_CLR -- round 2 review fix A3). */
     rtos_flags_set(g_flags, EVT_FLAGTEST_BIT_A | EVT_FLAGTEST_BIT_B);
     uint32_t bits = 0;
-    bool b_got_a = rtos_flags_wait_any(g_flags, EVT_FLAGTEST_BIT_A, &bits, 1000) && (bits & EVT_FLAGTEST_BIT_A) != 0;
+    bool b_got_a = (rtos_flags_wait_any(g_flags, EVT_FLAGTEST_BIT_A, &bits, 1000)) && (0 != (bits & EVT_FLAGTEST_BIT_A));
     uint32_t bits2 = 0;
-    bool b_got_b = rtos_flags_wait_any(g_flags, EVT_FLAGTEST_BIT_B, &bits2, 1000) && (bits2 & EVT_FLAGTEST_BIT_B) != 0;
+    bool b_got_b = (rtos_flags_wait_any(g_flags, EVT_FLAGTEST_BIT_B, &bits2, 1000)) && (0 != (bits2 & EVT_FLAGTEST_BIT_B));
     bool b_is_ok = b_got_a && b_got_b;
     tm_sprintf((UB*)line, (UB*)"%s check5_event_flags: bit A %s, bit B %s (not lost when A was waited on alone)",
                b_is_ok ? "PASS" : "FAIL", b_got_a ? "seen" : "LOST", b_got_b ? "seen" : "LOST");
@@ -349,7 +349,7 @@ static void check7_log_ring_stall(void)
     while (log_drain_one(drained, RTOS_NO_WAIT))
     {
     }
-    bool b_is_ok = dropped_after > dropped_before && g_log_stall_longest_loop_ms < 100u;
+    bool b_is_ok = (dropped_after > dropped_before) && (g_log_stall_longest_loop_ms < 100u);
     tm_sprintf((UB*)line, (UB*)"%s check7_log_ring_stall: dropped %lu -> %lu over 5 s, longest single loop %lu ms",
                b_is_ok ? "PASS" : "FAIL", (unsigned long)dropped_before, (unsigned long)dropped_after,
                (unsigned long)g_log_stall_longest_loop_ms);
@@ -364,7 +364,7 @@ static void check8_stack_high_water(void)
     /* "not close to exhausted": free > some fraction of the stack this app created each task
      * with (4096 B, see smoke_main() below) -- not a hard pass/fail per the brief, just reported
      * for a human to judge; still prints FAIL if a task is already within 10% of its stack. */
-    bool b_is_ok = free0 > 409u && free1 > 409u;
+    bool b_is_ok = (free0 > 409u) && (free1 > 409u);
     tm_sprintf((UB*)line, (UB*)"%s check8_stack_high_water: core0_task %lu B free, core1_task %lu B free",
                b_is_ok ? "PASS" : "FAIL", (unsigned long)free0, (unsigned long)free1);
     log_write_line(line);
@@ -432,7 +432,7 @@ static void core0_task(void* p_arg)
     {
         drain_log();
         int chan = rtos_console_getchar();
-        if (chan == 's')
+        if ('s' == chan)
         {
             print_stats();
         }

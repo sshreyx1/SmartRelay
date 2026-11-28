@@ -83,7 +83,7 @@ bool smartrelay_in_task(void)
     uint32_t primask;
     __asm volatile("mrs %0, ipsr" : "=r"(ipsr));
     __asm volatile("mrs %0, primask" : "=r"(primask));
-    if ((ipsr & 0x3fu) != 0u || (primask & 1u) != 0u)
+    if ((0u != (ipsr & 0x3fu)) || (0u != (primask & 1u)))
     {
         return false;
     }
@@ -154,10 +154,10 @@ void mutex_init(mutex_t* p_mtx)
 /* auto_init_mutex() objects start all-zero (spin_lock == NULL): initialise on first use. */
 static void mutex_lazy_init(mutex_t* p_mtx)
 {
-    if (p_mtx->core.spin_lock == NULL)
+    if (NULL == p_mtx->core.spin_lock)
     {
         uint32_t save = spin_lock_blocking(glue_lock());
-        if (p_mtx->core.spin_lock == NULL)
+        if (NULL == p_mtx->core.spin_lock)
         {
             p_mtx->owner = LOCK_INVALID_OWNER_ID;
             p_mtx->core.spin_lock = glue_lock();
@@ -172,14 +172,14 @@ bool mutex_try_enter(mutex_t* p_mtx, uint32_t* p_owner_out)
     lock_owner_id_t caller_id = (lock_owner_id_t)self_id();
     bool b_is_ok;
     uint32_t save = spin_lock_blocking(glue_lock());
-    if (p_mtx->owner == LOCK_INVALID_OWNER_ID)
+    if (LOCK_INVALID_OWNER_ID == p_mtx->owner)
     {
         p_mtx->owner = caller_id;
         b_is_ok = true;
     }
     else
     {
-        if (p_owner_out != NULL)
+        if (NULL != p_owner_out)
         {
             *p_owner_out = (uint32_t)(int32_t)p_mtx->owner;
         }
@@ -231,7 +231,7 @@ void mutex_exit(mutex_t* p_mtx)
 
 void sleep_us(uint64_t usec)
 {
-    if (usec >= 1000u && smartrelay_in_task())
+    if ((usec >= 1000u) && (smartrelay_in_task()))
     {
         (void)tk_dly_tsk((int32_t)(usec / 1000u));
         busy_wait_us_32((uint32_t)(usec % 1000u));
@@ -273,7 +273,7 @@ static uint64_t s_rng_state;
 uint64_t get_rand_64(void)
 {
     uint32_t save = spin_lock_blocking(glue_lock());
-    if (s_rng_state == 0u)
+    if (0u == s_rng_state)
     {
         uint64_t seed = time_us_64();
         for (int idx = 0; idx < 64; idx++)
@@ -305,7 +305,7 @@ static size_t s_heap_used;
 
 void* _sbrk(ptrdiff_t incr)
 {
-    if (incr < 0 || (size_t)incr > sizeof(s_heap) - s_heap_used)
+    if ((incr < 0) || ((size_t)incr > sizeof(s_heap) - s_heap_used))
     {
         errno = ENOMEM;
         return (void*)-1;
@@ -330,7 +330,7 @@ void __malloc_lock(struct _reent* p_reent)
     for (;;)
     {
         uint32_t save = spin_lock_blocking(glue_lock());
-        if (s_malloc_owner == 0 || s_malloc_owner == caller_id)
+        if ((0 == s_malloc_owner) || (s_malloc_owner == caller_id))
         {
             s_malloc_owner = caller_id;
             s_malloc_depth++;
@@ -346,7 +346,7 @@ void __malloc_unlock(struct _reent* p_reent)
 {
     (void)p_reent;
     uint32_t save = spin_lock_blocking(glue_lock());
-    if (s_malloc_depth > 0u && --s_malloc_depth == 0u)
+    if ((s_malloc_depth > 0u) && (0u == --s_malloc_depth))
     {
         s_malloc_owner = 0;
     }
@@ -415,7 +415,7 @@ int printf(const char* p_format, ...)
 int puts(const char* p_str)
 {
     int len = 0;
-    while (p_str[len] != '\0')
+    while ('\0' != p_str[len])
     {
         smartrelay_stdout_putc(p_str[len]);
         len++;
@@ -438,7 +438,7 @@ void stdio_flush(void)
 /* newlib's own stdio (if any library code reaches it) ends up here for stdout/stderr. */
 int _write(int file_desc, const char* p_buf, int len)
 {
-    if (file_desc != 1 && file_desc != 2)
+    if ((1 != file_desc) && (2 != file_desc))
     {
         errno = EBADF;
         return -1;
@@ -456,7 +456,7 @@ void smartrelay_fatal(const char* p_msg)
 {
     static const char prefix[] = "\r\nFATAL: ";
     tm_usb_console_put((const uint8_t*)prefix, (int32_t)(sizeof(prefix) - 1u));
-    if (p_msg != NULL)
+    if (NULL != p_msg)
     {
         tm_usb_console_put((const uint8_t*)p_msg, (int32_t)strlen(p_msg));
     }

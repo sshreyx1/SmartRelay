@@ -17,7 +17,7 @@ static sip_prefix_t* find(sip_table_t* p_table, const char* p_prefix, size_t len
 {
     for (uint32_t idx = 0; idx < p_table->count; idx++)
     {
-        if (strlen(p_table->prefixes[idx].prefix) == len && strncmp(p_table->prefixes[idx].prefix, p_prefix, len) == 0)
+        if ((strlen(p_table->prefixes[idx].prefix) == len) && (0 == strncmp(p_table->prefixes[idx].prefix, p_prefix, len)))
         {
             return &p_table->prefixes[idx];
         }
@@ -27,7 +27,7 @@ static sip_prefix_t* find(sip_table_t* p_table, const char* p_prefix, size_t len
 
 static int lower(int chr)
 {
-    return chr >= 'A' && chr <= 'Z' ? chr + 32 : chr;
+    return (chr >= 'A') && (chr <= 'Z') ? chr + 32 : chr;
 }
 
 bool sip_add_file(sip_table_t* p_table, const char* p_name)
@@ -35,18 +35,18 @@ bool sip_add_file(sip_table_t* p_table, const char* p_name)
     /* Hidden files are never images: macOS writes "._<name>" AppleDouble files next to every file
      * it copies onto a FAT card (follow-up F1), and those would otherwise count as their own
      * "._dog" group and could be picked and sent as if they were JPEGs. */
-    if (p_name[0] == '.')
+    if ('.' == p_name[0])
     {
         return false;
     }
     /* <prefix>_NN.jpg: the last '_' must be followed by exactly two digits and ".jpg" */
     const char* p_uscore = strrchr(p_name, '_');
-    if (!p_uscore || p_uscore == p_name || (size_t)(p_uscore - p_name) > SIP_PREFIX_MAX)
+    if ((!p_uscore) || (p_uscore == p_name) || ((size_t)(p_uscore - p_name) > SIP_PREFIX_MAX))
     {
         return false;
     }
-    if (p_uscore[1] < '0' || p_uscore[1] > '9' || p_uscore[2] < '0' || p_uscore[2] > '9' || p_uscore[3] != '.' || lower(p_uscore[4]) != 'j'
-        || lower(p_uscore[5]) != 'p' || lower(p_uscore[6]) != 'g' || p_uscore[7] != '\0')
+    if ((p_uscore[1] < '0') || (p_uscore[1] > '9') || (p_uscore[2] < '0') || (p_uscore[2] > '9') || ('.' != p_uscore[3]) || ('j' != lower(p_uscore[4]))
+        || ('p' != lower(p_uscore[5])) || ('g' != lower(p_uscore[6])) || ('\0' != p_uscore[7]))
     {
         return false;
     }
@@ -75,7 +75,7 @@ unsigned sip_count(const sip_table_t* p_table, const char* p_prefix)
 {
     for (uint32_t idx = 0; idx < p_table->count; idx++)
     {
-        if (strcmp(p_table->prefixes[idx].prefix, p_prefix) == 0)
+        if (0 == strcmp(p_table->prefixes[idx].prefix, p_prefix))
         {
             return p_table->prefixes[idx].count;
         }
@@ -109,7 +109,7 @@ int sip_pick(sip_table_t* p_table, uint8_t label_id, char* p_name, size_t cap)
             continue;
         }
         sip_prefix_t* p_prefix_ent = find(p_table, chain[idx], strlen(chain[idx]));
-        if (p_prefix_ent && p_prefix_ent->count)
+        if (p_prefix_ent && (p_prefix_ent->count))
         {
             return take(p_prefix_ent, p_name, cap);
         }

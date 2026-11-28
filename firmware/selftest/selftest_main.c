@@ -139,7 +139,7 @@ static bool run_once(const alfp_storage_t* p_store, const char* p_src, float los
     meta.capture_id = 1;
     uint8_t meta_buf[CAPTURE_META_LEN];
     capture_meta_pack(&meta, meta_buf);
-    if (alfp_send_file(&g_tx, &g_loopback_a, 1, p_src, meta_buf, sizeof(meta_buf)) != ALFP_OK)
+    if (ALFP_OK != alfp_send_file(&g_tx, &g_loopback_a, 1, p_src, meta_buf, sizeof(meta_buf)))
     {
         printf("FAIL: cannot start transfer of %s\n", p_src);
         return false;
@@ -147,7 +147,7 @@ static bool run_once(const alfp_storage_t* p_store, const char* p_src, float los
     const mesh_radio_t* radios_a[1] = {&g_loopback_a};
     const mesh_radio_t* radios_b[1] = {&g_loopback_b};
     uint32_t start_t = now_ms();
-    while (!gb_tx_done && now_ms() - start_t < 300000)
+    while ((!gb_tx_done) && (now_ms() - start_t < 300000))
     {
         alfp_service(&g_tx, radios_a, 1);
         alfp_service(&g_rx, radios_b, 1);
@@ -156,7 +156,7 @@ static bool run_once(const alfp_storage_t* p_store, const char* p_src, float los
     int32_t size_a, size_b;
     uint32_t crc_a = file_crc(p_store, p_src, &size_a);
     uint32_t crc_b = gb_rx_done ? file_crc(p_store, g_rx_path, &size_b) : 0;
-    bool b_is_ok = gb_tx_done && g_tx_rep.result == ALFP_TX_DONE && gb_rx_done && crc_a == crc_b && size_a == size_b;
+    bool b_is_ok = gb_tx_done && (ALFP_TX_DONE == g_tx_rep.result) && gb_rx_done && (crc_a == crc_b) && (size_a == size_b);
     printf("%s: loss %2.0f%%, %ld bytes, %u frags, %u rounds, %u resent, %.1f s, crc %08lx/%08lx\n",
            b_is_ok ? "PASS" : "FAIL", loss * 100, (long)size_a, g_tx_rep.frag_count, g_tx_rep.rounds, g_tx_rep.data_resent,
            (g_tx_rep.finished_ms - g_tx_rep.started_ms) / 1000.0, (unsigned long)crc_a, (unsigned long)crc_b);
@@ -210,7 +210,7 @@ int main(void)
     {
         pass += run_once(p_store, p_src, losses[idx]);
     }
-    printf("\nSELFTEST %s (%d/3)\n", pass == 3 ? "PASSED" : "FAILED", pass);
+    printf("\nSELFTEST %s (%d/3)\n", 3 == pass ? "PASSED" : "FAILED", pass);
     for (;;)
     {
         sleep_ms(1000);

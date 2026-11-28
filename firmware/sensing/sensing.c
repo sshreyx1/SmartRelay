@@ -40,7 +40,7 @@ static uint16_t read_light(void)
 
 static void update_weather(uint32_t now_ms)
 {
-    s_env.b_dht_ok = b_s_have_dht && (now_ms - s_last_dht_good) < SENSING_DHT_STALE_MS;
+    s_env.b_dht_ok = b_s_have_dht && ((now_ms - s_last_dht_good) < SENSING_DHT_STALE_MS);
     if (s_env.b_dht_ok)
     {
         float features[3] = { s_env.temp_c, s_env.hum_pct, (float)s_env.light };
@@ -86,7 +86,7 @@ bool sensing_env_poll(uint32_t now_ms)
     }
     /* DHT22.c does not decode negative temperatures (bit 15); Singapore never needs it, but a
      * reading with that bit set would be nonsense, so it is rejected with the out-of-range check. */
-    if (b_is_ok && temp_c > -40.0f && temp_c < 80.0f && humidity >= 0.0f && humidity <= 100.0f)
+    if (b_is_ok && (temp_c > -40.0f) && (temp_c < 80.0f) && (humidity >= 0.0f) && (humidity <= 100.0f))
     {
         s_env.temp_c = temp_c;
         s_env.hum_pct = humidity;
@@ -124,7 +124,7 @@ bool sensing_dual_trigger(uint32_t now_ms)
     {
         return false;
     }
-    return sound_is_triggered() && pir_is_motion_detected();
+    return (sound_is_triggered()) && (pir_is_motion_detected());
 }
 
 static int16_t to_x10_i16(float value)

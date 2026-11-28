@@ -103,7 +103,7 @@ static void check_wst(uint8_t node_id)
         bool b_same = true;
         for (int idx = 0; idx < 6; idx++)
         {
-            b_same = b_same && wifi_mesh_macs[node][idx] == mac[idx];
+            b_same = b_same && (wifi_mesh_macs[node][idx] == mac[idx]);
         }
         if (b_same)
         {
@@ -117,7 +117,7 @@ static void check_wst(uint8_t node_id)
     }
     printf("wifi: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X = WST-%d\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
            owner);
-    if (owner == 0)
+    if (0 == owner)
     {
         printf("wifi: WARNING this ESP-01 is not in wifi_mesh_config.h, other nodes' topology filter will drop it\n");
     }
@@ -145,7 +145,7 @@ bool radios_init(uint8_t node_id)
                "Continuing with WiFi only.\n",
                RADIO_BUSY, RADIO_IRQ);
     }
-    else if (node_id == RADIOS_BRIDGE_ID)
+    else if (RADIOS_BRIDGE_ID == node_id)
     {
         /* The bridge floods an empty broadcast every 3 s. Field nodes see it through
          * last_heard(), which is how alfp_select_radio() knows LoRa can reach the bridge. */
@@ -211,7 +211,7 @@ bool radios_last_recv_info(const mesh_radio_t* p_radio, uint8_t* p_hops, uint8_t
     *p_hops = 0;
     *p_prev = 0;
 #ifdef HAVE_LORA_MESH
-    if (b_s_lora_ok && p_radio == &lora_mesh)
+    if (b_s_lora_ok && (p_radio == &lora_mesh))
     {
         return lora_mesh_last_recv_info(p_hops, p_prev);
     }
@@ -229,7 +229,7 @@ bool radios_last_recv_info(const mesh_radio_t* p_radio, uint8_t* p_hops, uint8_t
 uint16_t radios_relayed_from(const mesh_radio_t* p_radio, uint8_t src)
 {
 #ifdef HAVE_LORA_MESH
-    if (b_s_lora_ok && p_radio == &lora_mesh)
+    if (b_s_lora_ok && (p_radio == &lora_mesh))
     {
         return lora_mesh_relayed_from(src);
     }
@@ -247,7 +247,7 @@ uint16_t radios_relayed_from(const mesh_radio_t* p_radio, uint8_t src)
 
 int radios_wst_owner(uint8_t mac[6])
 {
-    if (mac != NULL && s_wst_owner >= 0)
+    if ((NULL != mac) && (s_wst_owner >= 0))
     {
         for (int idx = 0; idx < 6; idx++)
         {

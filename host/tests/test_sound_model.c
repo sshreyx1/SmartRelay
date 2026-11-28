@@ -19,7 +19,7 @@ int main(void)
     {
         uint8_t label = 0, conf = 0;
         sound_classify(sm_vec_features[idx], &label, &conf);
-        if (label == sm_vec_label[idx] && conf == sm_vec_conf[idx])
+        if ((label == sm_vec_label[idx]) && (conf == sm_vec_conf[idx]))
         {
             match++;
         }
@@ -30,5 +30,5 @@ int main(void)
         }
     }
     printf("sound_model: %d/%d vectors match (min conf %u)\n", match, SM_N_VECTORS, sound_classify_min_conf());
-    return match == SM_N_VECTORS ? 0 : 1;
+    return SM_N_VECTORS == match ? 0 : 1;
 }

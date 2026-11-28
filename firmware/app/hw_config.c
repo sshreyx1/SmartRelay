@@ -56,5 +56,5 @@ size_t sd_get_num(void)
 
 sd_card_t* sd_get_by_num(size_t num)
 {
-    return num == 0 ? &sd_card : NULL;
+    return 0 == num ? &sd_card : NULL;
 }

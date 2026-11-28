@@ -100,7 +100,7 @@ static bool seen_check_and_mark( uint8_t src, uint16_t pkt_id, uint32_t now )
     for( int idx = 0; idx < LORA_MESH_DEDUP_SLOTS; idx++ )
     {
         seen_t* p_entry = &seen[idx];
-        if( p_entry->b_used && ( now - p_entry->seen_ms ) >= LORA_MESH_DEDUP_WINDOW_MS )
+        if( (p_entry->b_used) && (( now - p_entry->seen_ms ) >= LORA_MESH_DEDUP_WINDOW_MS) )
         {
             p_entry->b_used = false;  // expired
         }
@@ -112,11 +112,11 @@ static bool seen_check_and_mark( uint8_t src, uint16_t pkt_id, uint32_t now )
             }
             continue;
         }
-        if( p_entry->src == src && p_entry->pkt_id == pkt_id )
+        if( (p_entry->src == src) && (p_entry->pkt_id == pkt_id) )
         {
             return true;
         }
-        if( ( now - p_entry->seen_ms ) > ( now - seen[oldest_slot].seen_ms ) || !seen[oldest_slot].b_used )
+        if( (( now - p_entry->seen_ms ) > ( now - seen[oldest_slot].seen_ms )) || (!seen[oldest_slot].b_used) )
         {
             oldest_slot = idx;
         }
@@ -207,7 +207,7 @@ static void handle_packet( const uint8_t* p_pkt, uint8_t len, uint32_t now )
     }
 
     // Demo packet-loss injection: behave as if this packet was never heard
-    if( drop_threshold != 0 && get_rand_32( ) < drop_threshold )
+    if( (0 != drop_threshold) && (get_rand_32( ) < drop_threshold) )
     {
         stats.drop_injected++;
         return;
@@ -218,7 +218,7 @@ static void handle_packet( const uint8_t* p_pkt, uint8_t len, uint32_t now )
     const uint16_t pkt_id = ( uint16_t ) ( ( p_pkt[2] << 8 ) | p_pkt[3] );
     const uint8_t  hops   = p_pkt[4];
 
-    if( src == 0 || src == MESH_BROADCAST )
+    if( (0 == src) || (MESH_BROADCAST == src) )
     {
         stats.rx_error++;
         return;
@@ -240,7 +240,7 @@ static void handle_packet( const uint8_t* p_pkt, uint8_t len, uint32_t now )
     const uint8_t payload_len = ( uint8_t ) ( len - MESH_HEADER_LEN );
 
     // Deliver rule: only packets for us or broadcast. Empty packets are heartbeats: not delivered.
-    if( ( dst == self_id || dst == MESH_BROADCAST ) && payload_len > 0 )
+    if( ( (dst == self_id) || (MESH_BROADCAST == dst) ) && (payload_len > 0) )
     {
         // links travelled (1 = direct); 0 = unknown if the hops byte is out of range
         const uint8_t links = hops <= LORA_MESH_HOP_LIMIT ? ( uint8_t ) ( LORA_MESH_HOP_LIMIT - hops + 1 ) : 0;
@@ -252,7 +252,7 @@ static void handle_packet( const uint8_t* p_pkt, uint8_t len, uint32_t now )
     {
         if( hops > 0 )
         {
-            if( enqueue_relay( p_pkt, len, now ) && src < sizeof( relayed_from ) / sizeof( relayed_from[0] ) )
+            if( (enqueue_relay( p_pkt, len, now )) && (src < sizeof( relayed_from ) / sizeof( relayed_from[0] )) )
             {
                 relayed_from[src]++;
             }
@@ -277,8 +277,8 @@ static void start_next_tx( uint32_t now )
     int best = -1;
     for( int idx = 0; idx < LORA_MESH_RELAYQ_LEN; idx++ )
     {
-        if( relay_used[idx] && ( int32_t ) ( now - relayq[idx].due_ms ) >= 0 &&
-            ( best < 0 || ( int32_t ) ( relayq[idx].due_ms - relayq[best].due_ms ) < 0 ) )
+        if( (relay_used[idx]) && (( int32_t ) ( now - relayq[idx].due_ms ) >= 0) &&
+            ( (best < 0) || (( int32_t ) ( relayq[idx].due_ms - relayq[best].due_ms ) < 0) ) )
         {
             best = idx;
         }
@@ -335,7 +335,7 @@ bool lora_mesh_init( uint8_t node_id )
 
 bool lora_mesh_send( uint8_t dst, const uint8_t* p_payload, uint16_t len )
 {
-    if( len == 0 || len > MAX_PAYLOAD || p_payload == NULL )
+    if( (0 == len) || (len > MAX_PAYLOAD) || (NULL == p_payload) )
     {
         return false;
     }
@@ -344,7 +344,7 @@ bool lora_mesh_send( uint8_t dst, const uint8_t* p_payload, uint16_t len )
 
 int lora_mesh_recv( uint8_t* p_src, uint8_t* p_buf, uint16_t buf_size )
 {
-    if( rxq_ring.count == 0 )
+    if( 0 == rxq_ring.count )
     {
         return MESH_RECV_NONE;
     }
@@ -373,7 +373,7 @@ void lora_mesh_poll( void )
         uint8_t                  len;
         int8_t                   rssi, snr;
         const lora_radio_event_t evt = lora_radio_service( rx_buf, &len, &rssi, &snr );
-        if( evt == LORA_EVT_NONE )
+        if( LORA_EVT_NONE == evt )
         {
             break;
         }
@@ -388,11 +388,11 @@ void lora_mesh_poll( void )
             stats.rx_error++;
             break;
         case LORA_EVT_TX_DONE:
-            if( in_flight == IN_FLIGHT_OWN )
+            if( IN_FLIGHT_OWN == in_flight )
             {
                 stats.tx_count++;
             }
-            else if( in_flight == IN_FLIGHT_RELAY )
+            else if( IN_FLIGHT_RELAY == in_flight )
             {
                 stats.relayed++;
             }
@@ -412,7 +412,7 @@ void lora_mesh_poll( void )
     }
 
     now = now_ms( );
-    if( heartbeat_interval_ms != 0 && ( int32_t ) ( now - heartbeat_next_ms ) >= 0 )
+    if( (0 != heartbeat_interval_ms) && (( int32_t ) ( now - heartbeat_next_ms ) >= 0) )
     {
         heartbeat_next_ms = now + heartbeat_interval_ms;
         enqueue_own( MESH_BROADCAST, NULL, 0 );  // empty = heartbeat; skipped if queue is full
@@ -428,7 +428,7 @@ uint16_t lora_mesh_max_payload( void )
 
 bool lora_mesh_last_heard( uint8_t node_id, uint32_t* p_ms_since_boot )
 {
-    if( node_id > LORA_MESH_MAX_NODE_ID || !heard[node_id] )
+    if( (node_id > LORA_MESH_MAX_NODE_ID) || (!heard[node_id]) )
     {
         return false;
     }
@@ -438,7 +438,7 @@ bool lora_mesh_last_heard( uint8_t node_id, uint32_t* p_ms_since_boot )
 
 bool lora_mesh_tx_busy( void )
 {
-    return txq_ring.count > 0 || lora_radio_tx_active( );
+    return (txq_ring.count > 0) || (lora_radio_tx_active( ));
 }
 
 void lora_mesh_get_stats( mesh_stats_t* p_out )
@@ -476,11 +476,11 @@ void lora_mesh_last_link_quality( int8_t* p_rssi_dbm, int8_t* p_snr_db )
 
 bool lora_mesh_last_recv_info( uint8_t* p_hops, uint8_t* p_prev_hop )
 {
-    if( p_hops != NULL )
+    if( NULL != p_hops )
     {
         *p_hops = b_last_recv_valid ? last_recv_hops : 0;
     }
-    if( p_prev_hop != NULL )
+    if( NULL != p_prev_hop )
     {
         *p_prev_hop = 0;  // unknown: the LoRa header has no relay field
     }

@@ -133,7 +133,7 @@ static void on_tx_done(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
     (void)p_ctx;
     printf("tx %s: %s via %s, %u frags, %u rounds, %u resent, %.1f s\n", p_rep->p_path, alfp_tx_result_str(p_rep->result),
            p_rep->p_radio, p_rep->frag_count, p_rep->rounds, p_rep->data_resent, (p_rep->finished_ms - p_rep->started_ms) / 1000.0);
-    if (p_rep->result == ALFP_TX_DONE && strncmp(p_rep->p_path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u) == 0)
+    if ((ALFP_TX_DONE == p_rep->result) && (0 == strncmp(p_rep->p_path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u)))
     {
         /* The telemetry job's "file" was a temp copy of its own meta made just for this transfer
          * (unlike the image, which is a reused sample on the SD card): remove it once sent, same
@@ -149,7 +149,7 @@ static void on_tx_start(alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session)
 {
     (void)p_ctx;
     capture_meta_t meta;
-    if (capture_meta_unpack(p_tx_session->meta, p_tx_session->meta_len, &meta) != 0)
+    if (0 != capture_meta_unpack(p_tx_session->meta, p_tx_session->meta_len, &meta))
     {
         printf("tx start: %s %lu B via %s, %u frags x %u B, sid %u\n", p_tx_session->path, (unsigned long)p_tx_session->file_size,
                p_tx_session->p_radio->p_name, p_tx_session->frag_count, p_tx_session->frag_size, p_tx_session->sid);
@@ -157,11 +157,11 @@ static void on_tx_start(alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session)
     }
     uint8_t rec = capture_meta_record_len(p_tx_session->meta, p_tx_session->meta_len);
     size_t total_len = strlen(APP_TELEMETRY_MARKER);
-    bool b_tel = p_tx_session->meta_len == rec + total_len && memcmp(p_tx_session->meta + rec, APP_TELEMETRY_MARKER, total_len) == 0;
+    bool b_tel = (p_tx_session->meta_len == rec + total_len) && (0 == memcmp(p_tx_session->meta + rec, APP_TELEMETRY_MARKER, total_len));
     char id_str[CAPTURE_ID_STR_MAX];
     capture_id_format(id_str, sizeof(id_str), meta.node_id, meta.capture_id);
     char waited[32] = "";
-    if (meta.queued_ms != CM_MISSING_U32)
+    if (CM_MISSING_U32 != meta.queued_ms)
     {
         snprintf(waited, sizeof(waited), ", waited %.1f s", meta.queued_ms / 1000.0);
     }
@@ -172,9 +172,9 @@ static void on_tx_start(alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session)
 static void on_tx_nack(alfp_ctx_t* p_ctx, uint16_t sid, uint8_t round, uint16_t missing)
 {
     (void)p_ctx;
-    if (missing != 0u)
+    if (0u != missing)
     {
-        printf("tx: bridge missing %u fragment%s (round %u, sid %u), resending\n", missing, missing == 1u ? "" : "s",
+        printf("tx: bridge missing %u fragment%s (round %u, sid %u), resending\n", missing, 1u == missing ? "" : "s",
                round, sid);
     }
 }
@@ -194,14 +194,14 @@ static void relay_log(void)
             uint16_t now = radios_relayed_from(g_radios[idx], src);
             unsigned delta = (uint16_t)(now - last[idx][src]); /* wraps cleanly at 65536 */
             last[idx][src] = now;
-            if (b_primed && delta != 0u && off < sizeof(from))
+            if (b_primed && (0u != delta) && (off < sizeof(from)))
             {
                 int len = snprintf(from + off, sizeof(from) - off, "%snode %u: %u", total ? ", " : "", src, delta);
                 off += len > 0 ? (size_t)len : 0u;
                 total += delta;
             }
         }
-        if (total != 0u)
+        if (0u != total)
         {
             printf("relay %s: %u pkts in last 1 s (from %s)\n", g_radios[idx]->p_name, total, from);
         }
@@ -271,7 +271,7 @@ static void ev_rx_manifest(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_
 static void ev_rx_frag(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool b_dup)
 {
     (void)p_ctx;
-    if (APP_RXF_EVERY > 1 && round == 0 && !b_dup && seq % APP_RXF_EVERY != 0)
+    if ((APP_RXF_EVERY > 1) && (0 == round) && (!b_dup) && (0 != seq % APP_RXF_EVERY))
     {
         return;
     }
@@ -313,7 +313,7 @@ static void on_rx_done(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
 
 bool app_request_capture(const capture_meta_t* p_sensors)
 {
-    return gp_capture_q && xQueueSend(gp_capture_q, p_sensors, 0) == pdTRUE;
+    return gp_capture_q && (xQueueSend(gp_capture_q, p_sensors, 0) == pdTRUE);
 }
 
 static void count_samples_cb(const char* p_name, void* p_user)
@@ -325,12 +325,12 @@ static void count_samples_cb(const char* p_name, void* p_user)
 static void count_payloads_cb(const char* p_name, void* p_user)
 {
     (void)p_user;
-    if (p_name[0] == '.')
+    if ('.' == p_name[0])
     {
         return; /* F1: macOS "._*" AppleDouble files and other hidden files are not payloads */
     }
     size_t name_len = strlen(p_name);
-    if (g_n_payloads < TEST_PAYLOADS_MAX && name_len < sizeof(g_payload_names[0]))
+    if ((g_n_payloads < TEST_PAYLOADS_MAX) && (name_len < sizeof(g_payload_names[0])))
     {
         memcpy(g_payload_names[g_n_payloads], p_name, name_len + 1u); /* + the NUL strlen() does not count */
         g_n_payloads++;
@@ -376,7 +376,7 @@ static uint32_t read_u32_file(const alfp_storage_t* p_store, const char* p_path)
     int len = p_store->p_read_at(p_store->p_ctx, handle, 0, (uint8_t*)txt, sizeof(txt) - 1);
     p_store->p_close(p_store->p_ctx, handle);
     unsigned long value = 0;
-    return len > 0 && sscanf(txt, "%lu", &value) == 1 ? (uint32_t)value : 0;
+    return (len > 0) && (1 == sscanf(txt, "%lu", &value)) ? (uint32_t)value : 0;
 }
 
 /* write to a temp file, then rename over the real one: a power cut leaves one of the two intact */
@@ -385,12 +385,12 @@ static void store_next_id(const alfp_storage_t* p_store, uint32_t next)
     char txt[16];
     int len = snprintf(txt, sizeof(txt), "%lu\n", (unsigned long)next);
     int handle = p_store->p_open_write(p_store->p_ctx, ID_TMP);
-    bool b_is_ok = handle >= 0 && p_store->p_write_at(p_store->p_ctx, handle, 0, (const uint8_t*)txt, (uint16_t)len) == len;
+    bool b_is_ok = (handle >= 0) && (p_store->p_write_at(p_store->p_ctx, handle, 0, (const uint8_t*)txt, (uint16_t)len) == len);
     if (handle >= 0)
     {
         p_store->p_close(p_store->p_ctx, handle);
     }
-    if (!b_is_ok || p_store->p_rename(p_store->p_ctx, ID_TMP, ID_FILE) != 0)
+    if ((!b_is_ok) || (0 != p_store->p_rename(p_store->p_ctx, ID_TMP, ID_FILE)))
     {
         printf("capture id: could not save %s (ids may repeat after a reboot)\n", ID_FILE);
     }
@@ -403,7 +403,7 @@ static void scan_outbox_cb(const char* p_name, void* p_user)
 {
     (void)p_user;
     unsigned long seq;
-    if (p_name[0] == 'q' && sscanf(p_name + 1, "%8lu", &seq) == 1 && s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0]))
+    if (('q' == p_name[0]) && (1 == sscanf(p_name + 1, "%8lu", &seq)) && (s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0])))
     {
         s_job_seq[s_n_jobs++] = (uint32_t)seq;
     }
@@ -414,7 +414,7 @@ static void scan_clips_cb(const char* p_name, void* p_user)
     (void)p_user;
     uint8_t node;
     uint32_t cap_id;
-    if (capture_id_parse(p_name, &node, &cap_id) && node == NODE_ID && cap_id > s_highest_seen)
+    if ((capture_id_parse(p_name, &node, &cap_id)) && (NODE_ID == node) && (cap_id > s_highest_seen))
     {
         s_highest_seen = cap_id;
     }
@@ -439,14 +439,14 @@ static uint32_t highest_id_on_card(const alfp_storage_t* p_store)
         int len = p_store->p_read_at(p_store->p_ctx, handle, 0, buf, sizeof(buf));
         p_store->p_close(p_store->p_ctx, handle);
         /* job file (alfp_outbox.c): 'Q' '1' | path_len | path | meta_len | meta */
-        if (len < 4 || buf[0] != 'Q' || buf[1] != '1' || 4 + buf[2] > len)
+        if ((len < 4) || ('Q' != buf[0]) || ('1' != buf[1]) || (4 + buf[2] > len))
         {
             continue;
         }
         const uint8_t* p_meta = buf + 4 + buf[2];
         uint8_t total_len = buf[3 + buf[2]];
         capture_meta_t meta;
-        if (p_meta + total_len <= buf + len && capture_meta_unpack(p_meta, total_len, &meta) == 0 && meta.capture_id > s_highest_seen)
+        if ((p_meta + total_len <= buf + len) && (0 == capture_meta_unpack(p_meta, total_len, &meta)) && (meta.capture_id > s_highest_seen))
         {
             s_highest_seen = meta.capture_id;
         }
@@ -463,12 +463,12 @@ static void stamp_queued_ms(uint8_t* p_meta, uint8_t len, void* p_user)
 {
     (void)p_user;
     capture_meta_t meta;
-    if (len < CAPTURE_META_LEN_V2 || p_meta[0] != 2u || capture_meta_unpack(p_meta, len, &meta) != 0)
+    if ((len < CAPTURE_META_LEN_V2) || (2u != p_meta[0]) || (0 != capture_meta_unpack(p_meta, len, &meta)))
     {
         return;
     }
     uint32_t now = p_now(NULL);
-    if (meta.node_id == NODE_ID && meta.capture_id >= g_boot_first_id && g_boot_first_id != 0u && now >= meta.uptime_ms)
+    if ((NODE_ID == meta.node_id) && (meta.capture_id >= g_boot_first_id) && (0u != g_boot_first_id) && (now >= meta.uptime_ms))
     {
         cm_put32(p_meta + CAPTURE_META_QUEUED_OFF, now - meta.uptime_ms);
     }
@@ -496,7 +496,7 @@ static void handle_capture(const capture_meta_t* p_request)
     meta.node_id = NODE_ID;
     meta.capture_id = ++g_capture_id;
     store_next_id(p_store, g_capture_id + 1u);
-    if (meta.uptime_ms == 0)
+    if (0 == meta.uptime_ms)
     {
         meta.uptime_ms = p_now(NULL);
     }
@@ -515,11 +515,11 @@ static void handle_capture(const capture_meta_t* p_request)
         snprintf(path, sizeof(path), "samples/%s", name);
     }
     const char* p_shown = image_num >= 0 ? path : "no image (samples/ has no <prefix>_NN.jpg), telemetry only";
-    if (meta.sound_class == CM_UNKNOWN_U8)
+    if (CM_UNKNOWN_U8 == meta.sound_class)
     {
         printf("capture %s: heard unknown (recording failed) -> %s\n", id_str, p_shown);
     }
-    else if (meta.sound_conf == CM_UNKNOWN_U8) /* legacy thresholds give no confidence */
+    else if (CM_UNKNOWN_U8 == meta.sound_conf) /* legacy thresholds give no confidence */
     {
         printf("capture %s: heard %s -> %s\n", id_str, sound_class_name(meta.sound_class), p_shown);
     }
@@ -532,7 +532,7 @@ static void handle_capture(const capture_meta_t* p_request)
     uint8_t meta_buf[ALFP_MAX_META];
     uint8_t meta_len = capture_meta_pack(&meta, meta_buf);
 
-    if (APP_SPLIT_TELEMETRY || image_num < 0)
+    if (APP_SPLIT_TELEMETRY || (image_num < 0))
     {
         /* Telemetry: a tiny transfer tagged with APP_TELEMETRY_MARKER instead of an image name,
          * small enough that the size rule always sends it over LoRa. The "file" is just a temp
@@ -543,7 +543,7 @@ static void handle_capture(const capture_meta_t* p_request)
         capture_id_file_stem(stem, sizeof(stem), NODE_ID, meta.capture_id);
         snprintf(tel_path, sizeof(tel_path), TEL_DIR "/%s.bin", stem);
         int tel_handle = p_store->p_open_write(p_store->p_ctx, tel_path);
-        bool b_tel_ok = tel_handle >= 0 && p_store->p_write_at(p_store->p_ctx, tel_handle, 0, meta_buf, meta_len) == meta_len;
+        bool b_tel_ok = (tel_handle >= 0) && (p_store->p_write_at(p_store->p_ctx, tel_handle, 0, meta_buf, meta_len) == meta_len);
         if (tel_handle >= 0)
         {
             p_store->p_close(p_store->p_ctx, tel_handle);
@@ -553,7 +553,7 @@ static void handle_capture(const capture_meta_t* p_request)
         size_t marker_len = strlen(APP_TELEMETRY_MARKER);
         memcpy(tel_meta + meta_len, APP_TELEMETRY_MARKER, marker_len);
         uint8_t tel_meta_len = (uint8_t)(meta_len + marker_len);
-        if (b_tel_ok && alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len))
+        if (b_tel_ok && (alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len)))
         {
             printf("capture %s telemetry queued (%s)\n", id_str, tel_path);
         }
@@ -597,7 +597,7 @@ static void comms_service(void)
         {
             uint8_t src;
             int len = p_radio->p_recv(&src, input, sizeof(input));
-            if (len == MESH_RECV_NONE)
+            if (MESH_RECV_NONE == len)
             {
                 break;
             }
@@ -712,7 +712,7 @@ static void comms_task(void* p_arg)
         cfg.p_on_tx_start = on_tx_start;
         cfg.p_on_tx_nack = on_tx_nack;
     }
-    if (APP_TRANSFER_EVENTS && NODE_ID == BRIDGE_ID)
+    if (APP_TRANSFER_EVENTS && (NODE_ID == BRIDGE_ID))
     {
         cfg.p_on_rx_start = ev_rx_start;
         cfg.p_on_rx_manifest = ev_rx_manifest;
@@ -741,13 +741,13 @@ static void comms_task(void* p_arg)
         if (NODE_ID != BRIDGE_ID)
         {
             capture_meta_t req;
-            while (!b_hold && xQueueReceive(gp_capture_q, &req, 0) == pdTRUE)
+            while ((!b_hold) && (xQueueReceive(gp_capture_q, &req, 0) == pdTRUE))
             {
                 handle_capture(&req);
             }
             alfp_outbox_pump(&g_outbox); /* radios and the outbox keep running while held */
         }
-        else if (uplink_queue_waiting(&g_uplink) != 0u)
+        else if (0u != uplink_queue_waiting(&g_uplink))
         {
             (void)uplink_queue_service(&g_uplink, UPLINK_LINES_PER_PASS, uplink_out, NULL);
             fflush(stdout);
@@ -756,7 +756,7 @@ static void comms_task(void* p_arg)
         {
             /* bridge with nothing queued for the laptop: nothing to do this pass */
         }
-        if (APP_RELAY_LOG && (int32_t)(p_now(NULL) - next_relay_log) >= 0)
+        if (APP_RELAY_LOG && ((int32_t)(p_now(NULL) - next_relay_log) >= 0))
         {
             next_relay_log += 1000u;
             relay_log();
@@ -861,7 +861,7 @@ static void sensors_task(void* p_arg)
     {
         uint32_t now = p_now(NULL);
         sensing_env_poll(now);
-        if (gb_want_env || now - last_env_print >= 10000)
+        if (gb_want_env || (now - last_env_print >= 10000))
         {
             gb_want_env = false;
             last_env_print = now;
@@ -869,7 +869,7 @@ static void sensors_task(void* p_arg)
         }
 
         bool b_down = !gpio_get(BOARD_BUTTON_GPIO);
-        bool b_pressed = b_down && !b_was_down;
+        bool b_pressed = b_down && (!b_was_down);
         b_was_down = b_down;
         bool b_forced = b_pressed || gb_force_capture;
         gb_force_capture = false;
@@ -884,8 +884,8 @@ static void sensors_task(void* p_arg)
                 printf("\n[ALERT] trigger on the bridge: the bridge only receives, no capture is sent\n");
             }
             printf("\n[ALERT] %s (PIR %d, sound %d). Recording %us of audio...\n",
-                   b_dual ? "Dual trigger fired" : "Manual capture", (flags & CM_TRIG_PIR) != 0,
-                   (flags & CM_TRIG_SOUND) != 0, (unsigned)AUDIO_SECONDS);
+                   b_dual ? "Dual trigger fired" : "Manual capture", 0 != (flags & CM_TRIG_PIR),
+                   0 != (flags & CM_TRIG_SOUND), (unsigned)AUDIO_SECONDS);
             capture_meta_t meta;
             audio_result_t audio;
             sensing_capture(now, flags, &meta, &audio);
@@ -893,7 +893,7 @@ static void sensors_task(void* p_arg)
                    audio.mean_adc, (unsigned long)audio.samples);
             sensing_log_sound();
             print_env();
-            if (NODE_ID != BRIDGE_ID && !app_request_capture(&meta))
+            if ((NODE_ID != BRIDGE_ID) && (!app_request_capture(&meta)))
             {
                 printf("[ALERT] capture queue full, dropped\n");
             }
@@ -914,35 +914,35 @@ static void console_task(void* p_arg)
     for (;;)
     {
         int chan = getchar_timeout_us(0);
-        if (chan == 'c')
+        if ('c' == chan)
         {
             gb_force_capture = true;
         }
-        else if (chan == 'e')
+        else if ('e' == chan)
         {
             gb_want_env = true;
         }
-        else if (chan == 't')
+        else if ('t' == chan)
         {
             gb_toggle_topo = true;
         }
-        else if (chan == 'H')
+        else if ('H' == chan)
         {
             gb_toggle_hold = true;
         }
-        else if (chan == 'h' || chan == '?')
+        else if (('h' == chan) || ('?' == chan))
         {
             print_help();
         }
-        else if (chan == 's')
+        else if ('s' == chan)
         {
             gb_want_stats = true;
         }
-        else if (chan == 'd')
+        else if ('d' == chan)
         {
             gb_toggle_drop = true;
         }
-        else if (chan == 'p')
+        else if ('p' == chan)
         {
             gb_want_test_payload = true;
         }

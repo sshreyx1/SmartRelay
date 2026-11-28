@@ -129,7 +129,7 @@ static void frame_done(void) {
     }
     case T_TXDONE:
         if (b_tx_waiting) {
-            if (status == 0) stats.tx_ok++; else stats.tx_fail++;
+            if (0 == status) stats.tx_ok++; else stats.tx_fail++;
             b_tx_waiting = false;
             txq_tail = (txq_tail + 1) % WST_TX_QUEUE;
             txq_count--;
@@ -149,22 +149,22 @@ static void frame_done(void) {
 static void parse_byte(uint8_t byte) {
     switch (state) {
     case P_SOF:
-        if (byte == SOF) { state = P_TYPE; start = time_us_64(); }
+        if (SOF == byte) { state = P_TYPE; start = time_us_64(); }
         break;
     case P_TYPE:
         type = byte; pos = 0;
-        if      (byte == T_RECV)   state = P_LEN;
-        else if (byte == T_TXDONE) state = P_STATUS;
-        else if (byte == T_HELLO)  { len = 0; state = P_MAC; }
+        if      (T_RECV == byte)   state = P_LEN;
+        else if (T_TXDONE == byte) state = P_STATUS;
+        else if (T_HELLO == byte)  { len = 0; state = P_MAC; }
         else                    state = P_SOF;          /* unknown: resync */
         break;
     case P_LEN:
-        if (byte == 0 || byte > WST_MAX_PKT) { state = P_SOF; break; }
+        if ((0 == byte) || (byte > WST_MAX_PKT)) { state = P_SOF; break; }
         len = byte; state = P_MAC;
         break;
     case P_MAC:
         mac[pos++] = byte;
-        if (pos == 6) { pos = 0; state = (len ? P_BODY : P_CRC); }
+        if (6 == pos) { pos = 0; state = (len ? P_BODY : P_CRC); }
         break;
     case P_BODY:
         body[pos++] = byte;
@@ -175,13 +175,13 @@ static void parse_byte(uint8_t byte) {
         break;
     case P_CRC: {
         uint8_t crc = wst_crc8(&type, 1, 0);
-        if (type == T_RECV) {
+        if (T_RECV == type) {
             crc = wst_crc8(&len, 1, crc);
             crc = wst_crc8(mac, 6, crc);
             crc = wst_crc8(body, len, crc);
-        } else if (type == T_TXDONE) {
+        } else if (T_TXDONE == type) {
             crc = wst_crc8(&status, 1, crc);
-        } else if (type == T_HELLO) {
+        } else if (T_HELLO == type) {
             crc = wst_crc8(mac, 6, crc);
         } else {
             /* P_TYPE never lets another type reach P_CRC; CRC covers the type byte only. */
@@ -213,8 +213,8 @@ void wst_link_init(void) {
 }
 
 bool wst_link_send(const uint8_t *p_pkt, uint8_t len) {
-    if (len == 0 || len > WST_MAX_PKT) return false;
-    if (txq_count == WST_TX_QUEUE) { stats.tx_queue_full++; return false; }
+    if ((0 == len) || (len > WST_MAX_PKT)) return false;
+    if (WST_TX_QUEUE == txq_count) { stats.tx_queue_full++; return false; }
 
     tx_frame_t *p_frame = &txq[txq_head];
     p_frame->bytes[0] = SOF;
@@ -238,13 +238,13 @@ void wst_link_poll(void) {
         rx_tail = (rx_tail + 1) & (RXBUF_SIZE - 1);
         parse_byte(byte);
     }
-    if (state != P_SOF && time_us_64() - start > FRAME_TIMEOUT_US)
+    if ((P_SOF != state) && (time_us_64() - start > FRAME_TIMEOUT_US))
         state = P_SOF;                        /* half frame went stale */
 
     /* 2. Control frame (WHOAMI) jumps ahead, but never mid-way through
           another frame, or the WST would see garbage */
-    if (ctl_pos < ctl_len && tx_pos == 0) {
-        while (ctl_pos < ctl_len && uart_is_writable(WST_UART))
+    if ((ctl_pos < ctl_len) && (0 == tx_pos)) {
+        while ((ctl_pos < ctl_len) && (uart_is_writable(WST_UART)))
             uart_putc_raw(WST_UART, ctl_frame[ctl_pos++]);
         if (ctl_pos < ctl_len) return;
     }
@@ -263,9 +263,9 @@ void wst_link_poll(void) {
     }
 
     /* 4. Feed the front frame into the UART, as much as fits right now */
-    if (txq_count == 0) return;
+    if (0 == txq_count) return;
     tx_frame_t *p_frame = &txq[txq_tail];
-    while (tx_pos < p_frame->len && uart_is_writable(WST_UART))
+    while ((tx_pos < p_frame->len) && (uart_is_writable(WST_UART)))
         uart_putc_raw(WST_UART, p_frame->bytes[tx_pos++]);
     if (tx_pos == p_frame->len) {
         b_tx_waiting = true;
@@ -281,7 +281,7 @@ bool wst_link_recv(wst_rx_pkt_t *p_out) {
 }
 
 bool wst_link_tx_busy(void) {
-    return txq_count > 0 || b_tx_waiting;
+    return (txq_count > 0) || b_tx_waiting;
 }
 
 bool wst_link_get_mac(uint8_t mac[6]) {

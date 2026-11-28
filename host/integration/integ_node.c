@@ -54,7 +54,7 @@ static void on_tx(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
            alfp_tx_result_str(p_rep->result), (unsigned long)p_rep->file_size, (unsigned long)p_rep->file_crc32, p_rep->frag_count,
            p_rep->rounds, p_rep->data_resent, (p_rep->finished_ms - p_rep->started_ms) / 1000.0);
     done = 1;
-    ok_flag = p_rep->result == ALFP_TX_DONE;
+    ok_flag = ALFP_TX_DONE == p_rep->result;
 }
 
 static void on_rx(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
@@ -88,28 +88,28 @@ int main(int argc, char** pp_argv)
     if (!wifi_mesh_init((uint8_t)node_num)) return 3; /* node 1 heartbeats by itself; topology filter ON */
 #else
     if (!lora_mesh_init((uint8_t)node_num)) return 3;
-    if (node_num == 1) lora_mesh_set_heartbeat(3000);
+    if (1 == node_num) lora_mesh_set_heartbeat(3000);
 #endif
     alfp_init(&ctx, &cfg);
     const mesh_radio_t* radios[1] = {&RADIO};
     uint32_t start_t = p_now(NULL);
-    if (argc > 3 && strcmp(pp_argv[3], "relay") == 0)
+    if ((argc > 3) && (0 == strcmp(pp_argv[3], "relay")))
     {
         signal(SIGINT, on_stop);
         signal(SIGTERM, on_stop);
-        while (!stop && p_now(NULL) - start_t < 120000) { RADIO.p_poll(); alfp_service(&ctx, radios, 1); sleep_ms(1); }
+        while ((!stop) && (p_now(NULL) - start_t < 120000)) { RADIO.p_poll(); alfp_service(&ctx, radios, 1); sleep_ms(1); }
         mesh_stats_t stats;
         RADIO.p_get_stats(&stats);
         printf("[relay %d] mesh stats: tx %u rx %u delivered %u relayed %u dup %u filtered %u\n", node_num, stats.tx_count, stats.rx_count,
                stats.delivered, stats.relayed, stats.dup_dropped, (unsigned)FILTERED());
         return 0;
     }
-    if (node_num != 1)
+    if (1 != node_num)
     {
         sleep_ms(500);
-        if (alfp_send_file(&ctx, &RADIO, 1, pp_argv[3], NULL, 0) != ALFP_OK) { printf("send failed\n"); return 4; }
+        if (ALFP_OK != alfp_send_file(&ctx, &RADIO, 1, pp_argv[3], NULL, 0)) { printf("send failed\n"); return 4; }
     }
-    while (!done && p_now(NULL) - start_t < 300000)
+    while ((!done) && (p_now(NULL) - start_t < 300000))
     {
         RADIO.p_poll();
         alfp_service(&ctx, radios, 1);
@@ -117,11 +117,11 @@ int main(int argc, char** pp_argv)
     }
     /* receiver: keep answering for a few seconds so a lost ACK can be repeated */
     uint32_t mid_t = p_now(NULL);
-    while (node_num == 1 && p_now(NULL) - mid_t < 6000) { RADIO.p_poll(); alfp_service(&ctx, radios, 1); sleep_ms(1); }
+    while ((1 == node_num) && (p_now(NULL) - mid_t < 6000)) { RADIO.p_poll(); alfp_service(&ctx, radios, 1); sleep_ms(1); }
     mesh_stats_t stats;
     RADIO.p_get_stats(&stats);
     printf("[node %d] mesh stats: tx %u rx %u delivered %u relayed %u dup %u rx_error %u filtered %u\n", node_num, stats.tx_count, stats.rx_count,
            stats.delivered, stats.relayed, stats.dup_dropped, stats.rx_error, (unsigned)FILTERED());
-    if (node_num == 1 && ok_flag) printf("RX_FILE=%s\n", rx_path);
+    if ((1 == node_num) && ok_flag) printf("RX_FILE=%s\n", rx_path);
     return ok_flag ? 0 : 1;
 }

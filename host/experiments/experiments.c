@@ -52,7 +52,7 @@ static void parse_kv(params_t* p_params, const char* p_key_value)
 {
     char kdx[32];
     char val_str[32];
-    if (sscanf(p_key_value, "%31[^=]=%31s", kdx, val_str) != 2)
+    if (2 != sscanf(p_key_value, "%31[^=]=%31s", kdx, val_str))
     {
         return;
     }
@@ -111,7 +111,7 @@ static result_t run(const params_t* p_params)
         {"lora", 500, 1500, 1500, 60000, 40, 10, 30, 1, 4, ALFP_RADIO_LORA},
         {"wifi", 10, 80, 200, 15000, 40, 10, 40, 1, 4, ALFP_RADIO_WIFI},
     };
-    alfp_profile_t* p_profile = &prof[p_params->radio == SIM_WIFI ? 1 : 0];
+    alfp_profile_t* p_profile = &prof[SIM_WIFI == p_params->radio ? 1 : 0];
     p_profile->gap_ms = p_params->gap;
     p_profile->gap_max_ms = p_params->gapmax;
     p_profile->poll_timeout_ms = p_params->pollto;
@@ -120,7 +120,7 @@ static result_t run(const params_t* p_params)
     p_profile->max_rounds = p_params->rounds;
     p_profile->max_stalled = p_params->stalled;
     p_profile->tail_dup = p_params->taildup;
-    net_set_options(prof, 2, p_params->baseline != 0);
+    net_set_options(prof, 2, 0 != p_params->baseline);
 
     for (int trial = 0; trial < p_params->trials; trial++)
     {
@@ -131,16 +131,16 @@ static result_t run(const params_t* p_params)
         cfg.heartbeat_ms = p_params->heartbeat;
         sim_topology_chain(&cfg, -1); /* sender = last node, bridge = node 1 */
         cfg.kind[p_params->radio].link_loss = p_params->loss;
-        if (p_params->radio == SIM_LORA)
+        if (SIM_LORA == p_params->radio)
         {
-            cfg.kind[SIM_LORA].b_carrier_sense = p_params->chunk_size != 0;
+            cfg.kind[SIM_LORA].b_carrier_sense = 0 != p_params->chunk_size;
         }
-        net_init(&net, &cfg, "sim_out/exp", p_params->radio == SIM_WIFI ? 2 : 1, false);
+        net_init(&net, &cfg, "sim_out/exp", SIM_WIFI == p_params->radio ? 2 : 1, false);
         net_run_ms(&net, 300 + (sim_rand() % 3000)); /* random phase against the heartbeat */
         net_make_file(&net, nodes, "img.jpg", p_params->size, cfg.seed);
         sim_set_current(nodes);
-        const mesh_radio_t* p_radio = p_params->radio == SIM_WIFI ? &g_sim_wifi : &g_sim_lora;
-        if (alfp_send_file(&net.node[nodes].alfp, p_radio, 1, "img.jpg", NULL, 0) != ALFP_OK)
+        const mesh_radio_t* p_radio = SIM_WIFI == p_params->radio ? &g_sim_wifi : &g_sim_lora;
+        if (ALFP_OK != alfp_send_file(&net.node[nodes].alfp, p_radio, 1, "img.jpg", NULL, 0))
         {
             fprintf(stderr, "send_file failed\n");
             /* DEVIATION (BARR-C 8.5.b, exit()): laptop-only experiment tool, never linked into
@@ -152,13 +152,13 @@ static result_t run(const params_t* p_params)
         net_run_until(&net, sender_done, 3600000);
         res.trials++;
         alfp_tx_report_t* p_rep = &net.node[nodes].tx_reports[0];
-        if (net.node[nodes].n_tx && p_rep->result == ALFP_TX_GAVE_UP && p_rep->why < 4)
+        if ((net.node[nodes].n_tx) && (ALFP_TX_GAVE_UP == p_rep->result) && (p_rep->why < 4))
         {
             res.why[p_rep->why]++;
         }
-        if (net.node[nodes].n_tx && p_rep->result == ALFP_TX_DONE)
+        if ((net.node[nodes].n_tx) && (ALFP_TX_DONE == p_rep->result))
         {
-            if (net.node[1].n_rx < 1 || !net_files_equal(&net, nodes, "img.jpg", 1, net.node[1].rx_paths[0]))
+            if ((net.node[1].n_rx < 1) || (!net_files_equal(&net, nodes, "img.jpg", 1, net.node[1].rx_paths[0])))
             {
                 res.mismatched++;
             }
@@ -214,7 +214,7 @@ static void print_one(const params_t* p_params, result_t* p_res)
 {
     printf("%s hops=%d loss=%.2f gap=%u..%u pollto=%u polls=%u copies=%u taildup=%u cs=%d base=%d size=%u | ok %d/%d (%.0f%%) "
            "t_med=%.1fs rounds=%.2f sent/frag=%.2f air=%.1fs fail[polls=%d stall=%d cap=%d] bad_files=%d\n",
-           p_params->radio == SIM_WIFI ? "wifi" : "lora", p_params->hops, p_params->loss, p_params->gap, p_params->gapmax, p_params->pollto, p_params->polls, p_params->copies, p_params->taildup, p_params->chunk_size,
+           SIM_WIFI == p_params->radio ? "wifi" : "lora", p_params->hops, p_params->loss, p_params->gap, p_params->gapmax, p_params->pollto, p_params->polls, p_params->copies, p_params->taildup, p_params->chunk_size,
            p_params->baseline, p_params->size, p_res->ok_flag, p_res->trials, 100.0 * p_res->ok_flag / p_res->trials, median(p_res),
            mean(p_res->rounds_sum, p_res->ok_flag), p_res->frag_sum ? p_res->sent_sum / p_res->frag_sum : NAN, mean(p_res->air_sum, p_res->ok_flag),
            p_res->why[1], p_res->why[2], p_res->why[3], p_res->mismatched);
@@ -253,7 +253,7 @@ static params_t tuned(int radio)
 {
     params_t params = defaults();
     params.radio = radio;
-    if (radio == SIM_WIFI)
+    if (SIM_WIFI == radio)
     {
         params.gap = 10;
         params.gapmax = 10;
@@ -297,7 +297,7 @@ static void suite(const char* p_dir, int trials)
             params.trials = trials;
             params.loss = loss_axis[idx];
             const char* p_label = "final";
-            if (value == 0) /* first design: 3 s poll timeout, give up after 5 silent polls, 10 rounds, no tail dup */
+            if (0 == value) /* first design: 3 s poll timeout, give up after 5 silent polls, 10 rounds, no tail dup */
             {
                 params.pollto = 3000;
                 params.polls = 5;
@@ -305,7 +305,7 @@ static void suite(const char* p_dir, int trials)
                 params.taildup = 0;
                 p_label = "v1_first_design";
             }
-            else if (value == 1) /* faster polls + silence budget, still no tail duplication */
+            else if (1 == value) /* faster polls + silence budget, still no tail duplication */
             {
                 params.taildup = 0;
                 p_label = "v2_fast_polls";
@@ -398,7 +398,7 @@ static void suite(const char* p_dir, int trials)
 
 int main(int argc, char** pp_argv)
 {
-    if (argc >= 2 && !strcmp(pp_argv[1], "one"))
+    if ((argc >= 2) && (!strcmp(pp_argv[1], "one")))
     {
         params_t params = defaults();
         for (int idx = 2; idx < argc; idx++)
@@ -409,7 +409,7 @@ int main(int argc, char** pp_argv)
         print_one(&params, &res);
         return 0;
     }
-    if (argc >= 3 && !strcmp(pp_argv[1], "suite"))
+    if ((argc >= 3) && (!strcmp(pp_argv[1], "suite")))
     {
         suite(pp_argv[2], argc >= 4 ? atoi(pp_argv[3]) : 40);
         return 0;

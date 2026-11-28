@@ -65,7 +65,7 @@ static void check(int kind, unsigned seed, uint32_t block)
     }
     audio_result_t res;
     audio_feat_finish(&feat, 16000, &res);
-    int ok_flag = res.energy == ref.energy && res.zcr == ref.zcr && res.class_id == ref.class_id && strcmp(res.p_label, ref.p_label) == 0;
+    int ok_flag = (res.energy == ref.energy) && (res.zcr == ref.zcr) && (res.class_id == ref.class_id) && (0 == strcmp(res.p_label, ref.p_label));
     printf("%s kind %d block %5u: mine %s e=%.3f z=%.5f | mic.c %s e=%.3f z=%.5f | rms %u zcr/s %u mean %u\n",
            ok_flag ? "ok  " : "FAIL", kind, block, res.p_label, res.energy, res.zcr, ref.p_label, ref.energy, ref.zcr, res.rms,
            res.zcr_per_s, res.mean_adc);

@@ -63,7 +63,7 @@ static bool l_send(int self_id, uint8_t dst, const uint8_t* p_buf, uint16_t len)
     (void)dst;
     end_t* p_self_end = &loopback.ends[self_id];
     end_t* p_dest = &loopback.ends[1 - self_id];
-    if (len == 0 || len > loopback.maxp)
+    if ((0 == len) || (len > loopback.maxp))
     {
         return false;
     }
@@ -74,7 +74,7 @@ static bool l_send(int self_id, uint8_t dst, const uint8_t* p_buf, uint16_t len)
     }
     p_self_end->busy_until = now_ms + loopback.air;
     p_self_end->stats.tx_count++;
-    if (frand() < loopback.loss || (p_dest->drop > 0 && frand() < p_dest->drop))
+    if ((frand() < loopback.loss) || ((p_dest->drop > 0) && (frand() < p_dest->drop)))
     {
         p_dest->stats.drop_injected++;
         return true; /* accepted, then lost in the air */
@@ -95,7 +95,7 @@ static bool l_send(int self_id, uint8_t dst, const uint8_t* p_buf, uint16_t len)
 static int l_recv(int self_id, uint8_t* p_src, uint8_t* p_buf, uint16_t cap)
 {
     end_t* p_self_end = &loopback.ends[self_id];
-    if (!p_self_end->count || (int32_t)(loopback.p_now() - p_self_end->queue[p_self_end->head].due) < 0)
+    if ((!p_self_end->count) || ((int32_t)(loopback.p_now() - p_self_end->queue[p_self_end->head].due) < 0))
     {
         return MESH_RECV_NONE;
     }

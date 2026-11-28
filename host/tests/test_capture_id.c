@@ -11,7 +11,7 @@ static int fails;
 
 static void expect_str(const char* p_got, const char* p_want)
 {
-    if (strcmp(p_got, p_want) != 0)
+    if (0 != strcmp(p_got, p_want))
     {
         printf("FAIL: got '%s', want '%s'\n", p_got, p_want);
         fails++;
@@ -23,7 +23,7 @@ static void expect_parse(const char* p_str, int ok_flag, unsigned node, unsigned
     uint8_t got_node = 0;
     uint32_t value = 0;
     int got = capture_id_parse(p_str, &got_node, &value);
-    if (got != ok_flag || (ok_flag && (got_node != node || value != cap_id)))
+    if ((got != ok_flag) || (ok_flag && ((got_node != node) || (value != cap_id))))
     {
         printf("FAIL: parse('%s') = %d N%u %lu, want %d N%u %lu\n", p_str, got, got_node, (unsigned long)value, ok_flag, node, cap_id);
         fails++;

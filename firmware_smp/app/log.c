@@ -85,7 +85,7 @@ void log_write_line(const char* p_line)
 
 static log_asm_t* slot_for(rtos_id_t self_id)
 {
-    if (self_id == 0)
+    if (0 == self_id)
     {
         return &s_asm[0];
     }
@@ -111,19 +111,19 @@ void log_putc(char chr)
 {
     rtos_id_t self_id = rtos_self_id();
     log_asm_t* p_line_asm = slot_for(self_id);
-    if (p_line_asm == NULL)
+    if (NULL == p_line_asm)
     {
-        if (chr == '\n')
+        if ('\n' == chr)
         {
             rtos_atomic_add_u32(&s_dropped, 1);
         }
         return;
     }
-    if (chr == '\r')
+    if ('\r' == chr)
     {
         return; /* lines go out as "...\r\n" anyway (usb_owner) */
     }
-    if (chr != '\n')
+    if ('\n' != chr)
     {
         p_line_asm->buf[p_line_asm->len++] = chr;
         if (p_line_asm->len < LOG_LINE_MAX - 1u)
@@ -134,7 +134,7 @@ void log_putc(char chr)
     }
     p_line_asm->buf[p_line_asm->len] = '\0';
     p_line_asm->len = 0;
-    queue_line(p_line_asm->buf, self_id != 0 && self_id != s_drainer);
+    queue_line(p_line_asm->buf, (0 != self_id) && (self_id != s_drainer));
 }
 
 uint32_t log_dropped_count(void)

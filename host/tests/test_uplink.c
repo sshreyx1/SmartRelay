@@ -102,7 +102,7 @@ static void test_uplink_stream(void)
     gp_buf = queued;
     g_buf_len = 0;
     unsigned passes = 0;
-    while (uplink_queue_waiting(&queue) != 0u && passes < 100000u)
+    while ((0u != uplink_queue_waiting(&queue)) && (passes < 100000u))
     {
         CHECK(uplink_queue_service(&queue, 3, wb, NULL) <= 3u);
         passes++;
@@ -135,7 +135,7 @@ static void test_uplink_stream(void)
     CHECK(uplink_queue_add(&queue, &rep));
     gp_buf = queued;
     g_buf_len = 0;
-    while (uplink_queue_waiting(&queue) != 0u)
+    while (0u != uplink_queue_waiting(&queue))
     {
         (void)uplink_queue_service(&queue, 8, wb, NULL);
     }

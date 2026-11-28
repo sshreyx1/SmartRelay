@@ -36,11 +36,11 @@ static void setup(int topo, int radios, uint8_t nodes, bool b_outbox, uint32_t s
     sim_cfg_t cfg;
     sim_default_cfg(&cfg, nodes);
     cfg.seed = seed;
-    if (topo == 0)
+    if (0 == topo)
     {
         sim_topology_full(&cfg, -1);
     }
-    else if (topo == 1)
+    else if (1 == topo)
     {
         sim_topology_chain(&cfg, -1);
     }
@@ -56,7 +56,7 @@ static bool start_send(uint8_t node, const mesh_radio_t* p_radio, const char* p_
 {
     net_make_file(&net, node, p_path, size, seed);
     sim_set_current(node);
-    return alfp_send_file(&net.node[node].alfp, p_radio, BRIDGE, p_path, NULL, 0) == ALFP_OK;
+    return ALFP_OK == alfp_send_file(&net.node[node].alfp, p_radio, BRIDGE, p_path, NULL, 0);
 }
 
 static bool received_equals(uint8_t node, const char* p_path, unsigned idx)
@@ -82,12 +82,12 @@ static unsigned count_in(const char* p_path, const char* p_suffix, int depth)
     struct dirent* p_entry;
     while ((p_entry = readdir(p_dir_handle)))
     {
-        if (p_entry->d_name[0] == '.')
+        if ('.' == p_entry->d_name[0])
         {
             continue;
         }
         size_t name_len = strlen(p_entry->d_name), suffix_len = strlen(p_suffix);
-        if (name_len > suffix_len && strcmp(p_entry->d_name + name_len - suffix_len, p_suffix) == 0)
+        if ((name_len > suffix_len) && (0 == strcmp(p_entry->d_name + name_len - suffix_len, p_suffix)))
         {
             count_c++;
         }
@@ -437,7 +437,7 @@ static void test_store_and_forward(void)
     CHECK(net.node[3].n_tx == 0 && net.node[3].outbox.no_radio_waits > 0);
     sim_set_link(SIM_LORA, 3, 2, true); /* node 3 comes into range of the relay */
     sim_set_link(SIM_LORA, 2, 1, true);
-    for (int kdx = 0; kdx < 400 && net.node[BRIDGE].n_rx < 3; kdx++)
+    for (int kdx = 0; (kdx < 400) && (net.node[BRIDGE].n_rx < 3); kdx++)
     {
         net_run_ms(&net, 1000);
     }
@@ -450,7 +450,7 @@ static void test_store_and_forward(void)
     }
     CHECK(net.node[BRIDGE].n_rx == 3);
     CHECK(alfp_outbox_count(&net.node[3].outbox) == 0);
-    for (unsigned idx = 0; idx < net.node[BRIDGE].n_rx && idx < 3; idx++)
+    for (unsigned idx = 0; (idx < net.node[BRIDGE].n_rx) && (idx < 3); idx++)
     {
         char path[32];
         snprintf(path, sizeof(path), "img/s%u.jpg", idx);
@@ -466,7 +466,7 @@ static void test_two_senders_at_once(void)
     setup(0, 2, 3, false, 100);
     CHECK(start_send(2, &g_sim_wifi, "img/x.jpg", 12000, 30));
     CHECK(start_send(3, &g_sim_wifi, "img/y.jpg", 9000, 31));
-    for (int kdx = 0; kdx < 120 && net.node[BRIDGE].n_rx < 2; kdx++)
+    for (int kdx = 0; (kdx < 120) && (net.node[BRIDGE].n_rx < 2); kdx++)
     {
         net_run_ms(&net, 500);
     }
@@ -475,7 +475,7 @@ static void test_two_senders_at_once(void)
     for (unsigned idx = 0; idx < net.node[BRIDGE].n_rx; idx++)
     {
         uint8_t src = net.node[BRIDGE].rx_reports[idx].src;
-        b_is_ok &= received_equals(src, src == 2 ? "img/x.jpg" : "img/y.jpg", idx);
+        b_is_ok &= received_equals(src, 2 == src ? "img/x.jpg" : "img/y.jpg", idx);
     }
     CHECK(b_is_ok);
     net_close(&net);
@@ -636,7 +636,7 @@ static unsigned g_stamped;
 static void stamp_meta(uint8_t* p_meta, uint8_t len, void* p_user)
 {
     (void)p_user;
-    if (len >= CAPTURE_META_LEN_V2 && p_meta[0] == 2u)
+    if ((len >= CAPTURE_META_LEN_V2) && (2u == p_meta[0]))
     {
         cm_put32(p_meta + CAPTURE_META_QUEUED_OFF, 2600u);
         g_stamped++;
@@ -758,7 +758,7 @@ static bool bridge_heard_10_frags(net_t* p_count)
     unsigned frags = 0;
     for (unsigned idx = 0; idx < g_nev; idx++)
     {
-        frags += g_ev[idx].kind == 'F';
+        frags += 'F' == g_ev[idx].kind;
     }
     return frags >= 10;
 }
@@ -783,7 +783,7 @@ static void test_progress_callbacks(void)
     CHECK(net_run_until(&net, bridge_heard_10_frags, 60000));
     sim_set_drop_rate(BRIDGE, SIM_WIFI, 1.0f);
     uint16_t sent0 = net.node[2].alfp.tx_session.rep.data_sent;
-    for (int idx = 0; idx < 5000 && net.node[2].alfp.tx_session.rep.data_sent < sent0 + 2u; idx++)
+    for (int idx = 0; (idx < 5000) && (net.node[2].alfp.tx_session.rep.data_sent < sent0 + 2u); idx++)
     {
         net_run_ms(&net, 1);
     }
@@ -791,7 +791,7 @@ static void test_progress_callbacks(void)
     for (int idx = 0; idx < 5000; idx++)
     {
         sim_set_current(2);
-        if (net.node[2].alfp.tx_session.rep.data_sent >= sent0 + 3u || !g_sim_wifi.p_tx_busy())
+        if ((net.node[2].alfp.tx_session.rep.data_sent >= sent0 + 3u) || (!g_sim_wifi.p_tx_busy()))
         {
             break;
         }
@@ -810,31 +810,31 @@ static void test_progress_callbacks(void)
     for (unsigned idx = 0; idx < g_nev; idx++)
     {
         const ev_t* p_entry = &g_ev[idx];
-        if (p_entry->kind == 'S' && first_s < 0)
+        if (('S' == p_entry->kind) && (first_s < 0))
         {
             first_s = (int)idx;
         }
-        if (p_entry->kind == 'M' && first_m < 0)
+        if (('M' == p_entry->kind) && (first_m < 0))
         {
             first_m = (int)idx;
         }
-        if (p_entry->kind == 'N')
+        if ('N' == p_entry->kind)
         {
             n_nacks++;
             if (first_n < 0)
             {
                 first_n = (int)idx;
                 CHECK(p_entry->round == 1 && p_entry->count >= 2 && p_entry->count <= 4);
-                if (!(p_entry->count >= 2 && p_entry->count <= 4))
+                if (!((p_entry->count >= 2) && (p_entry->count <= 4)))
                 {
                     printf("    first NACK asked for %u\n", p_entry->count);
                 }
             }
         }
-        if (p_entry->kind == 'F')
+        if ('F' == p_entry->kind)
         {
             CHECK(first_s >= 0); /* never a fragment before the session start */
-            if (p_entry->round == 0)
+            if (0 == p_entry->round)
             {
                 CHECK(first_n < 0); /* round 0 only before the first NACK */
                 CHECK(!p_entry->b_dup);
@@ -847,8 +847,8 @@ static void test_progress_callbacks(void)
                 dups_r1 += p_entry->b_dup;
             }
         }
-        tx_nacks += p_entry->kind == 'K';
-        n_fail += p_entry->kind == 'X';
+        tx_nacks += 'K' == p_entry->kind;
+        n_fail += 'X' == p_entry->kind;
     }
     CHECK(first_s >= 0 && first_m > first_s);
     CHECK(first_n > first_m);

@@ -59,19 +59,19 @@ static void irq_dispatch(uint32_t intno)
     {
         return;
     }
-    if (intno == IRQ_USBCTRL)
+    if (IRQ_USBCTRL == intno)
     {
         tm_usb_irq_count++;
     }
     for (uint32_t idx = 0; idx < IRQ_MAX_HANDLERS; idx++)
     {
         irq_handler_t p_handler = s_handlers[intno][idx];
-        if (p_handler != NULL)
+        if (NULL != p_handler)
         {
             p_handler();
         }
     }
-    if (intno == IRQ_USBCTRL && tm_usb_service_tskid > 0)
+    if ((IRQ_USBCTRL == intno) && (tm_usb_service_tskid > 0))
     {
         /* Same as the vendored file: wake the USB service task now, not on the next tick. */
         (void)tk_wup_tsk(tm_usb_service_tskid);
@@ -80,7 +80,7 @@ static void irq_dispatch(uint32_t intno)
 
 static void install(uint num, irq_handler_t p_handler, bool b_exclusive)
 {
-    if (num >= IRQ_COUNT || p_handler == NULL)
+    if ((num >= IRQ_COUNT) || (NULL == p_handler))
     {
         return;
     }
@@ -97,16 +97,16 @@ static void install(uint num, irq_handler_t p_handler, bool b_exclusive)
     else
     {
         bool b_placed = false;
-        for (uint32_t idx = 0; idx < IRQ_MAX_HANDLERS && !b_placed; idx++)
+        for (uint32_t idx = 0; (idx < IRQ_MAX_HANDLERS) && (!b_placed); idx++)
         {
             if (s_handlers[num][idx] == p_handler)
             {
                 b_placed = true;
             }
         }
-        for (uint32_t idx = 0; idx < IRQ_MAX_HANDLERS && !b_placed; idx++)
+        for (uint32_t idx = 0; (idx < IRQ_MAX_HANDLERS) && (!b_placed); idx++)
         {
-            if (s_handlers[num][idx] == NULL)
+            if (NULL == s_handlers[num][idx])
             {
                 s_handlers[num][idx] = p_handler;
                 b_placed = true;
@@ -121,7 +121,7 @@ static void install(uint num, irq_handler_t p_handler, bool b_exclusive)
     dint.intatr = MTK_TA_HLNG;
     dint.p_inthdr = (mtk_fp_t)irq_dispatch;
     int32_t err = tk_def_int(num, &dint);
-    if (num == IRQ_USBCTRL)
+    if (IRQ_USBCTRL == num)
     {
         tm_usb_def_int_ercd = err;
     }
@@ -167,7 +167,7 @@ void irq_remove_handler(uint num, irq_handler_t p_handler)
         {
             s_handlers[num][idx] = NULL;
         }
-        b_any = b_any || s_handlers[num][idx] != NULL;
+        b_any = b_any || (NULL != s_handlers[num][idx]);
     }
     if (!b_any)
     {
@@ -189,7 +189,7 @@ void irq_set_enabled(uint num, bool b_enabled)
     {
         NVIC_ICER0 = 1UL << num;
     }
-    if (num == IRQ_USBCTRL)
+    if (IRQ_USBCTRL == num)
     {
         tm_usb_nvic_enabled = (NVIC_ISER0 >> num) & 1UL;
     }
@@ -197,7 +197,7 @@ void irq_set_enabled(uint num, bool b_enabled)
 
 bool irq_is_enabled(uint num)
 {
-    return num < IRQ_COUNT && ((NVIC_ISER0 >> num) & 1u) != 0;
+    return (num < IRQ_COUNT) && (0 != ((NVIC_ISER0 >> num) & 1u));
 }
 
 void irq_set_mask_enabled(uint32_t mask, bool b_enabled)

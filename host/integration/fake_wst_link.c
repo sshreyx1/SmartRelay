@@ -57,7 +57,7 @@ void wst_link_init(void)
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     addr.sin_port = htons((uint16_t)(BASE_PORT + self));
-    if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0)
+    if (0 != bind(sock, (struct sockaddr*)&addr, sizeof(addr)))
     {
         perror("bind");
         /* DEVIATION (BARR-C 8.5.b, exit()): host integration-test stand-in for wst_link.c, never
@@ -75,16 +75,16 @@ void wst_link_init(void)
 
 bool wst_link_send(const uint8_t* p_pkt, uint8_t len)
 {
-    if (len == 0 || len > WST_MAX_PKT)
+    if ((0 == len) || (len > WST_MAX_PKT))
     {
         return false;
     }
-    if (queue_count == WST_TX_QUEUE)
+    if (WST_TX_QUEUE == queue_count)
     {
         stats.tx_queue_full++;
         return false;
     }
-    if (queue_count == 0)
+    if (0 == queue_count)
     {
         busy_until_us = now_us() + frame_us(len);
     }
@@ -99,7 +99,7 @@ bool wst_link_send(const uint8_t* p_pkt, uint8_t len)
 void wst_link_poll(void)
 {
     uint64_t now_t = now_us();
-    if (queue_count && now_t >= busy_until_us)
+    if (queue_count && (now_t >= busy_until_us))
     {
         /* the frame at the head has finished its UART + air time: broadcast it */
         uint8_t out[6 + WST_MAX_PKT];

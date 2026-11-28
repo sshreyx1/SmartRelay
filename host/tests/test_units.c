@@ -150,12 +150,12 @@ static void test_nack_exact(void)
                 break;
             }
         }
-        if (missing == 0)
+        if (0 == missing)
         {
             CHECK(pkt.body.nack.fmt == ALFP_NACK_FMT_NONE);
         }
-        list_used += pkt.body.nack.fmt == ALFP_NACK_FMT_LIST;
-        bitmap_used += pkt.body.nack.fmt == ALFP_NACK_FMT_BITMAP;
+        list_used += ALFP_NACK_FMT_LIST == pkt.body.nack.fmt;
+        bitmap_used += ALFP_NACK_FMT_BITMAP == pkt.body.nack.fmt;
     }
     CHECK(list_used > 0 && bitmap_used > 0); /* both encodings get exercised */
 }
@@ -192,7 +192,7 @@ static void test_crc_catches_bit_flips(void)
     {
         buf[bit / 8] ^= (uint8_t)(1u << (bit % 8));
         total++;
-        caught += alfp_decode(buf, len, &pkt) != ALFP_DEC_OK;
+        caught += ALFP_DEC_OK != alfp_decode(buf, len, &pkt);
         buf[bit / 8] ^= (uint8_t)(1u << (bit % 8));
     }
     CHECK(caught == total);
@@ -205,7 +205,7 @@ static void test_crc_catches_bit_flips(void)
             buf[idx_a / 8] ^= (uint8_t)(1u << (idx_a % 8));
             buf[idx_b / 8] ^= (uint8_t)(1u << (idx_b % 8));
             dtotal++;
-            dcaught += alfp_decode(buf, len, &pkt) != ALFP_DEC_OK;
+            dcaught += ALFP_DEC_OK != alfp_decode(buf, len, &pkt);
             buf[idx_a / 8] ^= (uint8_t)(1u << (idx_a % 8));
             buf[idx_b / 8] ^= (uint8_t)(1u << (idx_b % 8));
         }
@@ -228,17 +228,17 @@ static void test_decoder_fuzz(void)
             buf[kdx] = (uint8_t)rnd();
         }
         /* half the time make the CRC valid so the field checks get exercised */
-        if (len >= 3 && (idx & 1))
+        if ((len >= 3) && (idx & 1))
         {
             buf[0] = (uint8_t)((ALFP_VERSION << 4) | (rnd() % 6));
             uint16_t crc = alfp_crc16(ALFP_CRC16_INIT, buf, len - 2u);
             buf[len - 2] = (uint8_t)crc;
             buf[len - 1] = (uint8_t)(crc >> 8);
         }
-        if (alfp_decode(buf, len, &pkt) == ALFP_DEC_OK)
+        if (ALFP_DEC_OK == alfp_decode(buf, len, &pkt))
         {
             ok_flag++;
-            if (pkt.type == ALFP_T_NACK)
+            if (ALFP_T_NACK == pkt.type)
             {
                 collect_t seen = {{0}, 0};
                 alfp_nack_for_each(&pkt.body.nack, ALFP_MAX_FRAGS, collect, &seen);

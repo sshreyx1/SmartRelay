@@ -171,14 +171,14 @@ static void send_class(void)
 
 static void handle(const char* p_line)
 {
-    if (p_line[0] == 'p' && p_line[1] == '\0')
+    if (('p' == p_line[0]) && ('\0' == p_line[1]))
     {
         printf("@PONG\n");
     }
-    else if (p_line[0] == 'r')
+    else if ('r' == p_line[0])
     {
         int sec = 0;
-        if (sscanf(p_line + 1, "%d", &sec) != 1 || sec < 1 || sec > (int)MAX_SECONDS)
+        if ((1 != sscanf(p_line + 1, "%d", &sec)) || (sec < 1) || (sec > (int)MAX_SECONDS))
         {
             printf("@ERR seconds must be 1-%u\n", MAX_SECONDS);
         }
@@ -191,19 +191,19 @@ static void handle(const char* p_line)
             send_recording();
         }
     }
-    else if (!s_n && (p_line[0] == 's' || p_line[0] == 'f' || p_line[0] == 'c'))
+    else if ((!s_n) && (('s' == p_line[0]) || ('f' == p_line[0]) || ('c' == p_line[0])))
     {
         printf("@ERR no recording yet\n");
     }
-    else if (p_line[0] == 's' && p_line[1] == '\0')
+    else if (('s' == p_line[0]) && ('\0' == p_line[1]))
     {
         send_recording();
     }
-    else if (p_line[0] == 'f' && p_line[1] == '\0')
+    else if (('f' == p_line[0]) && ('\0' == p_line[1]))
     {
         send_features();
     }
-    else if (p_line[0] == 'c' && p_line[1] == '\0')
+    else if (('c' == p_line[0]) && ('\0' == p_line[1]))
     {
         send_class();
     }
@@ -228,11 +228,11 @@ int main(void)
     for (;;)
     {
         int chan = getchar_timeout_us(100000);
-        if (chan == PICO_ERROR_TIMEOUT)
+        if (PICO_ERROR_TIMEOUT == chan)
         {
             continue;
         }
-        if (chan == '\n' || chan == '\r')
+        if (('\n' == chan) || ('\r' == chan))
         {
             if (len)
             {

@@ -115,7 +115,7 @@ void sim_link(sim_cfg_t* p_cfg, int kind, uint8_t node_a, uint8_t node_b)
 {
     for (int kdx = 0; kdx < SIM_KINDS; kdx++)
     {
-        if (kind < 0 || kind == kdx)
+        if ((kind < 0) || (kind == kdx))
         {
             p_cfg->adj[kdx][node_a][node_b] = p_cfg->adj[kdx][node_b][node_a] = true;
         }
@@ -219,7 +219,7 @@ double sim_lora_airtime_ms(uint16_t len)
 
 static void airtime(int kind, uint16_t frame_len, uint32_t* p_uart_ms, uint32_t* p_air_ms)
 {
-    if (kind == SIM_LORA)
+    if (SIM_LORA == kind)
     {
         *p_uart_ms = 0;
         *p_air_ms = (uint32_t)ceil(sim_lora_airtime_ms(frame_len));
@@ -252,7 +252,7 @@ static bool seen_check_add(radio_t* p_radio, uint8_t src, uint16_t msg_id)
     for (int idx = 0; idx < SEEN_LEN; idx++)
     {
         seen_t* p_entry = &p_radio->seen[idx];
-        if (p_entry->b_used && p_entry->src == src && p_entry->pkt_id == msg_id && world.now - p_entry->now_ms <= SEEN_WINDOW_MS)
+        if ((p_entry->b_used) && (p_entry->src == src) && (p_entry->pkt_id == msg_id) && (world.now - p_entry->now_ms <= SEEN_WINDOW_MS))
         {
             return true;
         }
@@ -273,7 +273,7 @@ static void on_frame(uint8_t node, int kind, const frame_t* p_frame)
     uint8_t src = p_frame->buf[0], dst = p_frame->buf[1], hops = p_frame->buf[4];
     uint16_t msg_id = (uint16_t)(p_frame->buf[2] | (p_frame->buf[3] << 8));
     p_radio->stats.rx_count++;
-    if (src == node || seen_check_add(p_radio, src, msg_id))
+    if ((src == node) || (seen_check_add(p_radio, src, msg_id)))
     {
         p_radio->stats.dup_dropped++;
         return;
@@ -283,7 +283,7 @@ static void on_frame(uint8_t node, int kind, const frame_t* p_frame)
         p_radio->heard[src] = true;
         p_radio->heard_ms[src] = world.now;
     }
-    if (dst == node || dst == MESH_BROADCAST)
+    if ((dst == node) || (MESH_BROADCAST == dst))
     {
         if (p_radio->rxq_n >= RXQ_LEN)
         {
@@ -295,7 +295,7 @@ static void on_frame(uint8_t node, int kind, const frame_t* p_frame)
             p_item->src = src;
             p_item->len = (uint16_t)(p_frame->len - 5);
             memcpy(p_item->payload, p_frame->buf + 5, p_item->len);
-            if (world.cfg.kind[kind].corrupt_rate > 0 && sim_frand() < world.cfg.kind[kind].corrupt_rate && p_item->len)
+            if ((world.cfg.kind[kind].corrupt_rate > 0) && (sim_frand() < world.cfg.kind[kind].corrupt_rate) && (p_item->len))
             {
                 uint32_t bit = sim_rand() % ((uint32_t)p_item->len * 8u);
                 p_item->payload[bit / 8] ^= (uint8_t)(1u << (bit % 8));
@@ -306,7 +306,7 @@ static void on_frame(uint8_t node, int kind, const frame_t* p_frame)
     }
     if (dst != node)
     {
-        if (hops == 0)
+        if (0 == hops)
         {
             p_radio->stats.hop_dropped++;
             return;
@@ -330,7 +330,7 @@ static void on_frame(uint8_t node, int kind, const frame_t* p_frame)
 
 static bool overlaps(uint32_t start_a, uint32_t end_a, uint32_t start_b, uint32_t end_b)
 {
-    return start_a < end_b && start_b < end_a;
+    return (start_a < end_b) && (start_b < end_a);
 }
 
 /* Transmission from node j finished: decide who heard it. */
@@ -340,27 +340,27 @@ static void finish_tx(uint8_t jdx, int kind)
     uint32_t start_ms = p_radio_j->air_start_ms, end_ms = p_radio_j->end_ms;
     for (uint8_t idx = 1; idx <= world.cfg.n_nodes; idx++)
     {
-        if (idx == jdx || !world.cfg.adj[kind][idx][jdx])
+        if ((idx == jdx) || (!world.cfg.adj[kind][idx][jdx]))
         {
             continue;
         }
         bool b_lost = false;
         /* half duplex + collisions: any overlapping air time at i itself or from another neighbour of i */
-        for (int kdx = 0; kdx < LOG_LEN && !b_lost; kdx++)
+        for (int kdx = 0; (kdx < LOG_LEN) && (!b_lost); kdx++)
         {
             const txlog_t* p_log_entry = &world.log[kind][kdx];
-            if (p_log_entry->end == 0 || p_log_entry->node == jdx)
+            if ((0 == p_log_entry->end) || (p_log_entry->node == jdx))
             {
                 continue;
             }
-            if ((p_log_entry->node == idx || world.cfg.adj[kind][idx][p_log_entry->node]) && overlaps(start_ms, end_ms, p_log_entry->air_start, p_log_entry->end))
+            if (((p_log_entry->node == idx) || (world.cfg.adj[kind][idx][p_log_entry->node])) && (overlaps(start_ms, end_ms, p_log_entry->air_start, p_log_entry->end)))
             {
                 b_lost = true;
             }
         }
         /* i was busy pushing its own frame over UART/air even if not yet on air */
         radio_t* p_radio_i = &world.radios[idx][kind];
-        if (!b_lost && p_radio_i->b_enable && overlaps(start_ms, end_ms, p_radio_i->air_start_ms, p_radio_i->end_ms))
+        if ((!b_lost) && (p_radio_i->b_enable) && (overlaps(start_ms, end_ms, p_radio_i->air_start_ms, p_radio_i->end_ms)))
         {
             b_lost = true;
         }
@@ -373,7 +373,7 @@ static void finish_tx(uint8_t jdx, int kind)
         {
             continue;
         }
-        if (p_radio_i->drop_rate > 0 && sim_frand() < p_radio_i->drop_rate)
+        if ((p_radio_i->drop_rate > 0) && (sim_frand() < p_radio_i->drop_rate))
         {
             p_radio_i->stats.drop_injected++;
             continue;
@@ -386,10 +386,10 @@ static bool channel_busy_near(uint8_t node, int kind)
 {
     for (uint8_t kdx = 1; kdx <= world.cfg.n_nodes; kdx++)
     {
-        if (kdx != node && world.cfg.adj[kind][node][kdx])
+        if ((kdx != node) && (world.cfg.adj[kind][node][kdx]))
         {
             radio_t* p_radio = &world.radios[kdx][kind];
-            if (p_radio->b_enable && world.now >= p_radio->air_start_ms && world.now < p_radio->end_ms)
+            if ((p_radio->b_enable) && (world.now >= p_radio->air_start_ms) && (world.now < p_radio->end_ms))
             {
                 return true;
             }
@@ -428,14 +428,14 @@ static void start_tx(uint8_t node, int kind, const frame_t* p_frame, bool b_own)
 static void mesh_poll(uint8_t node, int kind)
 {
     radio_t* p_radio = &world.radios[node][kind];
-    if (world.cfg.heartbeat_ms && node == world.cfg.bridge_id && (int32_t)(world.now - p_radio->next_hb) >= 0)
+    if ((world.cfg.heartbeat_ms) && (node == world.cfg.bridge_id) && ((int32_t)(world.now - p_radio->next_hb) >= 0))
     {
         frame_t heartbeat = {{node, 0xFE, (uint8_t)p_radio->pkt_id, (uint8_t)(p_radio->pkt_id >> 8), HOP_LIMIT, 'h'}, 6};
         p_radio->pkt_id++;
         txq_push(p_radio, &heartbeat);
         p_radio->next_hb = world.now + world.cfg.heartbeat_ms;
     }
-    if (p_radio->b_enable || world.now < p_radio->backoff_until)
+    if ((p_radio->b_enable) || (world.now < p_radio->backoff_until))
     {
         return;
     }
@@ -443,9 +443,9 @@ static void mesh_poll(uint8_t node, int kind)
     int pick = -1;
     for (int idx = 0; idx < RELAYQ_LEN; idx++)
     {
-        if (p_radio->relayq[idx].b_used && (int32_t)(world.now - p_radio->relayq[idx].ready_ms) >= 0)
+        if ((p_radio->relayq[idx].b_used) && ((int32_t)(world.now - p_radio->relayq[idx].ready_ms) >= 0))
         {
-            if (pick < 0 || (int32_t)(p_radio->relayq[idx].ready_ms - p_radio->relayq[pick].ready_ms) < 0)
+            if ((pick < 0) || ((int32_t)(p_radio->relayq[idx].ready_ms - p_radio->relayq[pick].ready_ms) < 0))
             {
                 pick = idx;
             }
@@ -470,7 +470,7 @@ static void mesh_poll(uint8_t node, int kind)
     {
         return;
     }
-    if (world.cfg.kind[kind].b_carrier_sense && channel_busy_near(node, kind))
+    if ((world.cfg.kind[kind].b_carrier_sense) && (channel_busy_near(node, kind)))
     {
         p_radio->backoff_until = world.now + 1 + sim_rand() % 3;
         return;
@@ -495,7 +495,7 @@ void sim_tick(void)
         for (int kdx = 0; kdx < SIM_KINDS; kdx++)
         {
             radio_t* p_radio = &world.radios[node][kdx];
-            if (p_radio->b_enable && world.now >= p_radio->end_ms)
+            if ((p_radio->b_enable) && (world.now >= p_radio->end_ms))
             {
                 p_radio->b_enable = false;
                 finish_tx(node, kdx);
@@ -509,7 +509,7 @@ void sim_tick(void)
 static bool m_send(int kind, uint8_t dst, const uint8_t* p_buf, uint16_t len)
 {
     radio_t* p_radio = &world.radios[world.cur][kind];
-    if (len == 0 || len > world.cfg.kind[kind].max_payload)
+    if ((0 == len) || (len > world.cfg.kind[kind].max_payload))
     {
         return false;
     }
@@ -551,7 +551,7 @@ static int m_recv(int kind, uint8_t* p_src, uint8_t* p_buf, uint16_t cap)
 static bool m_last_heard(int kind, uint8_t node, uint32_t* p_msec)
 {
     radio_t* p_radio = &world.radios[world.cur][kind];
-    if (node > SIM_MAX_NODES || !p_radio->heard[node])
+    if ((node > SIM_MAX_NODES) || (!p_radio->heard[node]))
     {
         return false;
     }
@@ -562,7 +562,7 @@ static bool m_last_heard(int kind, uint8_t node, uint32_t* p_msec)
 static bool m_tx_busy(int kind)
 {
     radio_t* p_radio = &world.radios[world.cur][kind];
-    return p_radio->txq_n > 0 || p_radio->b_enable;
+    return (p_radio->txq_n > 0) || (p_radio->b_enable);
 }
 
 /* DEVIATION (BARR-C 6.3.b.iv, return inside a macro): DEFINE_RADIO() generates the complete

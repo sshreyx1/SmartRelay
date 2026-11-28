@@ -114,11 +114,11 @@ static void process_frame(sf_t* p_feat)
 
     const float loud = 10.0f * log10f((float)energy / (float)SF_FRAME + 1.0f);
     welford(&p_feat->loud_mean, &p_feat->loud_m2, n_frames, (double)loud);
-    if (n_frames == 1 || loud < p_feat->loud_min)
+    if ((1 == n_frames) || (loud < p_feat->loud_min))
     {
         p_feat->loud_min = loud;
     }
-    if (n_frames == 1 || loud > p_feat->loud_max)
+    if ((1 == n_frames) || (loud > p_feat->loud_max))
     {
         p_feat->loud_max = loud;
     }
@@ -134,7 +134,7 @@ void sf_add(sf_t* p_feat, const uint16_t* p_samples, uint32_t count)
         p_feat->sum += value;
         p_feat->sum_sq += (uint64_t)value * value;
         p_feat->frame[p_feat->fill++] = value;
-        if (p_feat->fill == SF_FRAME)
+        if (SF_FRAME == p_feat->fill)
         {
             process_frame(p_feat);
             p_feat->fill = 0;

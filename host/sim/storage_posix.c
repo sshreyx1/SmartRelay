@@ -58,13 +58,13 @@ static int p_open_write(void* p_ctx, const char* p_path)
 
 static FILE* fh(storage_posix_t* p_posix, int handle)
 {
-    return (handle >= 0 && handle < SP_MAX_FILES) ? p_posix->files[handle] : NULL;
+    return ((handle >= 0) && (handle < SP_MAX_FILES)) ? p_posix->files[handle] : NULL;
 }
 
 static int p_read_at(void* p_ctx, int handle, uint32_t off, uint8_t* p_buf, uint16_t len)
 {
     FILE* p_file = fh(p_ctx, handle);
-    if (!p_file || fseek(p_file, (long)off, SEEK_SET) != 0)
+    if ((!p_file) || (0 != fseek(p_file, (long)off, SEEK_SET)))
     {
         return -1;
     }
@@ -75,18 +75,18 @@ static int p_write_at(void* p_ctx, int handle, uint32_t off, const uint8_t* p_bu
 {
     storage_posix_t* p_posix = p_ctx;
     FILE* p_file = fh(p_posix, handle);
-    if (!p_file || fseek(p_file, (long)off, SEEK_SET) != 0)
+    if ((!p_file) || (0 != fseek(p_file, (long)off, SEEK_SET)))
     {
         return -1;
     }
     size_t written;
     p_posix->writes++;
-    bool b_fault = p_posix->fault_write_number && p_posix->writes == p_posix->fault_write_number;
-    if (p_posix->write_fault_rate > 0 && p_posix->p_rand_fn && (float)(p_posix->p_rand_fn() % 1000000u) / 1e6f < p_posix->write_fault_rate)
+    bool b_fault = (p_posix->fault_write_number) && (p_posix->writes == p_posix->fault_write_number);
+    if ((p_posix->write_fault_rate > 0) && (p_posix->p_rand_fn) && ((float)(p_posix->p_rand_fn() % 1000000u) / 1e6f < p_posix->write_fault_rate))
     {
         b_fault = true;
     }
-    if (b_fault && len && p_posix->p_rand_fn)
+    if (b_fault && len && (p_posix->p_rand_fn))
     {
         uint8_t tmp[512];
         memcpy(tmp, p_buf, len);
@@ -104,7 +104,7 @@ static int p_write_at(void* p_ctx, int handle, uint32_t off, const uint8_t* p_bu
 static int32_t p_size(void* p_ctx, int handle)
 {
     FILE* p_file = fh(p_ctx, handle);
-    if (!p_file || fseek(p_file, 0, SEEK_END) != 0)
+    if ((!p_file) || (0 != fseek(p_file, 0, SEEK_END)))
     {
         return -1;
     }
@@ -129,7 +129,7 @@ static int p_remove(void* p_ctx, const char* p_path)
 {
     char path[512];
     full(p_ctx, p_path, path, sizeof(path));
-    return remove(path) == 0 ? 0 : -1;
+    return 0 == remove(path) ? 0 : -1;
 }
 
 static int p_rename(void* p_ctx, const char* p_old_path, const char* p_new_path)
@@ -137,7 +137,7 @@ static int p_rename(void* p_ctx, const char* p_old_path, const char* p_new_path)
     char path_a[512], path_b[512];
     full(p_ctx, p_old_path, path_a, sizeof(path_a));
     full(p_ctx, p_new_path, path_b, sizeof(path_b));
-    return rename(path_a, path_b) == 0 ? 0 : -1;
+    return 0 == rename(path_a, path_b) ? 0 : -1;
 }
 
 static int p_list(void* p_ctx, const char* p_dir, void (*p_callback)(const char*, void*), void* p_user)
@@ -152,14 +152,14 @@ static int p_list(void* p_ctx, const char* p_dir, void (*p_callback)(const char*
     struct dirent* p_entry;
     while ((p_entry = readdir(p_dir_handle)))
     {
-        if (p_entry->d_name[0] == '.')
+        if ('.' == p_entry->d_name[0])
         {
             continue;
         }
         char full_path[1024];
         struct stat info;
         snprintf(full_path, sizeof(full_path), "%s/%s", path, p_entry->d_name);
-        if (stat(full_path, &info) == 0 && S_ISREG(info.st_mode))
+        if ((0 == stat(full_path, &info)) && (S_ISREG(info.st_mode)))
         {
             p_callback(p_entry->d_name, p_user);
         }
@@ -174,14 +174,14 @@ static int mkdirs(const char* p_path)
     snprintf(tmp, sizeof(tmp), "%s", p_path);
     for (char* p_str = tmp + 1; *p_str; p_str++)
     {
-        if (*p_str == '/')
+        if ('/' == *p_str)
         {
             *p_str = 0;
             mkdir(tmp, 0755);
             *p_str = '/';
         }
     }
-    return (mkdir(tmp, 0755) == 0 || errno == EEXIST) ? 0 : -1;
+    return ((0 == mkdir(tmp, 0755)) || (EEXIST == errno)) ? 0 : -1;
 }
 
 static int p_mkdir(void* p_ctx, const char* p_dir)

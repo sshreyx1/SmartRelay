@@ -108,7 +108,7 @@ static void stale_part_cb(const char* p_name, void* p_user)
 {
     stale_list_t* p_stale = (stale_list_t*)p_user;
     size_t len = strlen(p_name);
-    if (len < 6u || strcmp(p_name + len - 5u, ".part") != 0 || len >= sizeof(p_stale->names[0]))
+    if ((len < 6u) || (0 != strcmp(p_name + len - 5u, ".part")) || (len >= sizeof(p_stale->names[0])))
     {
         return;
     }
@@ -124,7 +124,7 @@ static void stale_part_cb(const char* p_name, void* p_user)
 
 static void remove_stale_parts(alfp_ctx_t* p_ctx)
 {
-    if (!st(p_ctx)->p_list || !st(p_ctx)->p_remove)
+    if ((!st(p_ctx)->p_list) || (!st(p_ctx)->p_remove))
     {
         return;
     }
@@ -145,12 +145,12 @@ static void remove_stale_parts(alfp_ctx_t* p_ctx)
             }
         }
         removed += gone;
-        if (!stale.b_more || gone == 0u)
+        if ((!stale.b_more) || (0u == gone))
         {
             break;
         }
     }
-    if (removed && p_ctx->cfg.p_platform->p_log)
+    if (removed && (p_ctx->cfg.p_platform->p_log))
     {
         char line[64];
         snprintf(line, sizeof(line), "alfp: removed %u stale .part file(s) from %s/", removed, p_ctx->cfg.p_tmp_dir);
@@ -177,7 +177,7 @@ void alfp_init(alfp_ctx_t* p_ctx, const alfp_cfg_t* p_cfg)
     }
     /* Random start so a rebooted node does not reuse a session id the bridge still remembers. */
     p_ctx->next_sid = (uint16_t)p_cfg->p_platform->p_rand32(p_cfg->p_platform->p_ctx);
-    if (p_ctx->cfg.node_id == p_ctx->cfg.bridge_id && st(p_ctx)->p_mkdir)
+    if ((p_ctx->cfg.node_id == p_ctx->cfg.bridge_id) && (st(p_ctx)->p_mkdir))
     {
         st(p_ctx)->p_mkdir(st(p_ctx)->p_ctx, p_ctx->cfg.p_inbox_dir);
         st(p_ctx)->p_mkdir(st(p_ctx)->p_ctx, p_ctx->cfg.p_tmp_dir);
@@ -194,7 +194,7 @@ void alfp_init(alfp_ctx_t* p_ctx, const alfp_cfg_t* p_cfg)
 
 bool alfp_tx_active(const alfp_ctx_t* p_ctx)
 {
-    return p_ctx->tx_session.state != TX_IDLE;
+    return TX_IDLE != p_ctx->tx_session.state;
 }
 
 static void tx_finish(alfp_ctx_t* p_ctx, alfp_tx_result_t res, uint8_t ack_status)
@@ -209,14 +209,14 @@ static void tx_finish(alfp_ctx_t* p_ctx, alfp_tx_result_t res, uint8_t ack_statu
     p_xfer->rep.ack_status = ack_status;
     p_xfer->rep.rounds = p_xfer->round;
     p_xfer->rep.gap_ms_end = p_xfer->gap_ms;
-    p_xfer->rep.file_crc32 = p_xfer->state == TX_HASHING ? 0 : p_xfer->crc32;
-    if (res == ALFP_TX_DONE && p_xfer->round == 1 && p_xfer->p_radio)
+    p_xfer->rep.file_crc32 = TX_HASHING == p_xfer->state ? 0 : p_xfer->crc32;
+    if ((ALFP_TX_DONE == res) && (1 == p_xfer->round) && (p_xfer->p_radio))
     {
         pace_update(p_ctx, 0); /* a clean first round: allow the gap to shrink */
     }
     p_xfer->rep.finished_ms = now(p_ctx);
     p_xfer->state = TX_IDLE;
-    if (res == ALFP_TX_DONE)
+    if (ALFP_TX_DONE == res)
     {
         p_ctx->stats.tx_ok++;
     }
@@ -235,11 +235,11 @@ alfp_err_t alfp_send_file(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_
                           const uint8_t* p_meta, uint8_t meta_len)
 {
     alfp_tx_t* p_xfer = &p_ctx->tx_session;
-    if (p_xfer->state != TX_IDLE)
+    if (TX_IDLE != p_xfer->state)
     {
         return ALFP_E_BUSY;
     }
-    if (!p_radio || !p_path || meta_len > ALFP_MAX_META || (meta_len && !p_meta) || strlen(p_path) >= ALFP_PATH_MAX)
+    if ((!p_radio) || (!p_path) || (meta_len > ALFP_MAX_META) || (meta_len && (!p_meta)) || (strlen(p_path) >= ALFP_PATH_MAX))
     {
         return ALFP_E_ARG;
     }
@@ -248,7 +248,7 @@ alfp_err_t alfp_send_file(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_
     {
         meta_path = ALFP_MAX_PKT;
     }
-    if (meta_path < ALFP_MANIFEST_OVERHEAD + meta_len || meta_path <= ALFP_DATA_OVERHEAD)
+    if ((meta_path < ALFP_MANIFEST_OVERHEAD + meta_len) || (meta_path <= ALFP_DATA_OVERHEAD))
     {
         return ALFP_E_ARG;
     }
@@ -293,7 +293,7 @@ alfp_err_t alfp_send_file(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_
     {
         alfp_pace_t* p_pace = pace_for(p_ctx, p_radio);
         bool b_adaptive = p_xfer->p_prof->gap_max_ms > p_xfer->p_prof->gap_ms;
-        p_xfer->gap_ms = (b_adaptive && p_pace->gap_ms) ? p_pace->gap_ms : p_xfer->p_prof->gap_ms;
+        p_xfer->gap_ms = (b_adaptive && (p_pace->gap_ms)) ? p_pace->gap_ms : p_xfer->p_prof->gap_ms;
     }
 
     p_xfer->rep.sid = p_xfer->sid;
@@ -445,7 +445,7 @@ static void tx_step(alfp_ctx_t* p_ctx)
         p_xfer->b_was_busy = false;
         p_xfer->next_tx_ms = tnow + p_xfer->gap_ms;
     }
-    if (!reached(tnow, p_xfer->next_tx_ms) || p_xfer->p_radio->p_tx_busy())
+    if ((!reached(tnow, p_xfer->next_tx_ms)) || (p_xfer->p_radio->p_tx_busy()))
     {
         return;
     }
@@ -471,7 +471,7 @@ static void tx_step(alfp_ctx_t* p_ctx)
     }
 
     /* Next fragment still to send this round. */
-    while (p_xfer->todo_next < p_xfer->frag_count && !bget(p_xfer->todo, p_xfer->todo_next))
+    while ((p_xfer->todo_next < p_xfer->frag_count) && (!bget(p_xfer->todo, p_xfer->todo_next)))
     {
         p_xfer->todo_next++;
     }
@@ -566,14 +566,14 @@ static void tx_on_nack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
 {
     alfp_tx_t* p_xfer = &p_ctx->tx_session;
     const alfp_nack_t* p_nack = &p_pkt->body.nack;
-    if (p_xfer->state != TX_WAITING || p_nack->round != p_xfer->round)
+    if ((TX_WAITING != p_xfer->state) || (p_nack->round != p_xfer->round))
     {
         return; /* stale or duplicate answer (e.g. two copies through the flood) */
     }
     p_xfer->polls_unanswered = 0;
     p_xfer->rep.nacks_received++;
 
-    if (p_nack->fmt == ALFP_NACK_FMT_NONE && !(p_nack->flags & ALFP_NACK_NEED_MANIFEST))
+    if ((ALFP_NACK_FMT_NONE == p_nack->fmt) && (!(p_nack->flags & ALFP_NACK_NEED_MANIFEST)))
     {
         /* Bridge has every fragment and is verifying: wait for its ACK. */
         p_xfer->wait_until_ms = now(p_ctx) + p_xfer->p_prof->poll_timeout_ms;
@@ -586,7 +586,7 @@ static void tx_on_nack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
     {
         p_ctx->cfg.p_on_tx_nack(p_ctx, p_xfer->sid, p_xfer->round, missing);
     }
-    if (p_xfer->round > 1 && missing >= p_xfer->last_missing)
+    if ((p_xfer->round > 1) && (missing >= p_xfer->last_missing))
     {
         if (++p_xfer->stalled >= p_xfer->p_prof->max_stalled)
         {
@@ -607,7 +607,7 @@ static void tx_on_nack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
         return;
     }
     /* Tail: with only a few fragments left, a second copy of each saves whole rounds. */
-    p_xfer->copies = (p_xfer->p_prof->tail_dup && missing <= p_xfer->p_prof->tail_dup) ? 2u : 1u;
+    p_xfer->copies = ((p_xfer->p_prof->tail_dup) && (missing <= p_xfer->p_prof->tail_dup)) ? 2u : 1u;
     p_xfer->copy_left = 0;
     memset(p_xfer->todo, 0, sizeof(p_xfer->todo));
     if (p_ctx->cfg.b_baseline_resend_all)
@@ -619,7 +619,7 @@ static void tx_on_nack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
         alfp_nack_for_each(p_nack, p_xfer->frag_count, mark_todo, p_xfer);
     }
     p_xfer->todo_next = 0;
-    p_xfer->b_send_manifest = (p_nack->flags & ALFP_NACK_NEED_MANIFEST) || p_nack->fmt == ALFP_NACK_FMT_ALL;
+    p_xfer->b_send_manifest = (p_nack->flags & ALFP_NACK_NEED_MANIFEST) || (ALFP_NACK_FMT_ALL == p_nack->fmt);
     p_xfer->polls_left = p_xfer->p_prof->poll_copies ? p_xfer->p_prof->poll_copies : 1u;
     p_xfer->state = TX_SENDING;
 }
@@ -627,7 +627,7 @@ static void tx_on_nack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
 static void tx_on_ack(alfp_ctx_t* p_ctx, const alfp_pkt_t* p_pkt)
 {
     alfp_tx_t* p_xfer = &p_ctx->tx_session;
-    if (p_xfer->state == TX_IDLE || p_xfer->state == TX_HASHING)
+    if ((TX_IDLE == p_xfer->state) || (TX_HASHING == p_xfer->state))
     {
         return;
     }
@@ -662,7 +662,7 @@ static alfp_rx_t* rx_find(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid)
     for (unsigned idx = 0; idx < ALFP_RX_SESSIONS; idx++)
     {
         alfp_rx_t* p_session = &p_ctx->rx_sessions[idx];
-        if (p_session->state != RX_FREE && p_session->src == src && p_session->sid == sid)
+        if ((RX_FREE != p_session->state) && (p_session->src == src) && (p_session->sid == sid))
         {
             return p_session;
         }
@@ -674,7 +674,7 @@ static const alfp_done_t* done_find(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid
 {
     for (unsigned idx = 0; idx < ALFP_DONE_MEMORY; idx++)
     {
-        if (p_ctx->done[idx].b_used && p_ctx->done[idx].src == src && p_ctx->done[idx].sid == sid)
+        if ((p_ctx->done[idx].b_used) && (p_ctx->done[idx].src == src) && (p_ctx->done[idx].sid == sid))
         {
             return &p_ctx->done[idx];
         }
@@ -697,7 +697,7 @@ static void done_add(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint8_t statu
 static void log_refusal(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint8_t status, const char* p_why)
 {
     const alfp_platform_t* p_plat = p_ctx->cfg.p_platform;
-    if (p_plat != NULL && p_plat->p_log != NULL)
+    if ((NULL != p_plat) && (NULL != p_plat->p_log))
     {
         char line[128];
         snprintf(line, sizeof(line), "alfp: refused node %u sid %05u, status %u: %s", (unsigned)src, (unsigned)sid,
@@ -724,7 +724,7 @@ static void rx_free(alfp_ctx_t* p_ctx, alfp_rx_t* p_session, bool b_delete_tmp)
         st(p_ctx)->p_close(st(p_ctx)->p_ctx, p_session->file_handle);
         p_session->file_handle = -1;
     }
-    if (b_delete_tmp && p_session->tmp_path[0])
+    if (b_delete_tmp && (p_session->tmp_path[0]))
     {
         st(p_ctx)->p_remove(st(p_ctx)->p_ctx, p_session->tmp_path);
     }
@@ -734,9 +734,9 @@ static void rx_free(alfp_ctx_t* p_ctx, alfp_rx_t* p_session, bool b_delete_tmp)
 static alfp_rx_t* rx_open(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t src, uint16_t sid, uint8_t* p_refuse)
 {
     alfp_rx_t* p_slot = NULL;
-    for (unsigned idx = 0; idx < ALFP_RX_SESSIONS && !p_slot; idx++)
+    for (unsigned idx = 0; (idx < ALFP_RX_SESSIONS) && (!p_slot); idx++)
     {
-        if (p_ctx->rx_sessions[idx].state == RX_FREE)
+        if (RX_FREE == p_ctx->rx_sessions[idx].state)
         {
             p_slot = &p_ctx->rx_sessions[idx];
         }
@@ -749,7 +749,7 @@ static alfp_rx_t* rx_open(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_
         {
             alfp_rx_t* p_session = &p_ctx->rx_sessions[idx];
             uint32_t idle = tnow - p_session->last_ms;
-            if (p_session->state == RX_ACTIVE && idle > p_session->p_prof->rx_expiry_ms / 2u && idle > worst)
+            if ((RX_ACTIVE == p_session->state) && (idle > p_session->p_prof->rx_expiry_ms / 2u) && (idle > worst))
             {
                 worst = idle;
                 p_slot = p_session;
@@ -808,7 +808,7 @@ static void rx_reset_data(alfp_rx_t* p_session)
 static void rx_maybe_complete(alfp_ctx_t* p_ctx, alfp_rx_t* p_session)
 {
     (void)p_ctx;
-    if (p_session->state == RX_ACTIVE && p_session->b_have_manifest && p_session->n_have == p_session->frag_count)
+    if ((RX_ACTIVE == p_session->state) && (p_session->b_have_manifest) && (p_session->n_have == p_session->frag_count))
     {
         p_session->state = RX_VERIFYING;
         p_session->verify_off = 0;
@@ -819,7 +819,7 @@ static void rx_maybe_complete(alfp_ctx_t* p_ctx, alfp_rx_t* p_session)
 
 static void rx_adopt_manifest(alfp_ctx_t* p_ctx, alfp_rx_t* p_session, const alfp_manifest_t* p_manifest)
 {
-    if (p_session->n_have && (p_manifest->frag_size != p_session->frag_size || p_manifest->frag_count != p_session->frag_count))
+    if ((p_session->n_have) && ((p_manifest->frag_size != p_session->frag_size) || (p_manifest->frag_count != p_session->frag_count)))
     {
         rx_reset_data(p_session); /* provisional layout from an early DATA was wrong: start clean */
     }
@@ -842,7 +842,7 @@ static void rx_on_manifest(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8
     const alfp_done_t* p_done = done_find(p_ctx, src, p_pkt->sid);
     if (p_done)
     {
-        if (p_done->status != ALFP_ACK_OK)
+        if (ALFP_ACK_OK != p_done->status)
         {
             log_refusal(p_ctx, src, p_pkt->sid, p_done->status, "same session refused earlier (remembered result)");
         }
@@ -898,11 +898,11 @@ static void rx_on_data(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t s
         }
         p_ctx->stats.data_orphan++;
     }
-    if (p_session->state != RX_ACTIVE)
+    if (RX_ACTIVE != p_session->state)
     {
         return;
     }
-    if (!p_session->b_have_manifest && p_session->n_have == 0)
+    if ((!p_session->b_have_manifest) && (0 == p_session->n_have))
     {
         /* DATA before MANIFEST: infer the layout. Every fragment but the last is full size. */
         p_session->frag_count = p_data_pkt->frag_count;
@@ -974,7 +974,7 @@ static void rx_try_send_nack(alfp_ctx_t* p_ctx, alfp_rx_t* p_session)
         cap = sizeof(p_ctx->pkt);
     }
     uint16_t len
-        = alfp_enc_nack(p_ctx->pkt, cap, p_session->sid, flags, p_session->pending_round, p_session->have, p_session->frag_count, p_session->frag_count == 0);
+        = alfp_enc_nack(p_ctx->pkt, cap, p_session->sid, flags, p_session->pending_round, p_session->have, p_session->frag_count, 0 == p_session->frag_count);
     if (p_session->p_radio->p_send(p_session->src, p_ctx->pkt, len))
     {
         p_session->b_pending_nack = false;
@@ -1011,7 +1011,7 @@ static void rx_on_poll(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t s
         return;
     }
     p_session->last_ms = now(p_ctx);
-    if (p_session->state == RX_VERIFYING)
+    if (RX_VERIFYING == p_session->state)
     {
         return; /* ACK follows shortly */
     }
@@ -1069,7 +1069,7 @@ static void inbox_stem(alfp_ctx_t* p_ctx, const alfp_rx_t* p_session, char* p_st
     int len = snprintf(p_stem, cap, "%s/n%u_%05u", dir, (unsigned)p_session->src, (unsigned)p_session->sid);
     char probe[ALFP_PATH_MAX + 8];
     len = len < 0 ? len : snprintf(probe, sizeof(probe), "%s.bin", p_stem);
-    for (unsigned kdx = 1; len >= 0 && kdx <= INBOX_SUFFIX_MAX && path_exists(p_ctx, probe); kdx++)
+    for (unsigned kdx = 1; (len >= 0) && (kdx <= INBOX_SUFFIX_MAX) && (path_exists(p_ctx, probe)); kdx++)
     {
         len = snprintf(p_stem, cap, "%s/n%u_%05u_%u", dir, (unsigned)p_session->src, (unsigned)p_session->sid, kdx);
         len = len < 0 ? len : snprintf(probe, sizeof(probe), "%s.bin", p_stem);
@@ -1085,7 +1085,7 @@ static void rx_finish_ok(alfp_ctx_t* p_ctx, alfp_rx_t* p_session)
     inbox_stem(p_ctx, p_session, stem, sizeof(stem));
     snprintf(final_path, sizeof(final_path), "%s.bin", stem);
     bool b_is_ok = st(p_ctx)->p_rename(st(p_ctx)->p_ctx, p_session->tmp_path, final_path) >= 0;
-    if (b_is_ok && p_session->manifest.meta_len)
+    if (b_is_ok && (p_session->manifest.meta_len))
     {
         char meta_path[ALFP_PATH_MAX + 8];
         snprintf(meta_path, sizeof(meta_path), "%s.met", stem);
@@ -1227,9 +1227,9 @@ void alfp_handle_packet(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t 
     alfp_pkt_t pkt;
     p_ctx->stats.pkts_in++;
     alfp_dec_t dec = alfp_decode(p_buf, len, &pkt);
-    if (dec != ALFP_DEC_OK)
+    if (ALFP_DEC_OK != dec)
     {
-        if (dec == ALFP_DEC_CRC)
+        if (ALFP_DEC_CRC == dec)
         {
             p_ctx->stats.pkts_bad_crc++;
         }
@@ -1261,13 +1261,13 @@ void alfp_handle_packet(alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio, uint8_t 
             }
             break;
         case ALFP_T_NACK:
-            if (p_ctx->tx_session.state != TX_IDLE && pkt.sid == p_ctx->tx_session.sid && src == p_ctx->tx_session.dst && p_radio == p_ctx->tx_session.p_radio)
+            if ((TX_IDLE != p_ctx->tx_session.state) && (pkt.sid == p_ctx->tx_session.sid) && (src == p_ctx->tx_session.dst) && (p_radio == p_ctx->tx_session.p_radio))
             {
                 tx_on_nack(p_ctx, &pkt);
             }
             break;
         case ALFP_T_ACK:
-            if (p_ctx->tx_session.state != TX_IDLE && pkt.sid == p_ctx->tx_session.sid && src == p_ctx->tx_session.dst && p_radio == p_ctx->tx_session.p_radio)
+            if ((TX_IDLE != p_ctx->tx_session.state) && (pkt.sid == p_ctx->tx_session.sid) && (src == p_ctx->tx_session.dst) && (p_radio == p_ctx->tx_session.p_radio))
             {
                 tx_on_ack(p_ctx, &pkt);
             }
@@ -1297,7 +1297,7 @@ void alfp_service(alfp_ctx_t* p_ctx, const mesh_radio_t* const* pp_radios, uint8
         for (int kdx = 0; kdx < 16; kdx++)
         {
             int len = p_radio->p_recv(&src, p_ctx->pkt, sizeof(p_ctx->pkt));
-            if (len == MESH_RECV_NONE)
+            if (MESH_RECV_NONE == len)
             {
                 break;
             }

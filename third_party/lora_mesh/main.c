@@ -55,14 +55,14 @@ static uint16_t build_test_packet( uint8_t* p_buf, uint32_t seq )
 static void check_test_packet( uint8_t src, const uint8_t* p_buf, int len )
 {
     uint8_t expected[256];
-    if( len < 5 || p_buf[0] != 'T' )
+    if( (len < 5) || ('T' != p_buf[0]) )
     {
         printf( "RX from %u: %d bytes (not a test packet)\n", src, len );
         return;
     }
     const uint32_t seq = ( ( uint32_t ) p_buf[1] << 24 ) | ( ( uint32_t ) p_buf[2] << 16 ) | ( ( uint32_t ) p_buf[3] << 8 ) | p_buf[4];
     const uint16_t exp_len = build_test_packet( expected, seq );
-    const bool     b_is_ok      = ( len == exp_len ) && memcmp( p_buf, expected, exp_len ) == 0;
+    const bool     b_is_ok      = ( len == exp_len ) && (0 == memcmp( p_buf, expected, exp_len ));
     if( b_is_ok ) rx_ok++; else rx_bad++;
 
     int8_t rssi, snr;
@@ -85,7 +85,7 @@ static void print_stats( void )
     for( uint8_t node_id = 1; node_id <= 5; node_id++ )
     {
         uint32_t now_ms;
-        if( node_id != NODE_ID && p_mesh->p_last_heard( node_id, &now_ms ) )
+        if( (NODE_ID != node_id) && (p_mesh->p_last_heard( node_id, &now_ms )) )
         {
             printf( "  last heard node %u: %lu ms ago\n", node_id, ( unsigned long ) ( now_ms( ) - now_ms ) );
         }
@@ -96,7 +96,7 @@ int main( void )
 {
     stdio_init_all( );
     const uint32_t usb_start = now_ms( );
-    while( !stdio_usb_connected( ) && ( now_ms( ) - usb_start ) < USB_WAIT_MS )
+    while( (!stdio_usb_connected( )) && (( now_ms( ) - usb_start ) < USB_WAIT_MS) )
     {
         sleep_ms( 10 );
     }
@@ -130,7 +130,7 @@ int main( void )
         }
 
         const uint32_t now = now_ms( );
-        if( b_sending && ( int32_t ) ( now - next_send ) >= 0 )
+        if( b_sending && (( int32_t ) ( now - next_send ) >= 0) )
         {
             next_send = now + TEST_INTERVAL_MS + get_rand_32( ) % 1000;
             if( p_mesh->p_send( TEST_DST, buf, build_test_packet( buf, tx_seq ) ) )

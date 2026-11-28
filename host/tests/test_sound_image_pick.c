@@ -15,7 +15,7 @@ static void expect(uint8_t label, const char* p_want)
 {
     char name[32] = "";
     int image_num = sip_pick(&table, label, name, sizeof(name));
-    if ((p_want == NULL && image_num != -1) || (p_want && (image_num < 0 || strcmp(name, p_want) != 0)))
+    if (((NULL == p_want) && (-1 != image_num)) || (p_want && ((image_num < 0) || (0 != strcmp(name, p_want)))))
     {
         printf("FAIL: label %s -> '%s' (%d), want '%s'\n", sound_class_name(label), name, image_num, p_want ? p_want : "(none)");
         fails++;
@@ -35,7 +35,7 @@ int main(void)
     {
         accepted += sip_add_file(&table, files[idx]);
     }
-    if (accepted != 6 || sip_count(&table, "dog") != 2 || sip_count(&table, "img") != 2)
+    if ((6 != accepted) || (2 != sip_count(&table, "dog")) || (2 != sip_count(&table, "img")))
     {
         printf("FAIL: accepted %d, dog %u, img %u\n", accepted, sip_count(&table, "dog"), sip_count(&table, "img"));
         fails++;
@@ -70,7 +70,7 @@ int main(void)
         snprintf(fname, sizeof(fname), "p%d_00.jpg", idx);
         sip_add_file(&table, fname);
     }
-    if (table.count != SIP_MAX_PREFIXES)
+    if (SIP_MAX_PREFIXES != table.count)
     {
         printf("FAIL: table holds %u prefixes, want %d\n", table.count, SIP_MAX_PREFIXES);
         fails++;

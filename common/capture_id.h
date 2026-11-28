@@ -37,19 +37,19 @@ static inline int capture_id_file_stem(char* p_out, size_t cap, uint8_t node, ui
  * Returns false if s does not start with a capture id. */
 static inline bool capture_id_parse(const char* p_str, uint8_t* p_node, uint32_t* p_cap_id)
 {
-    if (!p_str || (p_str[0] != 'N' && p_str[0] != 'n') || p_str[1] < '0' || p_str[1] > '9')
+    if ((!p_str) || (('N' != p_str[0]) && ('n' != p_str[0])) || (p_str[1] < '0') || (p_str[1] > '9'))
     {
         return false;
     }
     char* p_end;
     unsigned long count = strtoul(p_str + 1, &p_end, 10);
-    if (count > 255 || (*p_end != '-' && *p_end != '_') || p_end[1] < '0' || p_end[1] > '9')
+    if ((count > 255) || (('-' != *p_end) && ('_' != *p_end)) || (p_end[1] < '0') || (p_end[1] > '9'))
     {
         return false;
     }
     const char* p_digits = p_end + 1;
     unsigned long value = strtoul(p_digits, &p_end, 10);
-    if (p_end - p_digits < 6 || value > 0xFFFFFFFFul)
+    if ((p_end - p_digits < 6) || (value > 0xFFFFFFFFul))
     {
         return false;
     }

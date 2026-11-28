@@ -39,13 +39,13 @@ static void log_size_choice(alfp_outbox_t* p_outbox, const char* p_path, int32_t
                             const char* p_reason)
 {
     const alfp_platform_t* p_plat = p_outbox->p_alfp->cfg.p_platform;
-    if (p_plat == NULL || p_plat->p_log == NULL)
+    if ((NULL == p_plat) || (NULL == p_plat->p_log))
     {
         return;
     }
     char line[160];
     snprintf(line, sizeof(line), "tx %s size=%ld thr=%lu radio=%s reason=%s", p_path, (long)size_bytes,
-             (unsigned long)p_outbox->size_threshold, (p_radio->p_name != NULL) ? p_radio->p_name : "?", p_reason);
+             (unsigned long)p_outbox->size_threshold, (NULL != p_radio->p_name) ? p_radio->p_name : "?", p_reason);
     p_plat->p_log(p_plat->p_ctx, line);
 }
 
@@ -53,7 +53,7 @@ static bool parse_seq(const char* p_name, uint32_t* p_seq)
 {
     unsigned long value = 0;
     char tail[8] = { 0 };
-    if (p_name[0] != 'q' || sscanf(p_name + 1, "%8lu%7s", &value, tail) != 2 || strcmp(tail, ".job") != 0)
+    if (('q' != p_name[0]) || (2 != sscanf(p_name + 1, "%8lu%7s", &value, tail)) || (0 != strcmp(tail, ".job")))
     {
         return false;
     }
@@ -78,7 +78,7 @@ static void scan_cb(const char* p_name, void* p_user)
     if (parse_seq(p_name, &seq))
     {
         scan_t* p_scan_res = p_user;
-        if (p_scan_res->count == 0 || seq < p_scan_res->min)
+        if ((0 == p_scan_res->count) || (seq < p_scan_res->min))
         {
             p_scan_res->min = seq;
         }
@@ -121,7 +121,7 @@ static void drop_job(alfp_outbox_t* p_outbox, uint32_t seq)
 {
     char path[ALFP_PATH_MAX + 16];
     job_path(p_outbox, seq, path, sizeof(path));
-    if (st(p_outbox)->p_remove(st(p_outbox)->p_ctx, path) >= 0 && p_outbox->count)
+    if ((st(p_outbox)->p_remove(st(p_outbox)->p_ctx, path) >= 0) && (p_outbox->count))
     {
         p_outbox->count--;
     }
@@ -130,7 +130,7 @@ static void drop_job(alfp_outbox_t* p_outbox, uint32_t seq)
 bool alfp_outbox_add(alfp_outbox_t* p_outbox, const char* p_image_path, const uint8_t* p_meta, uint8_t meta_len)
 {
     size_t path_len = strlen(p_image_path);
-    if (path_len >= ALFP_PATH_MAX || meta_len > ALFP_MAX_META)
+    if ((path_len >= ALFP_PATH_MAX) || (meta_len > ALFP_MAX_META))
     {
         return false;
     }
@@ -143,7 +143,7 @@ bool alfp_outbox_add(alfp_outbox_t* p_outbox, const char* p_image_path, const ui
             break;
         }
         uint32_t victim = scan_res.min;
-        if (victim == p_outbox->active_seq && scan_res.count > 1)
+        if ((victim == p_outbox->active_seq) && (scan_res.count > 1))
         {
             break; /* never drop the job being sent; accept one over the cap briefly */
         }
@@ -151,7 +151,7 @@ bool alfp_outbox_add(alfp_outbox_t* p_outbox, const char* p_image_path, const ui
         p_outbox->dropped_full++;
         /* Follow-up F2: a dropped capture must be visible, not only counted. */
         const alfp_platform_t* p_plat = p_outbox->p_alfp ? p_outbox->p_alfp->cfg.p_platform : NULL;
-        if (p_plat != NULL && p_plat->p_log != NULL)
+        if ((NULL != p_plat) && (NULL != p_plat->p_log))
         {
             char line[96];
             snprintf(line, sizeof(line), "outbox: FULL (%u jobs), dropped oldest job q%08lu (%lu dropped so far)",
@@ -203,19 +203,19 @@ static bool load_job(alfp_outbox_t* p_outbox, uint32_t seq, char* p_path, uint8_
     }
     int len = st(p_outbox)->p_read_at(st(p_outbox)->p_ctx, handle, 0, buf, sizeof(buf));
     st(p_outbox)->p_close(st(p_outbox)->p_ctx, handle);
-    if (len < 4 || buf[0] != 'Q' || buf[1] != '1')
+    if ((len < 4) || ('Q' != buf[0]) || ('1' != buf[1]))
     {
         return false;
     }
     uint8_t path_len = buf[2];
-    if (path_len >= ALFP_PATH_MAX || 3 + path_len + 1 > len)
+    if ((path_len >= ALFP_PATH_MAX) || (3 + path_len + 1 > len))
     {
         return false;
     }
     memcpy(p_path, buf + 3, path_len);
     p_path[path_len] = 0;
     uint8_t meta_len = buf[3 + path_len];
-    if (meta_len > ALFP_MAX_META || 4 + path_len + meta_len > len)
+    if ((meta_len > ALFP_MAX_META) || (4 + path_len + meta_len > len))
     {
         return false;
     }
@@ -226,7 +226,7 @@ static bool load_job(alfp_outbox_t* p_outbox, uint32_t seq, char* p_path, uint8_
 
 void alfp_outbox_pump(alfp_outbox_t* p_outbox)
 {
-    if (!p_outbox->count || alfp_tx_active(p_outbox->p_alfp) || p_outbox->active_seq)
+    if ((!p_outbox->count) || (alfp_tx_active(p_outbox->p_alfp)) || (p_outbox->active_seq))
     {
         return;
     }
@@ -245,7 +245,7 @@ void alfp_outbox_pump(alfp_outbox_t* p_outbox)
     char path[ALFP_PATH_MAX];
     uint8_t meta[ALFP_MAX_META];
     uint8_t meta_len = 0;
-    if (p_outbox->size_threshold == 0)
+    if (0 == p_outbox->size_threshold)
     {
         /* Legacy behaviour, byte-identical to before size-based choice existed: pick a radio by
          * preference order first, and only touch the SD card if one is available. */
@@ -277,9 +277,9 @@ void alfp_outbox_pump(alfp_outbox_t* p_outbox)
         {
             p_radio = alfp_select_radio_for_size(p_outbox->pp_radios, p_outbox->n_radios, p_outbox->bridge_id, now_ms, p_outbox->fresh_ms,
                                                (uint32_t)size_bytes, p_outbox->size_threshold);
-            p_reason = (p_radio != NULL
-                      && alfp_radio_was_size_preferred(p_outbox->pp_radios, p_outbox->n_radios, (uint32_t)size_bytes,
-                                                       p_outbox->size_threshold, p_radio))
+            p_reason = ((NULL != p_radio)
+                      && (alfp_radio_was_size_preferred(p_outbox->pp_radios, p_outbox->n_radios, (uint32_t)size_bytes,
+                                                       p_outbox->size_threshold, p_radio)))
                 ? "size"
                 : "fallback";
         }
@@ -297,16 +297,16 @@ void alfp_outbox_pump(alfp_outbox_t* p_outbox)
         }
         log_size_choice(p_outbox, path, size_bytes, p_radio, p_reason);
     }
-    if (p_outbox->p_prepare_meta != NULL && meta_len != 0u)
+    if ((NULL != p_outbox->p_prepare_meta) && (0u != meta_len))
     {
         p_outbox->p_prepare_meta(meta, meta_len, p_outbox->p_prepare_user);
     }
     alfp_err_t err = alfp_send_file(p_outbox->p_alfp, p_radio, p_outbox->bridge_id, path, meta, meta_len);
-    if (err == ALFP_OK)
+    if (ALFP_OK == err)
     {
         p_outbox->active_seq = scan_res.min;
     }
-    else if (err == ALFP_E_OPEN || err == ALFP_E_EMPTY || err == ALFP_E_TOO_BIG || err == ALFP_E_ARG)
+    else if ((ALFP_E_OPEN == err) || (ALFP_E_EMPTY == err) || (ALFP_E_TOO_BIG == err) || (ALFP_E_ARG == err))
     {
         drop_job(p_outbox, scan_res.min); /* can never succeed */
     }
@@ -328,14 +328,14 @@ void alfp_outbox_on_tx_done(alfp_outbox_t* p_outbox, const alfp_tx_report_t* p_r
         return;
     }
     uint32_t now_ms = now(p_outbox);
-    if (p_rep->result == ALFP_TX_DONE)
+    if (ALFP_TX_DONE == p_rep->result)
     {
         drop_job(p_outbox, p_outbox->active_seq);
         p_outbox->sent_ok++;
         p_outbox->backoff_ms = 0;
         p_outbox->retry_at_ms = now_ms;
     }
-    else if (p_rep->result == ALFP_TX_REFUSED && p_rep->ack_status == ALFP_ACK_TOO_BIG)
+    else if ((ALFP_TX_REFUSED == p_rep->result) && (ALFP_ACK_TOO_BIG == p_rep->ack_status))
     {
         drop_job(p_outbox, p_outbox->active_seq);
         p_outbox->retry_at_ms = now_ms;

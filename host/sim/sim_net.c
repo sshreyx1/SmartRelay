@@ -75,7 +75,7 @@ void net_init(net_t* p_net, const sim_cfg_t* p_cfg, const char* p_root, int radi
     snprintf(p_net->root, sizeof(p_net->root), "%s", p_root);
     char cmd[400];
     snprintf(cmd, sizeof(cmd), "rm -rf '%s'", p_root);
-    if (system(cmd) != 0)
+    if (0 != system(cmd))
     {
         fprintf(stderr, "could not clear %s\n", p_root);
     }
@@ -180,7 +180,7 @@ void net_make_file(net_t* p_net, uint8_t node, const char* p_path, uint32_t size
         *p_slash = 0;
         char cmd[700];
         snprintf(cmd, sizeof(cmd), "mkdir -p '%s'", dir);
-        if (system(cmd) != 0)
+        if (0 != system(cmd))
         {
             fprintf(stderr, "mkdir failed\n");
         }
@@ -212,7 +212,7 @@ bool net_files_equal(net_t* p_net, uint8_t node_a, const char* p_path_a, uint8_t
         {
             b_equal = false;
         }
-        if (chr_a == EOF || chr_b == EOF)
+        if ((EOF == chr_a) || (EOF == chr_b))
         {
             break;
         }

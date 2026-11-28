@@ -24,7 +24,7 @@ void audio_feat_add(audio_feat_t* p_feat, const uint16_t* p_samples, uint32_t co
         if (p_feat->count > 0)
         {
             int16_t prev = p_feat->prev;
-            if ((centered >= 0 && prev < 0) || (centered < 0 && prev >= 0))
+            if (((centered >= 0) && (prev < 0)) || ((centered < 0) && (prev >= 0)))
             {
                 p_feat->crossings++;
             }
@@ -37,7 +37,7 @@ void audio_feat_add(audio_feat_t* p_feat, const uint16_t* p_samples, uint32_t co
 void audio_feat_finish(const audio_feat_t* p_feat, uint32_t sample_rate, audio_result_t* p_out)
 {
     p_out->samples = p_feat->count;
-    if (p_feat->count == 0)
+    if (0 == p_feat->count)
     {
         p_out->energy = 0.0f;
         p_out->zcr = 0.0f;

@@ -128,8 +128,8 @@ rtos_id_t rtos_task_create(const char* p_name, rtos_task_fn p_callback, void* p_
 {
     (void)p_name;                             /* T_CTSK has an optional dsname field; skipped, not load-bearing here */
     stack_bytes = (stack_bytes + 7u) & ~7u; /* keeps every carved stack 8-byte aligned */
-    if (s_task_count >= RTOS_MAX_TASKS || stack_bytes > RTOS_MAX_STACK_BYTES
-        || stack_bytes > RTOS_STACK_POOL_BYTES - s_stack_pool_used)
+    if ((s_task_count >= RTOS_MAX_TASKS) || (stack_bytes > RTOS_MAX_STACK_BYTES)
+        || (stack_bytes > RTOS_STACK_POOL_BYTES - s_stack_pool_used))
     {
         return -1;
     }
@@ -151,7 +151,7 @@ rtos_id_t rtos_task_create(const char* p_name, rtos_task_fn p_callback, void* p_
     p_ctsk->tskatr = TA_HLNG | TA_RNG3 | TA_USERBUF;
 #if TK_SUPPORT_SMP
     p_ctsk->tskatr |= TA_ASSPRC;
-    p_ctsk->assprc = (core == RTOS_CORE_1) ? TP_PRC2 : TP_PRC1;
+    p_ctsk->assprc = (RTOS_CORE_1 == core) ? TP_PRC2 : TP_PRC1;
 #else
     (void)core; /* SMP=0 build: single core, TA_ASSPRC dropped (brief 3.1 fallback) */
 #endif
@@ -179,7 +179,7 @@ uint32_t rtos_task_stack_free(rtos_id_t task)
             continue;
         }
         uint32_t free_bytes = 0;
-        while (free_bytes < s_task_stack_bytes[idx] && s_stack[idx][free_bytes] == RTOS_CANARY)
+        while ((free_bytes < s_task_stack_bytes[idx]) && (RTOS_CANARY == s_stack[idx][free_bytes]))
         {
             free_bytes++;
         }
@@ -281,8 +281,8 @@ bool rtos_msgq_selftest(rtos_id_t queue, uint32_t msg_size, uint32_t count, char
         drained++;
     }
 
-    bool b_is_ok = (sent == count) && !b_extra_accepted && (drained == count);
-    if (p_log_line && log_line_max >= 64)
+    bool b_is_ok = (sent == count) && (!b_extra_accepted) && (drained == count);
+    if (p_log_line && (log_line_max >= 64))
     {
         tm_sprintf((UB*)p_log_line, (UB*)"msgq selftest: wanted %u, sent %u, extra accepted %d, drained %u - %s", count,
                    sent, (int)b_extra_accepted, drained, b_is_ok ? "ok" : "FAILED");
@@ -301,7 +301,7 @@ static bool msgq_send_result(ER err)
     {
         return true;
     }
-    if (err != E_TMOUT)
+    if (E_TMOUT != err)
     {
         s_msgq_last_error = (int32_t)err;
         rtos_atomic_add_u32(&s_msgq_errors, 1);
@@ -368,7 +368,7 @@ void rtos_priority_self_set(unsigned prio)
 unsigned rtos_task_priority(rtos_id_t task)
 {
     T_RTSK rtsk;
-    if (task <= 0 || tk_ref_tsk((ID)task, &rtsk) < E_OK)
+    if ((task <= 0) || (tk_ref_tsk((ID)task, &rtsk) < E_OK))
     {
         return 0;
     }
@@ -394,7 +394,7 @@ rtos_id_t rtos_self_id(void)
     uint32_t primask;
     __asm volatile("mrs %0, ipsr" : "=r"(ipsr));
     __asm volatile("mrs %0, primask" : "=r"(primask));
-    if ((ipsr & 0x3fu) != 0u || (primask & 1u) != 0u)
+    if ((0u != (ipsr & 0x3fu)) || (0u != (primask & 1u)))
     {
         return 0;
     }

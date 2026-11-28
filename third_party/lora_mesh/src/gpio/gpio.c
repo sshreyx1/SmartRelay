@@ -24,7 +24,7 @@
 void DEV_GPIO_Mode(uint16_t pin, uint16_t mode)
 {
     gpio_init(pin);
-    if(mode == 0 || mode == GPIO_IN) {
+    if((0 == mode) || (GPIO_IN == mode)) {
         gpio_set_dir(pin, GPIO_IN);
         gpio_pull_up(pin);
     } else {

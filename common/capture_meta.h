@@ -139,11 +139,11 @@ static inline uint8_t capture_meta_pack(const capture_meta_t* p_meta, uint8_t* p
  * name starts. 0 if in is not a capture record of a known version or is too short. */
 static inline uint8_t capture_meta_record_len(const uint8_t* p_input, uint8_t len)
 {
-    if (len >= CAPTURE_META_LEN_V2 && p_input[0] == 2u)
+    if ((len >= CAPTURE_META_LEN_V2) && (2u == p_input[0]))
     {
         return (uint8_t)CAPTURE_META_LEN_V2;
     }
-    if (len >= CAPTURE_META_LEN_V1 && p_input[0] == 1u)
+    if ((len >= CAPTURE_META_LEN_V1) && (1u == p_input[0]))
     {
         return (uint8_t)CAPTURE_META_LEN_V1;
     }
@@ -154,7 +154,7 @@ static inline uint8_t capture_meta_record_len(const uint8_t* p_input, uint8_t le
 static inline int capture_meta_unpack(const uint8_t* p_input, uint8_t len, capture_meta_t* p_meta)
 {
     uint8_t rec = capture_meta_record_len(p_input, len);
-    if (rec == 0u)
+    if (0u == rec)
     {
         return -1;
     }

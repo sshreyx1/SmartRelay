@@ -33,7 +33,7 @@ static void record(uint32_t seconds)
            audio.p_label, audio.class_id, audio.energy, audio.zcr, audio.zcr_per_s, audio.rms, audio.mean_adc, (unsigned long)audio.samples,
            (unsigned long)sensing_last_sound()->lost);
     sensing_log_sound();
-    if (audio.mean_adc < 1700 || audio.mean_adc > 2400)
+    if ((audio.mean_adc < 1700) || (audio.mean_adc > 2400))
     {
         printf("        note: the mic's resting level is %u, not ~2048 (1.65 V). mic.c subtracts 2048, so the\n"
                "        energy includes this offset and quiet rooms may read as LOUD. Tell Rhaylene.\n",
@@ -85,11 +85,11 @@ int main(void)
             sensing_log_sound();
         }
         int chan = getchar_timeout_us(0);
-        if (chan == 'm')
+        if ('m' == chan)
         {
             record(AUDIO_SECONDS);
         }
-        else if (chan == 'q')
+        else if ('q' == chan)
         {
             record(1);
         }

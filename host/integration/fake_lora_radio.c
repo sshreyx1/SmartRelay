@@ -50,7 +50,7 @@ bool lora_radio_init(void)
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     addr.sin_port = htons((uint16_t)(BASE_PORT + self));
-    if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) { perror("bind"); return false; }
+    if (0 != bind(sock, (struct sockaddr*)&addr, sizeof(addr))) { perror("bind"); return false; }
     fcntl(sock, F_SETFL, O_NONBLOCK);
     const char* p_loss_env = getenv("LORA_LOSS");
     loss = p_loss_env ? atof(p_loss_env) : 0.0;
@@ -61,7 +61,7 @@ bool lora_radio_init(void)
 
 bool lora_radio_start_tx(const uint8_t* p_buf, uint8_t len)
 {
-    if (b_tx_on || len == 0) return false;
+    if (b_tx_on || (0 == len)) return false;
     memcpy(tx_buf, p_buf, len);
     tx_len = len;
     b_tx_on = true;
@@ -74,7 +74,7 @@ bool lora_radio_tx_active(void) { return b_tx_on; }
 
 lora_radio_event_t lora_radio_service(uint8_t* p_buf, uint8_t* p_len, int8_t* p_rssi, int8_t* p_snr)
 {
-    if (b_tx_on && (int32_t)(now() - tx_end) >= 0)
+    if (b_tx_on && ((int32_t)(now() - tx_end) >= 0))
     {
         for (int node = 1; node <= MAX_NODES; node++)
         {

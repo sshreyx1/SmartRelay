@@ -37,7 +37,7 @@ static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
     }
     unsigned char pre[12];
     long result = -1;
-    if (fread(pre, 1, 10, p_file) != 10 || memcmp(pre, "\x93NUMPY", 6) != 0)
+    if ((10 != fread(pre, 1, 10, p_file)) || (0 != memcmp(pre, "\x93NUMPY", 6)))
     {
         fprintf(stderr, "%s: not a .npy file\n", p_path);
         goto done;
@@ -45,13 +45,13 @@ static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
     uint32_t hlen = (uint32_t)pre[8] | ((uint32_t)pre[9] << 8);
     if (pre[6] >= 2)
     {
-        if (fread(pre + 10, 1, 2, p_file) != 2)
+        if (2 != fread(pre + 10, 1, 2, p_file))
         {
             goto done;
         }
         hlen |= ((uint32_t)pre[10] << 16) | ((uint32_t)pre[11] << 24);
     }
-    if (hlen == 0 || hlen > 4096)
+    if ((0 == hlen) || (hlen > 4096))
     {
         fprintf(stderr, "%s: bad header length\n", p_path);
         goto done;
@@ -62,7 +62,7 @@ static long read_npy(const char* p_path, uint16_t* p_out, uint32_t max)
         goto done;
     }
     header[hlen] = '\0';
-    if (!strstr(header, "'<u2'") || !strstr(header, "'fortran_order': False"))
+    if ((!strstr(header, "'<u2'")) || (!strstr(header, "'fortran_order': False")))
     {
         fprintf(stderr, "%s: need a 1-D '<u2' (uint16 little-endian) array, header: %s\n", p_path, header);
         goto done;
@@ -100,11 +100,11 @@ int main(int argc, char** pp_argv)
     uint32_t chunk = 4096;
     for (int idx = 1; idx < argc; idx++)
     {
-        if (strcmp(pp_argv[idx], "--header") == 0)
+        if (0 == strcmp(pp_argv[idx], "--header"))
         {
             header = 1;
         }
-        else if (strcmp(pp_argv[idx], "--chunk") == 0 && idx + 1 < argc)
+        else if ((0 == strcmp(pp_argv[idx], "--chunk")) && (idx + 1 < argc))
         {
             chunk = (uint32_t)strtoul(pp_argv[++idx], NULL, 10);
             if (!chunk)
@@ -112,7 +112,7 @@ int main(int argc, char** pp_argv)
                 chunk = 1;
             }
         }
-        else if (strcmp(pp_argv[idx], "--help") == 0 || strcmp(pp_argv[idx], "-h") == 0)
+        else if ((0 == strcmp(pp_argv[idx], "--help")) || (0 == strcmp(pp_argv[idx], "-h")))
         {
             printf("usage: sound_featx [--header] [--chunk N] file.npy ...\n"
                    "CSV of the %d sound features (v%d) + legacy mic.c energy/zcr per file\n",
@@ -135,11 +135,11 @@ int main(int argc, char** pp_argv)
     }
     for (int idx = 1; idx < argc; idx++)
     {
-        if (strcmp(pp_argv[idx], "--header") == 0)
+        if (0 == strcmp(pp_argv[idx], "--header"))
         {
             continue;
         }
-        if (strcmp(pp_argv[idx], "--chunk") == 0)
+        if (0 == strcmp(pp_argv[idx], "--chunk"))
         {
             idx++;
             continue;
@@ -171,7 +171,7 @@ int main(int argc, char** pp_argv)
         }
         printf(",%.9g,%.9g\n", (double)audio.energy, (double)audio.zcr);
     }
-    if (!files && !header)
+    if ((!files) && (!header))
     {
         fprintf(stderr, "usage: sound_featx [--header] [--chunk N] file.npy ...\n");
         return 2;

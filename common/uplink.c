@@ -54,7 +54,7 @@ static void copy_report(uplink_job_t* p_jdx, const alfp_rx_report_t* p_rep)
     p_jdx->nacks = p_rep->nacks_sent;
     p_jdx->dups = p_rep->duplicates;
     p_jdx->meta_len = p_rep->meta_len < ALFP_MAX_META ? p_rep->meta_len : (uint8_t)ALFP_MAX_META;
-    if (p_rep->p_meta != NULL && p_jdx->meta_len != 0u)
+    if ((NULL != p_rep->p_meta) && (0u != p_jdx->meta_len))
     {
         memcpy(p_jdx->meta, p_rep->p_meta, p_jdx->meta_len);
     }
@@ -71,8 +71,8 @@ static void write_header(const uplink_job_t* p_jdx, uplink_write_fn p_out, void*
                      (unsigned)p_jdx->src, (unsigned)p_jdx->sid, (unsigned long)p_jdx->file_size, (unsigned long)p_jdx->file_crc32,
                      p_jdx->radio, (unsigned)p_jdx->frag_count, (unsigned long)p_jdx->first_ms, (unsigned long)p_jdx->done_ms,
                      (unsigned)p_jdx->nacks, (unsigned)p_jdx->dups);
-    size_t off = (len > 0 && (size_t)len < sizeof(line)) ? (size_t)len : 0u;
-    for (unsigned idx = 0; idx < p_jdx->meta_len && off + 3u < sizeof(line); idx++)
+    size_t off = ((len > 0) && ((size_t)len < sizeof(line))) ? (size_t)len : 0u;
+    for (unsigned idx = 0; (idx < p_jdx->meta_len) && (off + 3u < sizeof(line)); idx++)
     {
         snprintf(line + off, 3, "%02x", p_jdx->meta[idx]);
         off += 2u;
@@ -154,7 +154,7 @@ unsigned uplink_queue_service(uplink_queue_t* p_queue, unsigned max_lines, uplin
 {
     unsigned lines = 0;
     char line[LINE_MAX_CHARS];
-    while (lines < max_lines && p_queue->count != 0u)
+    while ((lines < max_lines) && (0u != p_queue->count))
     {
         const uplink_job_t* p_jdx = &p_queue->jobs[p_queue->head];
         if (!p_queue->b_started)
@@ -176,7 +176,7 @@ unsigned uplink_queue_service(uplink_queue_t* p_queue, unsigned max_lines, uplin
             finish_job(p_queue, p_queue->crc == p_jdx->file_crc32);
             continue;
         }
-        if (p_queue->buf_pos >= p_queue->buf_len && !fill_chunk(p_queue, p_jdx))
+        if ((p_queue->buf_pos >= p_queue->buf_len) && (!fill_chunk(p_queue, p_jdx)))
         {
             p_out("@ALFP ABORT read error\n", p_user);
             lines++;
@@ -211,9 +211,9 @@ int uplink_send_file(const alfp_storage_t* p_store, const alfp_rx_report_t* p_re
     p_store->p_close(p_store->p_ctx, handle);
     uplink_queue_init(&queue, p_store);
     (void)uplink_queue_add(&queue, p_rep);
-    while (uplink_queue_waiting(&queue) != 0u)
+    while (0u != uplink_queue_waiting(&queue))
     {
         (void)uplink_queue_service(&queue, 64u, p_out, p_user);
     }
-    return queue.sent_ok == 1u ? 0 : -1;
+    return 1u == queue.sent_ok ? 0 : -1;
 }

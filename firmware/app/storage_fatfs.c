@@ -28,7 +28,7 @@ static uint32_t g_err_count;
 
 static void note_err(const char* p_op_name, FRESULT res, const char* p_path)
 {
-    if (res == FR_OK)
+    if (FR_OK == res)
     {
         return;
     }
@@ -53,7 +53,7 @@ static int take(void)
 
 static FIL* fil(int handle)
 {
-    return (handle >= 0 && handle < MAX_OPEN && g_used[handle]) ? &g_fil[handle] : NULL;
+    return ((handle >= 0) && (handle < MAX_OPEN) && (g_used[handle])) ? &g_fil[handle] : NULL;
 }
 
 static int f_openmode(const char* p_path, BYTE mode)
@@ -65,11 +65,11 @@ static int f_openmode(const char* p_path, BYTE mode)
         return -1;
     }
     FRESULT res = f_open(&g_fil[handle], p_path, mode);
-    if (res != FR_OK)
+    if (FR_OK != res)
     {
-        if (!(mode == FA_READ && (res == FR_NO_FILE || res == FR_NO_PATH)))
+        if (!((FA_READ == mode) && ((FR_NO_FILE == res) || (FR_NO_PATH == res))))
         {
-            note_err(mode == FA_READ ? "open_r" : "open_w", res, p_path);
+            note_err(FA_READ == mode ? "open_r" : "open_w", res, p_path);
         }
         g_used[handle] = false;
         return -1;
@@ -95,11 +95,11 @@ static int s_read_at(void* p_ctx, int handle, uint32_t off, uint8_t* p_buf, uint
     FIL* p_file = fil(handle);
     UINT got = 0;
     FRESULT res = p_file ? f_lseek(p_file, off) : FR_INVALID_OBJECT;
-    if (res == FR_OK)
+    if (FR_OK == res)
     {
         res = f_read(p_file, p_buf, len, &got);
     }
-    if (res != FR_OK)
+    if (FR_OK != res)
     {
         note_err("read", res, "");
         return -1;
@@ -115,11 +115,11 @@ static int s_write_at(void* p_ctx, int handle, uint32_t off, const uint8_t* p_bu
     /* f_lseek past the end of a file opened for writing extends it, which is exactly what
      * out-of-order fragments need. */
     FRESULT res = p_file ? f_lseek(p_file, off) : FR_INVALID_OBJECT;
-    if (res == FR_OK)
+    if (FR_OK == res)
     {
         res = f_write(p_file, p_buf, len, &put);
     }
-    if (res != FR_OK)
+    if (FR_OK != res)
     {
         note_err("write", res, "");
         return -1;
@@ -145,13 +145,13 @@ static int s_close(void* p_ctx, int handle)
     FRESULT res = f_close(p_file);
     note_err("close", res, "");
     g_used[handle] = false;
-    return res == FR_OK ? 0 : -1;
+    return FR_OK == res ? 0 : -1;
 }
 
 static int s_remove(void* p_ctx, const char* p_path)
 {
     (void)p_ctx;
-    return f_unlink(p_path) == FR_OK ? 0 : -1;
+    return FR_OK == f_unlink(p_path) ? 0 : -1;
 }
 
 static int s_rename(void* p_ctx, const char* p_from, const char* p_to_path)
@@ -160,7 +160,7 @@ static int s_rename(void* p_ctx, const char* p_from, const char* p_to_path)
     f_unlink(p_to_path); /* FatFs refuses to rename onto an existing file */
     FRESULT res = f_rename(p_from, p_to_path);
     note_err("rename", res, p_to_path);
-    return res == FR_OK ? 0 : -1;
+    return FR_OK == res ? 0 : -1;
 }
 
 static int s_list(void* p_ctx, const char* p_dir, void (*p_callback)(const char*, void*), void* p_user)
@@ -168,11 +168,11 @@ static int s_list(void* p_ctx, const char* p_dir, void (*p_callback)(const char*
     (void)p_ctx;
     DIR dir_handle;
     FILINFO file_info;
-    if (f_opendir(&dir_handle, p_dir) != FR_OK)
+    if (FR_OK != f_opendir(&dir_handle, p_dir))
     {
         return -1;
     }
-    while (f_readdir(&dir_handle, &file_info) == FR_OK && file_info.fname[0])
+    while ((FR_OK == f_readdir(&dir_handle, &file_info)) && (file_info.fname[0]))
     {
         if (!(file_info.fattrib & AM_DIR))
         {
@@ -187,11 +187,11 @@ static int s_mkdir(void* p_ctx, const char* p_dir)
 {
     (void)p_ctx;
     FRESULT res = f_mkdir(p_dir);
-    if (res != FR_EXIST)
+    if (FR_EXIST != res)
     {
         note_err("mkdir", res, p_dir);
     }
-    return (res == FR_OK || res == FR_EXIST) ? 0 : -1;
+    return ((FR_OK == res) || (FR_EXIST == res)) ? 0 : -1;
 }
 
 bool storage_fatfs_mount(void)
@@ -199,7 +199,7 @@ bool storage_fatfs_mount(void)
     if (!gb_mounted)
     {
         FRESULT res = f_mount(&g_fs, "", 1);
-        if (res != FR_OK)
+        if (FR_OK != res)
         {
             printf("sd: mount failed (%d). Card inserted? FAT32 formatted?\n", (int)res);
             return false;
@@ -216,7 +216,7 @@ void storage_fatfs_status(char* p_out, size_t cap)
     {
         used += g_used[idx] ? 1 : 0;
     }
-    if (g_err_count == 0)
+    if (0 == g_err_count)
     {
         snprintf(p_out, cap, "sd handles in use %d/%d | no SD errors", used, MAX_OPEN);
     }

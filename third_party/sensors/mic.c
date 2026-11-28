@@ -31,7 +31,7 @@ SoundAnalysis mic_analyze_buffer(uint16_t *p_buffer, int num_samples) {
 
         if (idx > 0) {
             int16_t prev_centered = (int16_t)p_buffer[idx - 1] - 2048;
-            if ((centered >= 0 && prev_centered < 0) || (centered < 0 && prev_centered >= 0)) {
+            if (((centered >= 0) && (prev_centered < 0)) || ((centered < 0) && (prev_centered >= 0))) {
                 zero_crossings++;
             }
         }

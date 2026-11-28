@@ -48,11 +48,11 @@ static const alfp_profile_t k_default
 
 const alfp_profile_t* alfp_profile_for(const alfp_ctx_t* p_ctx, const mesh_radio_t* p_radio)
 {
-    if (p_ctx && p_ctx->cfg.p_profiles && p_radio && p_radio->p_name)
+    if (p_ctx && (p_ctx->cfg.p_profiles) && p_radio && (p_radio->p_name))
     {
         for (uint8_t idx = 0; idx < p_ctx->cfg.n_profiles; idx++)
         {
-            if (strcmp(p_radio->p_name, p_ctx->cfg.p_profiles[idx].p_radio_name) == 0)
+            if (0 == strcmp(p_radio->p_name, p_ctx->cfg.p_profiles[idx].p_radio_name))
             {
                 return &p_ctx->cfg.p_profiles[idx];
             }
@@ -63,11 +63,11 @@ const alfp_profile_t* alfp_profile_for(const alfp_ctx_t* p_ctx, const mesh_radio
 
 const alfp_profile_t* alfp_default_profile(const mesh_radio_t* p_radio)
 {
-    if (p_radio && p_radio->p_name)
+    if (p_radio && (p_radio->p_name))
     {
         for (unsigned idx = 0; idx < sizeof(k_profiles) / sizeof(k_profiles[0]); idx++)
         {
-            if (strcmp(p_radio->p_name, k_profiles[idx].p_radio_name) == 0)
+            if (0 == strcmp(p_radio->p_name, k_profiles[idx].p_radio_name))
             {
                 return &k_profiles[idx];
             }
@@ -83,7 +83,7 @@ const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* pp_by_preferenc
     {
         const mesh_radio_t* p_radio = pp_by_preference[idx];
         uint32_t total_ms = 0;
-        if (p_radio && p_radio->p_last_heard && p_radio->p_last_heard(bridge_id, &total_ms))
+        if (p_radio && (p_radio->p_last_heard) && (p_radio->p_last_heard(bridge_id, &total_ms)))
         {
             if ((uint32_t)(now_ms - total_ms) <= fresh_ms)
             {
@@ -97,7 +97,7 @@ const mesh_radio_t* alfp_select_radio(const mesh_radio_t* const* pp_by_preferenc
 static bool radio_is_fresh(const mesh_radio_t* p_radio, uint8_t bridge_id, uint32_t now_ms, uint32_t fresh_ms)
 {
     uint32_t total_ms = 0;
-    return p_radio != NULL && p_radio->p_last_heard != NULL && p_radio->p_last_heard(bridge_id, &total_ms) && (uint32_t)(now_ms - total_ms) <= fresh_ms;
+    return (NULL != p_radio) && (NULL != p_radio->p_last_heard) && (p_radio->p_last_heard(bridge_id, &total_ms)) && ((uint32_t)(now_ms - total_ms) <= fresh_ms);
 }
 
 static const mesh_radio_t* radio_named(const mesh_radio_t* const* pp_by_preference, uint8_t count, const char* p_name)
@@ -105,7 +105,7 @@ static const mesh_radio_t* radio_named(const mesh_radio_t* const* pp_by_preferen
     for (uint8_t idx = 0; idx < count; idx++)
     {
         const mesh_radio_t* p_radio = pp_by_preference[idx];
-        if (p_radio != NULL && p_radio->p_name != NULL && strcmp(p_radio->p_name, p_name) == 0)
+        if ((NULL != p_radio) && (NULL != p_radio->p_name) && (0 == strcmp(p_radio->p_name, p_name)))
         {
             return p_radio;
         }
@@ -137,7 +137,7 @@ bool alfp_radio_was_size_preferred(const mesh_radio_t* const* pp_by_preference, 
 {
     const mesh_radio_t* p_preferred
         = (size_bytes < size_threshold) ? radio_named(pp_by_preference, count, "lora") : radio_named(pp_by_preference, count, "wifi");
-    return p_chosen != NULL && p_preferred != NULL && p_chosen == p_preferred;
+    return (NULL != p_chosen) && (NULL != p_preferred) && (p_chosen == p_preferred);
 }
 
 const char* alfp_tx_result_str(alfp_tx_result_t result)

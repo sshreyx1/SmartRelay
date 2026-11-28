@@ -188,7 +188,7 @@ static const alfp_storage_t* sd_inner(void)
 
 static const char* sd_handle_path(int handle)
 {
-    return (handle >= 0 && handle < SD_HANDLES) ? g_sd_handle_path[handle] : "?";
+    return ((handle >= 0) && (handle < SD_HANDLES)) ? g_sd_handle_path[handle] : "?";
 }
 
 static void sd_note(int op_name, uint32_t start_t, const char* p_path)
@@ -209,9 +209,9 @@ static void sd_note(int op_name, uint32_t start_t, const char* p_path)
 static int sd_open_common(int op_name, const char* p_path)
 {
     uint32_t start_t = rtos_now_ms();
-    int handle = op_name == SD_OPEN_R ? sd_inner()->p_open_read(sd_inner()->p_ctx, p_path)
+    int handle = SD_OPEN_R == op_name ? sd_inner()->p_open_read(sd_inner()->p_ctx, p_path)
                             : sd_inner()->p_open_write(sd_inner()->p_ctx, p_path);
-    if (handle >= 0 && handle < SD_HANDLES)
+    if ((handle >= 0) && (handle < SD_HANDLES))
     {
         snprintf(g_sd_handle_path[handle], sizeof(g_sd_handle_path[handle]), "%s", p_path);
     }
@@ -331,7 +331,7 @@ static const alfp_platform_t k_plat = { NULL, p_now, p_rand, p_log };
 static void on_tx_done(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
 {
     (void)p_ctx;
-    if (p_rep->result == ALFP_TX_REFUSED)
+    if (ALFP_TX_REFUSED == p_rep->result)
     {
         static const char* const k_ack[] = { "OK", "CRC_FAIL", "BUSY", "STORAGE (bridge SD)", "TOO_BIG" };
         printf("tx %s: bridge refused it with status %u = %s\n", p_rep->p_path, p_rep->ack_status,
@@ -339,7 +339,7 @@ static void on_tx_done(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
     }
     printf("tx %s: %s via %s, %u frags, %u rounds, %u resent, %.1f s\n", p_rep->p_path, alfp_tx_result_str(p_rep->result),
            p_rep->p_radio, p_rep->frag_count, p_rep->rounds, p_rep->data_resent, (p_rep->finished_ms - p_rep->started_ms) / 1000.0);
-    if (p_rep->result == ALFP_TX_DONE && strncmp(p_rep->p_path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u) == 0)
+    if ((ALFP_TX_DONE == p_rep->result) && (0 == strncmp(p_rep->p_path, TEL_DIR "/", sizeof(TEL_DIR "/") - 1u)))
     {
         /* The telemetry job's "file" was a temp copy of its own meta made just for this transfer:
          * remove it once sent, as main.c does. */
@@ -353,7 +353,7 @@ static void uplink_out(const char* p_str, void* p_user)
     (void)p_user;
     /* uplink_send_file() writes a line in pieces ("@ALFP FILE ...meta=", the hex, "\n"); log_putc
      * collects them per task, so each uplink line still reaches the host whole. */
-    while (*p_str != '\0')
+    while ('\0' != *p_str)
     {
         log_putc(*p_str++);
     }
@@ -379,7 +379,7 @@ static void on_rx_done(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
  * host) here. */
 static void uplink_pump(void)
 {
-    if (uplink_queue_waiting(&g_uplink) == 0u)
+    if (0u == uplink_queue_waiting(&g_uplink))
     {
         return;
     }
@@ -426,11 +426,11 @@ static void count_payloads_cb(const char* p_name, void* p_user)
 {
     (void)p_user;
     size_t name_len = strlen(p_name);
-    if (p_name[0] == '.')
+    if ('.' == p_name[0])
     {
         return; /* F1: macOS "._*" AppleDouble files and other hidden files are not payloads */
     }
-    if (g_n_payloads < TEST_PAYLOADS_MAX && name_len < sizeof(g_payload_names[0]))
+    if ((g_n_payloads < TEST_PAYLOADS_MAX) && (name_len < sizeof(g_payload_names[0])))
     {
         memcpy(g_payload_names[g_n_payloads], p_name, name_len + 1u);
         g_n_payloads++;
@@ -474,7 +474,7 @@ static uint32_t read_u32_file(const alfp_storage_t* p_store, const char* p_path)
     int len = p_store->p_read_at(p_store->p_ctx, handle, 0, (uint8_t*)txt, sizeof(txt) - 1);
     p_store->p_close(p_store->p_ctx, handle);
     unsigned long value = 0;
-    return len > 0 && sscanf(txt, "%lu", &value) == 1 ? (uint32_t)value : 0;
+    return (len > 0) && (1 == sscanf(txt, "%lu", &value)) ? (uint32_t)value : 0;
 }
 
 /* write to a temp file, then rename over the real one: a power cut leaves one of the two intact */
@@ -483,12 +483,12 @@ static void store_next_id(const alfp_storage_t* p_store, uint32_t next)
     char txt[16];
     int len = snprintf(txt, sizeof(txt), "%lu\n", (unsigned long)next);
     int handle = p_store->p_open_write(p_store->p_ctx, ID_TMP);
-    bool b_is_ok = handle >= 0 && p_store->p_write_at(p_store->p_ctx, handle, 0, (const uint8_t*)txt, (uint16_t)len) == len;
+    bool b_is_ok = (handle >= 0) && (p_store->p_write_at(p_store->p_ctx, handle, 0, (const uint8_t*)txt, (uint16_t)len) == len);
     if (handle >= 0)
     {
         p_store->p_close(p_store->p_ctx, handle);
     }
-    if (!b_is_ok || p_store->p_rename(p_store->p_ctx, ID_TMP, ID_FILE) != 0)
+    if ((!b_is_ok) || (0 != p_store->p_rename(p_store->p_ctx, ID_TMP, ID_FILE)))
     {
         printf("capture id: could not save %s (ids may repeat after a reboot)\n", ID_FILE);
     }
@@ -501,7 +501,7 @@ static void scan_outbox_cb(const char* p_name, void* p_user)
 {
     (void)p_user;
     unsigned long seq;
-    if (p_name[0] == 'q' && sscanf(p_name + 1, "%8lu", &seq) == 1 && s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0]))
+    if (('q' == p_name[0]) && (1 == sscanf(p_name + 1, "%8lu", &seq)) && (s_n_jobs < sizeof(s_job_seq) / sizeof(s_job_seq[0])))
     {
         s_job_seq[s_n_jobs++] = (uint32_t)seq;
     }
@@ -512,7 +512,7 @@ static void scan_clips_cb(const char* p_name, void* p_user)
     (void)p_user;
     uint8_t node;
     uint32_t cap_id;
-    if (capture_id_parse(p_name, &node, &cap_id) && node == NODE_ID && cap_id > s_highest_seen)
+    if ((capture_id_parse(p_name, &node, &cap_id)) && (NODE_ID == node) && (cap_id > s_highest_seen))
     {
         s_highest_seen = cap_id;
     }
@@ -537,14 +537,14 @@ static uint32_t highest_id_on_card(const alfp_storage_t* p_store)
         int len = p_store->p_read_at(p_store->p_ctx, handle, 0, buf, sizeof(buf));
         p_store->p_close(p_store->p_ctx, handle);
         /* job file (alfp_outbox.c): 'Q' '1' | path_len | path | meta_len | meta */
-        if (len < 4 || buf[0] != 'Q' || buf[1] != '1' || 4 + buf[2] > len)
+        if ((len < 4) || ('Q' != buf[0]) || ('1' != buf[1]) || (4 + buf[2] > len))
         {
             continue;
         }
         const uint8_t* p_meta = buf + 4 + buf[2];
         uint8_t total_len = buf[3 + buf[2]];
         capture_meta_t meta;
-        if (p_meta + total_len <= buf + len && capture_meta_unpack(p_meta, total_len, &meta) == 0 && meta.capture_id > s_highest_seen)
+        if ((p_meta + total_len <= buf + len) && (0 == capture_meta_unpack(p_meta, total_len, &meta)) && (meta.capture_id > s_highest_seen))
         {
             s_highest_seen = meta.capture_id;
         }
@@ -574,7 +574,7 @@ static void handle_capture(const capture_meta_t* p_request)
     meta.node_id = NODE_ID;
     meta.capture_id = ++g_capture_id;
     store_next_id(p_store, g_capture_id + 1u);
-    if (meta.uptime_ms == 0)
+    if (0 == meta.uptime_ms)
     {
         meta.uptime_ms = p_now(NULL);
     }
@@ -593,11 +593,11 @@ static void handle_capture(const capture_meta_t* p_request)
         snprintf(path, sizeof(path), "samples/%s", name);
     }
     const char* p_shown = image_num >= 0 ? path : "no image (samples/ has no <prefix>_NN.jpg), telemetry only";
-    if (meta.sound_class == CM_UNKNOWN_U8)
+    if (CM_UNKNOWN_U8 == meta.sound_class)
     {
         printf("capture %s: heard unknown (recording failed) -> %s\n", id_str, p_shown);
     }
-    else if (meta.sound_conf == CM_UNKNOWN_U8) /* legacy thresholds give no confidence */
+    else if (CM_UNKNOWN_U8 == meta.sound_conf) /* legacy thresholds give no confidence */
     {
         printf("capture %s: heard %s -> %s\n", id_str, sound_class_name(meta.sound_class), p_shown);
     }
@@ -610,7 +610,7 @@ static void handle_capture(const capture_meta_t* p_request)
     uint8_t meta_buf[ALFP_MAX_META];
     uint8_t meta_len = capture_meta_pack(&meta, meta_buf);
 
-    if (APP_SPLIT_TELEMETRY || image_num < 0)
+    if (APP_SPLIT_TELEMETRY || (image_num < 0))
     {
         /* Telemetry: a tiny transfer tagged with APP_TELEMETRY_MARKER instead of an image name,
          * small enough that the size rule always sends it over LoRa (see main.c). */
@@ -619,7 +619,7 @@ static void handle_capture(const capture_meta_t* p_request)
         capture_id_file_stem(stem, sizeof(stem), NODE_ID, meta.capture_id);
         snprintf(tel_path, sizeof(tel_path), TEL_DIR "/%s.bin", stem);
         int tel_handle = p_store->p_open_write(p_store->p_ctx, tel_path);
-        bool b_tel_ok = tel_handle >= 0 && p_store->p_write_at(p_store->p_ctx, tel_handle, 0, meta_buf, meta_len) == meta_len;
+        bool b_tel_ok = (tel_handle >= 0) && (p_store->p_write_at(p_store->p_ctx, tel_handle, 0, meta_buf, meta_len) == meta_len);
         if (tel_handle >= 0)
         {
             p_store->p_close(p_store->p_ctx, tel_handle);
@@ -629,7 +629,7 @@ static void handle_capture(const capture_meta_t* p_request)
         size_t marker_len = strlen(APP_TELEMETRY_MARKER);
         memcpy(tel_meta + meta_len, APP_TELEMETRY_MARKER, marker_len);
         uint8_t tel_meta_len = (uint8_t)(meta_len + marker_len);
-        if (b_tel_ok && alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len))
+        if (b_tel_ok && (alfp_outbox_add(&g_outbox, tel_path, tel_meta, tel_meta_len)))
         {
             printf("capture %s telemetry queued (%s)\n", id_str, tel_path);
         }
@@ -769,7 +769,7 @@ static void comms_task(void* p_arg)
         char line[LOG_LINE_MAX];
         int len
             = snprintf(line, sizeof(line), "sd: mounted, %u sample images in %u groups:", n_img, (unsigned)g_images.count);
-        for (uint32_t idx = 0; idx < g_images.count && len > 0 && (size_t)len < sizeof(line); idx++)
+        for (uint32_t idx = 0; (idx < g_images.count) && (len > 0) && ((size_t)len < sizeof(line)); idx++)
         {
             len += snprintf(line + len, sizeof(line) - (size_t)len, " %s %u", g_images.prefixes[idx].prefix,
                             g_images.prefixes[idx].count);
@@ -830,7 +830,7 @@ static void comms_task(void* p_arg)
         if (NODE_ID != BRIDGE_ID)
         {
             capture_meta_t req;
-            while (!b_hold && rtos_msgq_recv(g_capture_q, &req, sizeof(req), RTOS_NO_WAIT))
+            while ((!b_hold) && (rtos_msgq_recv(g_capture_q, &req, sizeof(req), RTOS_NO_WAIT)))
             {
                 rtos_atomic_add_u32(&g_capture_q_waiting, (uint32_t)-1);
                 handle_capture(&req);
@@ -972,16 +972,16 @@ static void sensors_task(void* p_arg)
         uint32_t now = p_now(NULL);
         sensing_env_poll(now);
         bool b_want_env = rtos_flags_wait_any(g_flags, EVT_WANT_ENV, &bits, RTOS_NO_WAIT);
-        if (b_want_env || now - last_env_print >= 10000)
+        if (b_want_env || (now - last_env_print >= 10000))
         {
             last_env_print = now;
             print_env();
         }
 
         bool b_down = !gpio_get(BOARD_BUTTON_GPIO);
-        bool b_pressed = b_down && !b_was_down;
+        bool b_pressed = b_down && (!b_was_down);
         b_was_down = b_down;
-        bool b_forced = b_pressed || rtos_flags_wait_any(g_flags, EVT_FORCE_CAPTURE, &bits, RTOS_NO_WAIT);
+        bool b_forced = b_pressed || (rtos_flags_wait_any(g_flags, EVT_FORCE_CAPTURE, &bits, RTOS_NO_WAIT));
         bool b_dual = sensing_dual_trigger(now);
 
         if (b_dual || b_forced)
@@ -993,8 +993,8 @@ static void sensors_task(void* p_arg)
                 printf("\n[ALERT] trigger on the bridge: the bridge only receives, no capture is sent\n");
             }
             printf("\n[ALERT] %s (PIR %d, sound %d). Recording %us of audio...\n",
-                   b_dual ? "Dual trigger fired" : "Manual capture", (flags & CM_TRIG_PIR) != 0,
-                   (flags & CM_TRIG_SOUND) != 0, (unsigned)AUDIO_SECONDS);
+                   b_dual ? "Dual trigger fired" : "Manual capture", 0 != (flags & CM_TRIG_PIR),
+                   0 != (flags & CM_TRIG_SOUND), (unsigned)AUDIO_SECONDS);
             capture_meta_t meta;
             audio_result_t audio;
             sensing_capture(now, flags, &meta, &audio);
@@ -1002,7 +1002,7 @@ static void sensors_task(void* p_arg)
                    audio.mean_adc, (unsigned long)audio.samples);
             sensing_log_sound();
             print_env();
-            if (NODE_ID != BRIDGE_ID && !app_request_capture(&meta))
+            if ((NODE_ID != BRIDGE_ID) && (!app_request_capture(&meta)))
             {
                 printf("[ALERT] capture queue full, dropped\n");
             }
@@ -1080,7 +1080,7 @@ static void print_wst(void)
     {
         printf("wst: no ESP-01 answered at boot | firmware node %u\n", (unsigned)NODE_ID);
     }
-    else if (owner == 0)
+    else if (0 == owner)
     {
         printf("wst: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X is not in wifi_mesh_config.h | firmware node %u\n",
                mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (unsigned)NODE_ID);
@@ -1089,7 +1089,7 @@ static void print_wst(void)
     {
         printf("wst: ESP-01 MAC %02X:%02X:%02X:%02X:%02X:%02X = WST-%d | firmware node %u | %s\n", mac[0], mac[1],
                mac[2], mac[3], mac[4], mac[5], owner, (unsigned)NODE_ID,
-               owner == (int)NODE_ID ? "MATCH" : "MISMATCH: flash csc09_smp_node_<WST number>.uf2");
+               (int)NODE_ID == owner ? "MATCH" : "MISMATCH: flash csc09_smp_node_<WST number>.uf2");
     }
 }
 
@@ -1126,7 +1126,7 @@ static void usb_owner_task(void* p_arg)
     /* Hold the start-up lines (they wait in the log ring) until a host opens the port, for up to
      * 10 s (was 3 s: macOS can take longer than that to bring the port up after a plug-in, and the
      * boot log, with the WST line, was lost). The ring holds 64 lines, enough for the boot log. */
-    for (int idx = 0; idx < 1000 && tm_usb_state() < USB_STATE_OPEN; idx++)
+    for (int idx = 0; (idx < 1000) && (tm_usb_state() < USB_STATE_OPEN); idx++)
     {
         rtos_delay_ms(10);
     }
@@ -1196,7 +1196,7 @@ static void usb_owner_task(void* p_arg)
             }
         }
 
-        if (stall_until_ms != 0u && (int32_t)(rtos_now_ms() - stall_until_ms) < 0)
+        if ((0u != stall_until_ms) && ((int32_t)(rtos_now_ms() - stall_until_ms) < 0))
         {
             rtos_delay_ms(20);
             continue;
@@ -1251,7 +1251,7 @@ void app_main_smp(void)
         = rtos_task_create("usb_owner", usb_owner_task, NULL, RTOS_PRIO_USB_OWNER, STACK_USB_OWNER, RTOS_CORE_0);
     g_comms_task_id = rtos_task_create("comms", comms_task, NULL, RTOS_PRIO_COMMS, STACK_COMMS, RTOS_CORE_0);
     g_sensors_task_id = rtos_task_create("sensors", sensors_task, NULL, RTOS_PRIO_SENSORS, STACK_SENSORS, RTOS_CORE_1);
-    if (g_owner_task_id <= 0 || g_comms_task_id <= 0 || g_sensors_task_id <= 0)
+    if ((g_owner_task_id <= 0) || (g_comms_task_id <= 0) || (g_sensors_task_id <= 0))
     {
         printf("FATAL: task creation failed (usb_owner %ld comms %ld sensors %ld)\n", (long)g_owner_task_id,
                (long)g_comms_task_id, (long)g_sensors_task_id);

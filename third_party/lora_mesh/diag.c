@@ -58,7 +58,7 @@ static bool get_version_raw( uint baud, bool b_miso_pull_up )
     gpio_put( RADIO_CS, 1 );
     gpio_disable_pulls( RADIO_MISO );
 
-    const bool b_is_ok = rx_buf[2] == 0x03;
+    const bool b_is_ok = 0x03 == rx_buf[2];
     printf( "  %4u kHz, MISO pull-%-4s: %02X %02X %02X %02X %02X%s\n", baud / 1000, b_miso_pull_up ? "up" : "down",
             rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3], rx_buf[4], b_is_ok ? "  <- LR1121 OK" : "" );
     return b_is_ok;
@@ -72,7 +72,7 @@ static bool loopback( void )
     spi_set_baudrate( SPI_PORT, 1000 * 1000 );
     gpio_put( RADIO_CS, 1 );
     spi_write_read_blocking( SPI_PORT, pattern, back, 4 );
-    const bool b_is_ok = back[0] == 0xA5 && back[1] == 0x5A && back[2] == 0x0F && back[3] == 0xF0;
+    const bool b_is_ok = (0xA5 == back[0]) && (0x5A == back[1]) && (0x0F == back[2]) && (0xF0 == back[3]);
     printf( "4. Loopback (needs jumper GP11->GP12): sent A5 5A 0F F0, got %02X %02X %02X %02X%s\n", back[0], back[1],
             back[2], back[3], b_is_ok ? "  <- Pico SPI pins OK" : "" );
     return b_is_ok;
@@ -147,7 +147,7 @@ int main( void )
         else if( b_loop_ok )
             printf( "Jumper test PASSED - the Pico's SPI pins work. So the fault is in the wires/module:\n"
                     "         remove the jumper, put module MISO back on GP12, then re-check CLK (GP10) and MOSI (GP11).\n" );
-        else if( boot_ms < 0 || !busy_after_reset )
+        else if( (boot_ms < 0) || (!busy_after_reset) )
             printf( "The module is not booting. Check 3V3 -> pin 36, GND, RESET -> GP5, BUSY -> GP14.\n" );
         else if( !b_busy_driven )
             printf( "BUSY wire (GP14) is not connected to the module.\n" );
@@ -159,7 +159,7 @@ int main( void )
                     "         add a jumper GP11->GP12, plug in, and read this verdict again.\n" );
 
         // Always flag a module that did not boot, even when another verdict was printed first
-        if( !b_chip_ok && ( boot_ms < 0 || !busy_after_reset ) )
+        if( (!b_chip_ok) && ( (boot_ms < 0) || (!busy_after_reset) ) )
             printf( "WARNING: the module did NOT boot this round (BUSY never went high after reset).\n"
                     "         Check 3V3 -> pin 36, GND, RESET -> GP5 before anything else.\n" );
 
