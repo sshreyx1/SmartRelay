@@ -1061,7 +1061,7 @@ static void rtos_wait_ms (uint32_t msec)
  * sensors is alone on core 1, so a priority boost protected nothing (no other
  * task there) while interrupts could still land; masking core 1's interrupts
  * delays nothing else: the radio UART/SPI interrupts and the kernel tick all
- * run on core 0 (docs/curveball_findings.md: core 0 is the sole timekeeper).
+ * run on core 0 (docs/MICROKERNEL.md: core 0 is the sole timekeeper).
  * dht22.c calls these only around the bit-timing loop, never around its 20 ms
  * start pulse, and that loop runs from RAM (sources.mk).
  * SMP=0 (everything on one core): masking 5 ms there would stall the ESP-01

@@ -1,4 +1,4 @@
-# Sound ML workspace (SOUND_PLAN.md). Python 3.11 (3.12 also works); every pin has
+# Sound ML workspace (docs/SENSORS.md). Python 3.11 (3.12 also works); every pin has
 # binary wheels for macOS arm64, macOS x86_64 and Windows x64, so nothing compiles.
 # soundfile's wheels bundle libsndfile with MP3 support (no ffmpeg needed);
 # sounddevice's wheels bundle PortAudio on macOS and Windows.

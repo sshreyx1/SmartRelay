@@ -12,7 +12,7 @@ you run it yourself, on purpose, every time:
     python3 simulator/demo_feed.py --scenario normal        (also: lora, loss, bridge-down)
 
 --scenario also sends the bridge's live transfer events ("@EVT RXS/RXM/RXF/NACK/RXOK", the lines
-firmware/app/main.c prints, TRANSFER_VISIBILITY.md 3.3) with real pauses between them, so the
+firmware/app/main.c prints, docs/PROTOCOLS.md) with real pauses between them, so the
 dashboard shows a file arriving fragment by fragment, then the usual @ALFP FILE stream:
     normal       node 5 over WiFi, 40 fragments, ~60% via node 3 and ~40% via node 4, 2 hops, no NACK
     lora         a small file (< 1024 B, so the size rule picks LoRa), relay unknown (v=0)
@@ -182,7 +182,7 @@ def send(backend_url: str, lines: list[str], quiet: bool = False) -> None:
         print(f"[DEMO] sent 1 simulated capture -> {r.json()}")
 
 
-# ---- live transfer scenarios (TRANSFER_VISIBILITY.md 5) ------------------------------------------
+# ---- live transfer scenarios (docs/PROTOCOLS.md) ------------------------------------------
 
 def bridge_ms() -> int:
     """Stand-in for the bridge's ms-since-boot: wall time, so it keeps rising across runs."""

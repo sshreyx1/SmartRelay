@@ -39,7 +39,7 @@ const mesh_radio_t* radio_wifi(void);
  * radios_init(). */
 int radios_wst_owner(uint8_t mac[6]);
 
-/* Route of the packet r->recv() returned most recently (TRANSFER_VISIBILITY.md
+/* Route of the packet r->recv() returned most recently (docs/PROTOCOLS.md
  * 3.1):
  *   *hops = links travelled (1 = direct, 0 = unknown), *prev = node it was
  *   heard from (0 = unknown;

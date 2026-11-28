@@ -1,4 +1,4 @@
-# ml/train.py configuration (SOUND_PLAN.md A5). Command-line flags override these.
+# ml/train.py configuration (docs/SENSORS.md). Command-line flags override these.
 phase: A
 # features CSV from extract_features.py (mic recordings) or esc50_direct.py (backup)
 features: data/features_v1.csv

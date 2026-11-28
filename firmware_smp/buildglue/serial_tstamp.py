@@ -1,6 +1,6 @@
 """serial_tstamp.py PORT SECS - print each console line from PORT prefixed with its host arrival time
 (seconds since start). Run one per node at the same time to line up sender and bridge events
-(docs/SMP_HANDOFF.md section 5)."""
+(docs/MICROKERNEL.md)."""
 import sys
 import time
 

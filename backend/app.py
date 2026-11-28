@@ -161,7 +161,7 @@ def bridge_status() -> Dict[str, Any]:
     return {"connected": bridge.connected, "port": bridge.port or BRIDGE_PORT, "since": bridge.since}
 
 
-# TRANSFER_VISIBILITY.md 4: the bridge's @EVT lines -> transfers / fragments tables + live WS events
+# docs/PROTOCOLS.md: the bridge's @EVT lines -> transfers / fragments tables + live WS events
 tracker = TransferTracker(store, emit=hub.broadcast_soon, log_line=on_line)
 
 bridge = LiveBridge(on_transfer=on_transfer, on_line=on_line, on_event=tracker.on_event,

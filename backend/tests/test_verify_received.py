@@ -2,7 +2,7 @@
 Task E: tools/verify_received.py's logic, proven against a synthetic fixture (manifest + fake
 received files + a Store with a couple of record_capture() calls) -- the only way to exercise it
 in this environment, since there is no real two-node hardware data to run it against. This does
-NOT prove the two-node hardware procedure (docs/sound/TWO_NODE_TEST.md) works; it only proves the
+NOT prove the two-node hardware procedure (docs/TESTING.md) works; it only proves the
 verifier script itself does the comparisons it claims to.
 
 Run:      cd backend && pytest -q

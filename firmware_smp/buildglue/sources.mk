@@ -3,7 +3,7 @@
 #
 # Copied (never committed) into third_party/mtk3smp_rp2040/build_make/ by
 # build_smp.sh, which is what makefile:25's documented `-include sources.mk`
-# hook is for (docs/curveball_findings.md Step 2 item 8). OBJS/C_DEPS use
+# hook is for (docs/MICROKERNEL.md). OBJS/C_DEPS use
 # `+=`, and INCPATH/CFLAGS are only ever read (never reassigned) inside our
 # own recipes below, so load order relative to pico_rp2040.mk's later
 # `CFLAGS := ...` reset does not matter.

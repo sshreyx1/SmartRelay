@@ -10,7 +10,7 @@ documented in common/uplink.h:
     ...
     @ALFP END crc=1a2b3c4d
 
-Transfer events (TRANSFER_VISIBILITY.md 3.3) are one line each, interleaved with everything else:
+Transfer events (docs/PROTOCOLS.md) are one line each, interleaved with everything else:
 
     @EVT RXS src=5 sid=42 radio=wifi t=1234567
     @EVT RXF src=5 sid=42 seq=17 r=0 h=2 v=3 d=0 t=1234890      (RXM, NACK, RXOK, RXFAIL likewise)
@@ -81,7 +81,7 @@ def parse_event(line: str):
 
 
 class BridgeClock:
-    """Maps the bridge's ms-since-boot onto laptop time (TRANSFER_VISIBILITY.md 4.2).
+    """Maps the bridge's ms-since-boot onto laptop time (docs/PROTOCOLS.md).
 
     Every event line gives one sample: offset = laptop_time - t/1000. USB delay only ever makes that
     larger, so the smallest offset seen since the bridge's last boot is the best estimate. If t goes

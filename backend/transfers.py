@@ -1,7 +1,7 @@
 """
 transfers.py - live view of ALFP transfers as the bridge (node 1) receives them.
 
-TRANSFER_VISIBILITY.md section 4. The bridge prints one "@EVT ..." line per receive event
+docs/PROTOCOLS.md. The bridge prints one "@EVT ..." line per receive event
 (firmware/app/main.c); live_bridge.LiveBridge parses them and hands them to TransferTracker, which
 keeps the `transfers` and `fragments` tables (storage.py) and tells the dashboards over WebSocket.
 

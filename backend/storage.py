@@ -13,7 +13,7 @@ never mixed into totals presented as real mesh activity.
 
 Sound: sound_class is the label id the NODE decided (common/sound_classes.h); sound_label /
 sound_group are just its name and group from that table, filled in by bridge_receiver.decode_meta.
-Nothing in the backend classifies sounds (SOUND_PLAN.md rule 9): species_tally() only counts.
+Nothing in the backend classifies sounds (docs/SENSORS.md): species_tally() only counts.
 """
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS mesh_log (
 CREATE INDEX IF NOT EXISTS idx_captures_node ON captures(node_id);
 CREATE INDEX IF NOT EXISTS idx_captures_received ON captures(received_at);
 
--- One row per ALFP transfer as the bridge saw it (TRANSFER_VISIBILITY.md 4.3). A capture is usually
+-- One row per ALFP transfer as the bridge saw it (docs/PROTOCOLS.md). A capture is usually
 -- two transfers (telemetry + image); captures keeps one merged row, this keeps both transfers' details.
 -- Bridge-clock fields are *_ms (ms since the bridge booted); laptop-clock fields are *_at (unix s).
 -- NULL = not reported (e.g. old firmware, or the backend started mid-transfer): shown as unavailable.
@@ -118,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_transfers_capture ON transfers(capture_row_id);
 
 
 # Columns added after the first schema. Added with ALTER TABLE when missing, so an existing
-# smartrelay.db keeps working; the sound-label rows need all nodes reflashed (HANDOFF.md).
+# smartrelay.db keeps working; the sound-label rows need all nodes reflashed (docs/BRINGUP.md).
 MIGRATIONS = [
     ("sound_conf", "INTEGER"),
     ("sound_label", "TEXT"),
@@ -301,7 +301,7 @@ class Store:
             "by_radio": {r["radio"]: r["c"] for r in by_radio},
         }
 
-    # -- transfers (TRANSFER_VISIBILITY.md 4.3) ----------------------------------------------------
+    # -- transfers (docs/PROTOCOLS.md) ----------------------------------------------------
 
     TRANSFER_COLUMNS = ("node_id", "sid", "capture_row_id", "capture_id", "kind", "radio", "size_bytes",
                         "frag_count", "frag_size", "crc_sender", "crc_bridge_ok", "crc_laptop_ok", "status",

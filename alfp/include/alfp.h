@@ -6,7 +6,7 @@
  * mesh radio (LoRa or WiFi, chosen once per transfer), and reassembles it on
  * the bridge's microSD card.
  *
- * How a transfer works (see docs/DESIGN.md for the full reasoning):
+ * How a transfer works (see docs/ALFP.md for the full reasoning):
  *   sender: hash file (CRC-32) -> MANIFEST -> DATA 0..n-1 -> POLL
  *   bridge: stores fragments straight to SD at seq * frag_size, tracks a bitmap
  *   bridge answers POLL with a NACK listing exactly the missing fragments
@@ -368,7 +368,7 @@ alfp_select_radio(const mesh_radio_t* const* pp_by_preference, uint8_t count,
  * is not fresh (within fresh_ms); at or above the threshold, prefers "wifi" and
  * falls back to "lora". Returns NULL if neither is fresh, same as
  * alfp_select_radio(). by_preference does not need "lora"/"wifi" in any
- * particular order; radios are matched by name. See docs/DESIGN.md "Radio
+ * particular order; radios are matched by name. See docs/ALFP.md "Radio
  * choice by size". */
 const mesh_radio_t*
 alfp_select_radio_for_size(const mesh_radio_t* const* pp_by_preference,

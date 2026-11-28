@@ -1,6 +1,6 @@
 """
 mlcommon.py - small helpers shared by the ml/ scripts: repo paths, the label table import,
-the label map, and CSV reading/writing with the encoding rules from SOUND_PLAN.md rule 12.
+the label map, and CSV reading/writing with the encoding rules from docs/SENSORS.md.
 """
 import csv
 import sys

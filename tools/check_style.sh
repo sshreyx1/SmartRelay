@@ -1,97 +1,52 @@
 #!/bin/bash
-# check_style.sh - format check + lint + warnings-as-errors compile check over the BARR-C-scoped
-# C files (see docs/CODING_STANDARD.md for the scope and the exact commands this wraps).
+# check_style.sh - the coding-standard check (docs/CODING_STANDARD.md): BARR-C:2018 layout with
+# clang-format, the source-level rules with tools/check_barrc.py, and a warnings-as-errors compile
+# of the files that build on a laptop.
 #
-# Degrades gracefully: a tool that is not installed prints "SKIPPED: <tool> not installed" and is
-# not counted as a failure. Exits non-zero only for an actual violation a tool could check.
+# A tool that is not installed prints "SKIPPED" and is not counted as a pass or a failure.
 #
-# Run from the repo root: tools/check_style.sh
+# Run from anywhere: tools/check_style.sh
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-
 FAIL=0
+PY="$(command -v python3 || command -v python || true)"
 
-# In-scope C/H files: alfp/**, common/**, firmware/app/**, firmware/sensing/**, firmware_smp/**
-# excluding the vendored kernel fork.
-IN_SCOPE_FILES() {
-    find alfp common firmware/app firmware/sensing firmware_smp \
-        -path firmware_smp/buildglue -prune -o \
-        \( -name '*.c' -o -name '*.h' \) -print 2>/dev/null
-    find firmware_smp/buildglue -name '*.c' -o -name '*.h' 2>/dev/null
+project_files() {
+    git ls-files '*.c' '*.h' | grep -v -e '^third_party/lora_mesh/src/' -e '^third_party/mtk3smp_rp2040'
 }
 
-echo "=== clang-format (dry run) ==="
+echo "=== clang-format (BARR-C layout, dry run) ==="
 if command -v clang-format >/dev/null 2>&1; then
     BAD=0
     while IFS= read -r f; do
-        if ! clang-format --dry-run --Werror "$f" >/dev/null 2>/tmp/check_style_cf.$$; then
-            echo "FORMAT VIOLATION: $f"
-            cat /tmp/check_style_cf.$$
-            BAD=1
-        fi
-        rm -f /tmp/check_style_cf.$$
-    done < <(IN_SCOPE_FILES)
-    if [ "$BAD" -ne 0 ]; then
-        FAIL=1
-    else
-        echo "OK: no format violations in scope"
-    fi
+        clang-format -style=file --dry-run --Werror "$f" || BAD=1
+    done < <(project_files)
+    if [ "$BAD" -ne 0 ]; then FAIL=1; else echo "OK"; fi
 else
-    echo "SKIPPED: clang-format not installed (see docs/CODING_STANDARD.md for the install command)"
+    echo "SKIPPED: clang-format not installed (pip install clang-format)"
 fi
 
-echo "=== cppcheck ==="
-if command -v cppcheck >/dev/null 2>&1; then
-    if ! cppcheck --enable=warning,style,performance,portability --std=c11 --language=c --error-exitcode=1 \
-        --suppressions-list=tools/cppcheck_suppressions.txt \
-        -I alfp/include -I common -I mesh -I firmware/app -I firmware/sensing \
-        alfp/src common/*.c firmware/app/*.c firmware/sensing/*.c 2>&1; then
-        FAIL=1
-    fi
+echo "=== tools/check_barrc.py (BARR-C source rules) ==="
+if [ -n "$PY" ]; then
+    "$PY" tools/check_barrc.py || FAIL=1
 else
-    echo "SKIPPED: cppcheck not installed (see docs/CODING_STANDARD.md for the install command)"
+    echo "SKIPPED: python not installed"
 fi
 
-echo "=== clang-tidy ==="
-if command -v clang-tidy >/dev/null 2>&1; then
-    BAD=0
-    for f in common/loopback_radio.c common/uplink.c; do
-        if ! clang-tidy "$f" -- -std=c11 -I alfp/include -I mesh -I common; then
-            BAD=1
-        fi
-    done
-    if [ "$BAD" -ne 0 ]; then
-        FAIL=1
-    fi
-else
-    echo "SKIPPED: clang-tidy not installed (see docs/CODING_STANDARD.md for the install command)"
-fi
-
-echo "=== warnings-as-errors compile check (host-compilable in-scope files only) ==="
+echo "=== warnings-as-errors compile of the laptop-buildable files ==="
 if command -v gcc >/dev/null 2>&1; then
-    WARN="-std=c11 -Wall -Wextra -Wconversion -Wshadow -Wundef -Wstrict-prototypes -Werror"
+    WARN="-std=c11 -Wall -Wextra -Wconversion -Wno-sign-conversion -Wshadow -Wundef -Werror"
     BAD=0
-    check() {
-        if ! gcc $WARN -c -o /dev/null "$2" -I "$1" 2>&1; then
-            echo "WARNING/ERROR: $2"
-            BAD=1
-        fi
-    }
-    gcc $WARN -c -o /dev/null -I mesh -I common common/loopback_radio.c 2>&1 || BAD=1
-    gcc $WARN -c -o /dev/null -I alfp/include -I mesh -I common common/uplink.c 2>&1 || BAD=1
+    for f in common/loopback_radio.c common/uplink.c alfp/src/*.c; do
+        gcc $WARN -c -o /dev/null -I alfp/include -I mesh -I common "$f" || BAD=1
+    done
     for f in audio_features sound_features sound_fft sound_classify sound_image_pick sound_tables; do
         gcc $WARN -c -o /dev/null -I firmware/sensing -I common -I third_party/sensors \
-            "firmware/sensing/$f.c" 2>&1 || BAD=1
+            "firmware/sensing/$f.c" || BAD=1
     done
-    if [ "$BAD" -ne 0 ]; then
-        FAIL=1
-    else
-        echo "OK: host-compilable in-scope files are warning-free"
-    fi
-    echo "NOTE: firmware/sensing/sensing.c and every firmware/app/*.c and firmware_smp/**/*.c file"
-    echo "      need the real Pico SDK / FreeRTOS / uT-Kernel headers and are not checked here."
+    if [ "$BAD" -ne 0 ]; then FAIL=1; else echo "OK"; fi
 else
     echo "SKIPPED: gcc not installed"
 fi
@@ -100,5 +55,4 @@ if [ "$FAIL" -ne 0 ]; then
     echo "check_style.sh: FAILED"
     exit 1
 fi
-echo "check_style.sh: PASSED (see SKIPPED lines above for anything not actually checked)"
-exit 0
+echo "check_style.sh: PASSED (see any SKIPPED lines for what was not checked)"

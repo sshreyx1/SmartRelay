@@ -1,5 +1,5 @@
 """
-TRANSFER_VISIBILITY.md 4 and 6: the bridge's "@EVT" lines -> transfers / fragments tables and the
+docs/PROTOCOLS.md: the bridge's "@EVT" lines -> transfers / fragments tables and the
 WebSocket events the dashboard uses. Everything goes through the real parser (LiveBridge.feed_line),
 exactly as the serial reader and /api/demo/ingest do.
 

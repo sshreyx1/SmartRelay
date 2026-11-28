@@ -5,7 +5,7 @@ prepare_esc50.py - pick the ESC-50 clips to play at the Pico mic and write ml/da
 Reads ESC-50's meta/esc50.csv and ml/label_map.yaml, takes --per-category clips from each mapped
 category spread evenly over the 5 ESC folds (deterministic), and writes one manifest row per clip:
 clip_id, source, category, label_id, group_id, split_key (= ESC fold), src_path.
-Split rule (SOUND_PLAN.md A2): fold 5 = test, fold 4 = val, folds 1-3 = train.
+Split rule (docs/SENSORS.md): fold 5 = test, fold 4 = val, folds 1-3 = train.
 
 Get ESC-50 first (about 650 MB) into ml/data/esc50/:
     macOS:    curl -L -o ml/data/esc50.zip https://github.com/karolpiczak/ESC-50/archive/refs/heads/master.zip

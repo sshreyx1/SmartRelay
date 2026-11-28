@@ -4,7 +4,7 @@
  * Application code calls these, never tk_* directly (CURVEBALL brief Step 3).
  *
  * Verified against third_party/mtk3smp_rp2040 commit 900e863 - see
- * docs/curveball_findings.md Step 2 for the citations behind every mapping in
+ * docs/MICROKERNEL.md
  * rtos_port_mtk3.c. Nothing here has been compile-tested (no toolchain in this
  * environment); it is written from the cited source, not guessed.
  */
@@ -107,7 +107,7 @@ extern "C"
      * FreeRTOS ticks (3.3): TXDONE 100 ms, heartbeat 3 s, bridge-lost 10 s.
      * This port has no verified microsecond hardware-timer call that doesn't
      * pull in Pico-SDK headers our build profile doesn't put on the include
-     * path (see docs/curveball_findings.md); tk_get_tim()'s millisecond SYSTIM
+     * path (see docs/MICROKERNEL.md); tk_get_tim()'s millisecond SYSTIM
      * is kernel- native and plenty of resolution for 100 ms/3 s/10 s timeouts,
      * so that is what this wraps, not time_us_32(). Always pair with
      * rtos_elapsed_ms, which does the unsigned subtraction so the 32-bit wrap
@@ -148,7 +148,7 @@ extern "C"
     int32_t  rtos_msgq_last_error(void);
 
     /* Canary-fill stack high-water check (brief 6.6: no kernel call for this
-     * exists in mtk3smp-rp2040 - see docs/curveball_findings.md - so this fills
+     * exists in mtk3smp-rp2040 - see docs/MICROKERNEL.md - so this fills
      * the task's stack with a known pattern at creation and scans for the
      * lowest byte ever touched). Returns bytes never touched, or 0 if task is
      * not a valid rtos_port-created task id. */

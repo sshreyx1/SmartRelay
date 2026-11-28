@@ -1,6 +1,6 @@
 /*
  * rtos_port_mtk3.c - rtos_port.h implemented over third_party/mtk3smp_rp2040.
- * Every call here is cited in docs/curveball_findings.md Step 2; nothing
+ * Every call here is cited in docs/MICROKERNEL.md; nothing
  * below is a guessed signature.
  */
 #include "rtos_port.h"
@@ -405,7 +405,7 @@ unsigned rtos_core_id (void)
     /* tk_get_prc() numbers from 1 (TP_PRC1=core0, TP_PRC2=core1, brief Step 2
      * item 1); used instead of Pico SDK's get_core_num() because this port's
      * Make build does not put hardware_structs/pico_platform on the include
-     * path for every console/wifi profile (docs/curveball_findings.md). */
+     * path for every console/wifi profile (docs/MICROKERNEL.md). */
     return (unsigned)(tk_get_prc() - 1);
 #else
     return 0;

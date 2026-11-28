@@ -1,7 +1,8 @@
 # ml/: sound classifier workspace
 
 Training, data recording and evaluation tools for the on-node sound classifier
-(plan: [`SOUND_PLAN.md`](../SOUND_PLAN.md), design notes: [`docs/sound/`](../docs/sound/)).
+(how it fits into the node: [`docs/SENSORS.md`](../docs/SENSORS.md), results:
+[`docs/sound/model_card.md`](../docs/sound/model_card.md)).
 The Pico does all classification. This folder only **trains** the model and exports it to C
 (`firmware/sensing/sound_model.h`). Features always come from the C extractor (`build/sound_featx`),
 never from a Python re-implementation, so training and the node see identical numbers.
@@ -35,7 +36,7 @@ py -3.11 -m venv .venv          # or py -3.12; install from python.org if missin
 
 ## Tools
 
-Pipeline order: record -> extract -> train -> export -> flash -> bench. `docs/sound/TONIGHT.md` is the timed walk-through.
+Pipeline order: record -> extract -> train -> export -> flash -> bench.
 
 | Script | What it does |
 |---|---|

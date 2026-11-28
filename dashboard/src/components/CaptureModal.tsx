@@ -11,7 +11,7 @@ interface Props {
 /**
  * Port of the old UI's SightingModal. The sound label, group and confidence
  * come from the node's own two-stage classifier (decided on the Pico, only
- * displayed here). The review/flag workflow is still TBD (SOUND_PLAN.md B20).
+ * displayed here). The review/flag workflow is still TBD (docs/SENSORS.md).
  * Everything else -- image, real sensor readings, trigger, transfer facts --
  * is the real row from the backend.
  */
@@ -151,7 +151,7 @@ export function CaptureModal({ capture, onClose }: Props) {
             </div>
 
             <div className="review-note">
-              Review workflow — TBD (flag / correct-label panel comes with the audio clips, SOUND_PLAN.md
+              Review workflow — TBD (flag / correct-label panel comes with the audio clips, docs/SENSORS.md
               B20).
             </div>
           </div>

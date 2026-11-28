@@ -19,7 +19,7 @@ Two independent checks:
    transiently (image still in flight) or permanently if a radio truly never recovered.
 
 Exits non-zero on any manifest mismatch. The capture-linkage check is informational (a capture
-missing its image is sometimes the correct, honest state -- e.g. docs/sound/TWO_NODE_TEST.md case
+missing its image is sometimes the correct, honest state -- e.g. docs/TESTING.md
 3/7 -- so it is reported, not treated as failure, unless --strict-linkage is given.
 
 **What this script's own logic has actually been exercised against**: a synthetic fixture built
@@ -159,7 +159,7 @@ def main():
         unlinked = [r for r in linkage if not r["linked"]]
         if unlinked:
             print(f"\n{len(unlinked)} of {len(linkage)} real captures missing a half "
-                 f"(image or telemetry) -- expected transiently, see docs/sound/TWO_NODE_TEST.md")
+                 f"(image or telemetry) -- expected transiently, see docs/TESTING.md")
             if a.strict_linkage:
                 exit_code = 1
     elif a.db:

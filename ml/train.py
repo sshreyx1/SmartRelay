@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-train.py - train the two-stage on-device sound classifier (SOUND_PLAN.md A5). Deterministic.
+train.py - train the two-stage on-device sound classifier (docs/SENSORS.md). Deterministic.
 
   stage 1: group (AMBIENT, BIRD, MAMMAL, INSECT_FROG, HUMAN, VEHICLE, WEATHER)
   stage 2: one model per animal group (BIRD 4 labels, MAMMAL 5, INSECT_FROG 3), trained on that group only
@@ -229,7 +229,7 @@ def main() -> int:
     if flash > cfg["flash_budget"]:
         print(f"WARNING: models need {flash} B of flash, budget {cfg['flash_budget']}")
     if t["group_macro_f1"] < 0.6:
-        print("STOP RULE: test group macro-F1 < 0.6, discuss with R before A6 (SOUND_PLAN.md A5)")
+        print("STOP RULE: test group macro-F1 < 0.6, discuss with R before A6 (docs/SENSORS.md)")
 
     models = ML_DIR / "models"
     models.mkdir(exist_ok=True)

@@ -5,7 +5,7 @@ import type { Capture, SpeciesTally } from '../lib/types'
 /**
  * What the NODE heard. The label, its group and the confidence are decided on the Pico by the
  * two-stage sound classifier (firmware/sensing/sound_classify.c) and only displayed here -- the
- * backend never classifies (SOUND_PLAN.md rule 9).
+ * backend never classifies (docs/SENSORS.md).
  */
 
 const GROUPS = new Set(['AMBIENT', 'BIRD', 'MAMMAL', 'INSECT_FROG', 'HUMAN', 'VEHICLE', 'WEATHER'])

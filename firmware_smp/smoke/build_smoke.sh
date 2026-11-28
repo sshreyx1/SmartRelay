@@ -4,7 +4,7 @@
 # proves dual-core SMP works before anything else SmartRelay-specific is in the picture.
 #
 # Requires (not available in the environment this script was written in -- see
-# docs/curveball_findings.md and firmware_smp/buildglue/check_env.sh): arm-none-eabi-gcc on
+# docs/MICROKERNEL.md and firmware_smp/buildglue/check_env.sh): arm-none-eabi-gcc on
 # PATH, PICO_SDK_PATH set (CONSOLE=usb_cdc needs TinyUSB sources from it).
 #
 #   SMP=1 NODE_ID=2 firmware_smp/smoke/build_smoke.sh
@@ -45,7 +45,7 @@ cp "$SCRIPT_DIR/sources.mk" "$BUILD_MAKE_DIR/sources.mk"
 CONFIG_H="$KERNEL_DIR/config/config.h"
 if ! grep -Eq '^#define CNF_TIMER_PERIOD[[:space:]]+10([^0-9]|$)' "$CONFIG_H"; then
     echo "error: $CONFIG_H's CNF_TIMER_PERIOD line did not match the expected '10' - the" >&2
-    echo "       submodule may have moved since this was verified; check docs/curveball_findings.md" >&2
+    echo "       submodule may have moved since this was verified; check docs/MICROKERNEL.md" >&2
     echo "       and update this script's sed pattern by hand rather than skipping it." >&2
     exit 1
 fi

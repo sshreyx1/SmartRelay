@@ -1,9 +1,9 @@
 #!/bin/sh
-# check_env.sh - CURVEBALL round 3, Task C0: does this machine have what build_smp.sh needs?
+# check_env.sh - does this machine have what build_smp.sh needs?
 #
 # Prints the versions of every tool/variable build_smp.sh (and the Pico SDK driver work in C3)
 # depends on, and whether the mtk3smp_rp2040 submodule is actually checked out. Run it before
-# attempting a build; paste its output into docs/curveball_results.md's C0 row.
+# attempting a build.
 #
 #   sh firmware_smp/buildglue/check_env.sh
 #

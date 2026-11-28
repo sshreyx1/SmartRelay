@@ -9,8 +9,7 @@ Vendored as a git submodule, pinned at commit `900e86306dc3f3dcd8bbbd23f0e986941
 - **This is not an official T-Engine Forum release.** It is an individual's port
   ("Muhamed Fauzi Bin Abbas, with AI Assistants"), 2 commits at the time this was
   vendored, 0 stars/forks/watchers, longest documented soak test 10 seconds. No
-  official uT-Kernel 3 SMP port for RP2040 exists (see ../docs/curveball_findings.md,
-  Step 2). The repo owner explicitly approved using this port despite the risk.
+  official uT-Kernel 3 SMP port for RP2040 exists (see ../docs/MICROKERNEL.md). The repo owner explicitly approved using this port despite the risk.
 - License: mixed. The uT-Kernel 3.0 core and this port's kernel-level SMP additions
   are T-License 2.2 (Copyright Ken Sakamura / TRON Forum). The RP2040 integration
   glue (lwIP port, cyw43 service, TinyUSB glue, app_program/) is Apache-2.0
@@ -21,7 +20,7 @@ Vendored as a git submodule, pinned at commit `900e86306dc3f3dcd8bbbd23f0e986941
   obligation with the T-Engine Forum that was not verified here (binary PDF, not
   read) -- flagged in the PR for a human to check before shipping.
 - Build system: GNU Make (`build_make/`), not CMake -- see
-  ../docs/curveball_findings.md Step 2 item 8 for why this repo's build
+  ../docs/MICROKERNEL.md for why this repo's build
   integration lives in ../firmware_smp/buildglue/ rather than patching this
   submodule directly.
 

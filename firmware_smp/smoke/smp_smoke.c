@@ -19,7 +19,7 @@
  * more precision into these numbers than the clock has.
  *
  * Nothing in this file has been compiled (no ARM toolchain in the environment
- * that wrote it, see docs/curveball_findings.md); it is written against
+ * that wrote it, see docs/MICROKERNEL.md); it is written against
  * rtos_port.h/log.h as they stand, not guessed.
  */
 #include <inttypes.h>

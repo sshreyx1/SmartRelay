@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_all_tests.sh - CURVEBALL round 3, Task D.5: one command, one summary table.
+# run_all_tests.sh - one command, one summary table.
 #
 #   tools/run_all_tests.sh
 #

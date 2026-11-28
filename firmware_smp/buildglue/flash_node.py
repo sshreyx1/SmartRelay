@@ -1,6 +1,6 @@
 """flash_node.py UF2 [--port COMx] [--secs N] [--keys "5:s,20:e"] [--no-flash] [--bootsel-key]
 
-Flash a node and watch its console (docs/SMP_HANDOFF.md section 4).
+Flash a node and watch its console (docs/MICROKERNEL.md).
 
 Waits for an RPI-RP2 drive, copies UF2, reopens the node's serial port, captures for N seconds,
 and sends console keys at the given second offsets ("5:s,20:e" = 's' at 5 s, 'e' at 20 s).

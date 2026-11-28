@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 make_test_payloads.py - a ladder of valid JPEGs of known, exact sizes, for testing the size-based
-radio choice (Task A, docs/DESIGN.md "Radio choice by size"): small files must go over LoRa, large
+radio choice (Task A, docs/ALFP.md "Radio choice by size"): small files must go over LoRa, large
 ones over WiFi, with the boundary right at APP_RADIO_SIZE_THRESHOLD.
 
     python3 tools/make_test_payloads.py

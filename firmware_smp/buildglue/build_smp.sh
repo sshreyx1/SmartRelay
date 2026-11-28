@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build_smp.sh - overlay SmartRelay's node firmware onto the vendored uT-Kernel 3 SMP kernel and
-# build it with the kernel's own Make (docs/curveball_findings.md Step 2 item 8: this port has no
+# build it with the kernel's own Make (docs/MICROKERNEL.md: this port has no
 # CMake integration). SMP=1 (default) is the pinned dual-core build, SMP=0 the kernel's own
 # single-core fallback.
 #

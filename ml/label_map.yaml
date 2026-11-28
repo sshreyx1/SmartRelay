@@ -1,4 +1,4 @@
-# ESC-50 category -> label name in common/sound_classes.py (SOUND_PLAN.md §3).
+# ESC-50 category -> label name in common/sound_classes.py (docs/SENSORS.md).
 # Animal categories get their own label; HUMAN / VEHICLE / WEATHER categories map to the group only.
 # AMBIENT has no ESC-50 category: it is recorded on the device (record_dataset.py --ambient).
 categories:

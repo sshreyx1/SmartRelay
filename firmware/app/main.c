@@ -86,7 +86,7 @@
  * TELEMETRY_MARKER and backend/app.py's own copy. */
 #define APP_TELEMETRY_MARKER "TELEMETRY"
 
-/* TRANSFER_VISIBILITY.md 3.3: the bridge prints one "@EVT ..." line per receive
+/* docs/PROTOCOLS.md: the bridge prints one "@EVT ..." line per receive
  * event (session start, manifest, every fragment, NACK, done, failure) so the
  * dashboard on the bridge's laptop can show a transfer while it is still
  * arriving. 0 = off. */
@@ -100,7 +100,7 @@
 #ifndef APP_RXF_EVERY
 #define APP_RXF_EVERY 1
 #endif
-/* TRANSFER_VISIBILITY.md 3.5: every node prints, once a second and only when it
+/* docs/PROTOCOLS.md: every node prints, once a second and only when it
  * relayed something, how many packets it relayed and whose they were. For
  * whoever stands at that node; 0 = off. */
 #ifndef APP_RELAY_LOG
@@ -184,7 +184,7 @@ static void on_tx_done (alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
     alfp_outbox_on_tx_done(&g_outbox, p_rep);
 }
 
-/* ---- sender's own serial (TRANSFER_VISIBILITY.md 3.5): only the person at
+/* ---- sender's own serial (docs/PROTOCOLS.md): only the person at
  * this node sees these ---- */
 
 static void on_tx_start (alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session)
@@ -283,7 +283,7 @@ static uplink_queue_t g_uplink;
 #define UPLINK_LINES_PER_PASS 8u
 static uint32_t g_longest_comms_loop_ms;
 
-/* ---- transfer events (bridge -> laptop, TRANSFER_VISIBILITY.md 3.3)
+/* ---- transfer events (bridge -> laptop, docs/PROTOCOLS.md)
  * --------------------------- */
 
 /* Route of the packet alfp_handle_packet() is working on right now (set by
@@ -562,7 +562,7 @@ static uint32_t highest_id_on_card (const alfp_storage_t* p_store)
     return s_highest_seen;
 }
 
-/* Outbox hook (TRANSFER_VISIBILITY.md 3.4): just before a job is sent, write
+/* Outbox hook (docs/PROTOCOLS.md): just before a job is sent, write
  * how long it waited since its trigger into the v2 record's queued_ms. Only for
  * captures made in THIS boot: uptime_ms of a job queued before a reboot is from
  * the old boot, so its wait cannot be measured and stays missing (0xFFFFFFFF)
@@ -717,7 +717,7 @@ static void handle_capture (const capture_meta_t* p_request)
  */
 
 /* alfp_service() with the route of each packet noted first
- * (TRANSFER_VISIBILITY.md 3.3): same bound (16 packets per radio per pass)
+ * (docs/PROTOCOLS.md): same bound (16 packets per radio per pass)
  * and the same copy-out, since ALFP reuses its packet buffer for replies. The
  * receive callbacks read g_pkt_hops / g_pkt_prev for the packet being
  * handled. */

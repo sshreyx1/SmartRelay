@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-serial_log.py - timestamped serial logger for the hardware tests (docs/sound/TESTS.md).
+serial_log.py - timestamped serial logger for the hardware tests (docs/TESTING.md).
 
 Echoes a node's serial output with a time stamp (seconds since start) and writes the same lines to
 docs/sound/evidence/<test>_<date>.log. Keys can be scripted with --send (each KEY@SECONDS is sent once at that

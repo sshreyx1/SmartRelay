@@ -48,7 +48,7 @@
 #define ALFP_HASH_CHUNK 512u
 #endif
 
-/* Radio choice by payload size (see docs/DESIGN.md "Radio choice by size" for
+/* Radio choice by payload size (see docs/ALFP.md "Radio choice by size" for
  * the measurements):
  * below this many bytes, prefer LoRa and fall back to WiFi; at or above it,
  * prefer WiFi and fall back to LoRa. Either fallback only applies if the

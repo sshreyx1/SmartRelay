@@ -768,7 +768,7 @@ static void test_outbox_prepare_meta (void)
     net_close(&net);
 }
 
-/* ---- progress callbacks (TRANSFER_VISIBILITY.md 3.2)
+/* ---- progress callbacks (docs/PROTOCOLS.md)
  * ------------------------------------- */
 
 typedef struct
