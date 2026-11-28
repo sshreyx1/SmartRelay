@@ -1,14 +1,21 @@
 /*
- * sensing.h - glue between Maryam's and Rhaylene's sensor code and the capture pipeline.
+ * sensing.h - glue between Maryam's and Rhaylene's sensor code and the capture
+ * pipeline.
  *
- * Their code is used unchanged (third_party/sensors): pir.c, sound.c, mic.c (init), dht22.c,
- * weather_tree.h. This file adds:
- *   - the dual trigger from their main.c: PIR motion AND sound trigger high at the same time
- *   - a DHT22 reading every 2 s, kept with its age so a failed sensor is reported as missing
- *   - the light reading (GP27 / ADC1) and Maryam's weather tree on (temp, humidity, light)
- *   - the 5 s audio features (audio_capture.c) instead of the 160 kB record buffer, and Rhaylene's
- *     on-node two-stage sound classifier on top of them (sound_features.c, sound_classify.c)
- *   - packing it all into capture_meta_t, which travels with the image in the ALFP MANIFEST
+ * Their code is used unchanged (third_party/sensors): pir.c, sound.c, mic.c
+ * (init), dht22.c, weather_tree.h. This file adds:
+ *   - the dual trigger from their main.c: PIR motion AND sound trigger high at
+ *   the same time
+ *   - a DHT22 reading every 2 s, kept with its age so a failed sensor is
+ *   reported as missing
+ *   - the light reading (GP27 / ADC1) and Maryam's weather tree on (temp,
+ *   humidity, light)
+ *   - the 5 s audio features (audio_capture.c) instead of the 160 kB record
+ *   buffer, and Rhaylene's
+ *     on-node two-stage sound classifier on top of them (sound_features.c,
+ *     sound_classify.c)
+ *   - packing it all into capture_meta_t, which travels with the image in the
+ *   ALFP MANIFEST
  */
 #ifndef SENSING_H
 #define SENSING_H
@@ -20,8 +27,9 @@
 #include "audio_features.h"
 #include "capture_meta.h"
 
-/* SOUND_LEGACY_MODE=1 (CMake option, default OFF): the sound fields come from mic.c's energy/ZCR thresholds
- * as on curveball, not the on-node classifier, and main.c rotates through img_NN.jpg whatever was heard.
+/* SOUND_LEGACY_MODE=1 (CMake option, default OFF): the sound fields come from
+ * mic.c's energy/ZCR thresholds as on curveball, not the on-node classifier,
+ * and main.c rotates through img_NN.jpg whatever was heard.
  * For the before/after comparison and as a fallback. */
 #ifndef SOUND_LEGACY_MODE
 #define SOUND_LEGACY_MODE 0
@@ -30,29 +38,37 @@
 typedef struct
 {
     void (*p_wait_ms)(uint32_t msec); /* sleep without hogging the CPU */
-    void (*p_timing_begin)(void);   /* make the next few ms uninterrupted (DHT22 bit timing), may be NULL */
+    /* make the next few ms uninterrupted (DHT22 bit timing), may be NULL */
+    void (*p_timing_begin)(void);
     void (*p_timing_end)(void);
 } sensing_hooks_t;
 
 typedef struct
 {
-    bool b_dht_ok;       /* a good DHT22 reading in the last SENSING_DHT_STALE_MS */
-    float32_t temp_c;      /* valid if dht_ok */
-    float32_t hum_pct;     /* valid if dht_ok */
-    uint16_t light;    /* 0-4095 */
-    int weather;       /* weather_tree.h: 0 Cloudy, 1 Hot_Dry, 2 Humid_Rainy, -1 unknown (no DHT) */
+    /* a good DHT22 reading in the last SENSING_DHT_STALE_MS */
+    bool      b_dht_ok;
+    float32_t temp_c;  /* valid if dht_ok */
+    float32_t hum_pct; /* valid if dht_ok */
+    uint16_t  light;   /* 0-4095 */
+    /* weather_tree.h: 0 Cloudy, 1 Hot_Dry, 2 Humid_Rainy, -1 unknown (no
+     * DHT) */
+    int      weather;
     uint32_t dht_fail; /* failed DHT22 reads since boot */
     uint32_t dht_good;
 } sensing_env_t;
 
-#define SENSING_DHT_PERIOD_MS 2100u /* dht22.c refuses reads closer than 2000 ms */
-#define SENSING_DHT_STALE_MS 10000u /* older than this = "missing" in the metadata */
-#define SENSING_COOLDOWN_MS 5000u   /* their main.c: 5 s PIR settle time after a capture */
+/* dht22.c refuses reads closer than 2000 ms */
+#define SENSING_DHT_PERIOD_MS 2100u
+/* older than this = "missing" in the metadata */
+#define SENSING_DHT_STALE_MS 10000u
+/* their main.c: 5 s PIR settle time after a capture */
+#define SENSING_COOLDOWN_MS 5000u
 
 void sensing_init(const sensing_hooks_t* p_hooks);
 
-/* Call every loop. Reads the DHT22 + light every SENSING_DHT_PERIOD_MS. Returns true when a new
- * DHT22 attempt was made (good or bad) so the caller can log. */
+/* Call every loop. Reads the DHT22 + light every SENSING_DHT_PERIOD_MS.
+ * Returns true when a new DHT22 attempt was made (good or bad) so the caller
+ * can log. */
 bool sensing_env_poll(uint32_t now_ms);
 
 const sensing_env_t* sensing_env(void);
@@ -61,42 +77,55 @@ const sensing_env_t* sensing_env(void);
 bool sensing_pir(void);
 bool sensing_sound_trigger(void);
 
-/* Dual trigger from their main.c: true when PIR and sound are both high and the 5 s cooldown is over. */
+/* Dual trigger from their main.c: true when PIR and sound are both high and the
+ * 5 s cooldown is over. */
 bool sensing_dual_trigger(uint32_t now_ms);
 
-/* Run one capture: records AUDIO_SECONDS of audio, re-reads light, runs the weather tree and fills
- * *m (node_id / capture_id / image_index are left for main.c). Starts the cooldown. Blocks for
- * the recording time. The sound fields are Rhaylene's on-node classifier (sound_classify.h):
- * sound_class = label id (common/sound_classes.h), sound_conf 0-100, sound_rms DC-corrected,
- * sound_zcr crossings/s; all unknown/missing if the recording failed. */
-void sensing_capture(uint32_t now_ms, uint8_t trigger_flags, capture_meta_t* p_meta, audio_result_t* p_audio);
+/* Run one capture: records AUDIO_SECONDS of audio, re-reads light, runs the
+ * weather tree and fills *m (node_id / capture_id / image_index are left for
+ * main.c). Starts the cooldown. Blocks for the recording time. The sound fields
+ * are Rhaylene's on-node classifier (sound_classify.h):
+ * sound_class = label id (common/sound_classes.h), sound_conf 0-100, sound_rms
+ * DC-corrected, sound_zcr crossings/s; all unknown/missing if the recording
+ * failed. */
+void sensing_capture(uint32_t now_ms, uint8_t trigger_flags,
+                     capture_meta_t* p_meta, audio_result_t* p_audio);
 
-/* What the last recording heard (sensing_capture() or sensing_record_sound()). In SOUND_LEGACY_MODE:
- * label_id is AMBIENT for mic.c's AMBIENT_NOISE and unknown for its other two classes (the label table has
- * no LOUD_ANIMAL_CALL / HIGH_FREQ_RUSTLE), conf is unknown, rms/zcr are mic.c's, the timings are 0. */
+/* What the last recording heard (sensing_capture() or sensing_record_sound()).
+ * In SOUND_LEGACY_MODE:
+ * label_id is AMBIENT for mic.c's AMBIENT_NOISE and unknown for its other two
+ * classes (the label table has no LOUD_ANIMAL_CALL / HIGH_FREQ_RUSTLE), conf is
+ * unknown, rms/zcr are mic.c's, the timings are 0. */
 typedef struct
 {
-    bool b_is_ok;          /* false: no DMA channel, nothing below is valid */
-    uint8_t label_id; /* common/sound_classes.h */
-    uint8_t conf;     /* 0-100 */
-    uint16_t rms;     /* DC-corrected, ADC counts */
+    bool     b_is_ok;  /* false: no DMA channel, nothing below is valid */
+    uint8_t  label_id; /* common/sound_classes.h */
+    uint8_t  conf;     /* 0-100 */
+    uint16_t rms;      /* DC-corrected, ADC counts */
     uint16_t zcr_per_s;
-    uint32_t lost;       /* samples lost to a slow task: must be 0 */
-    uint32_t feat_us;    /* time in the spectral feature code */
-    uint32_t maxcall_us; /* longest single feature call (ring slack is ~512 ms) */
-    uint32_t model_us;   /* sf_finish + both classifier stages */
+    uint32_t lost;    /* samples lost to a slow task: must be 0 */
+    uint32_t feat_us; /* time in the spectral feature code */
+    /* longest single feature call (ring slack is ~512 ms) */
+    uint32_t maxcall_us;
+    uint32_t model_us; /* sf_finish + both classifier stages */
 } sensing_sound_t;
 
-/* Record `seconds` of audio and classify it, without touching the trigger cooldown. Fills *audio
- * (legacy mic.c features) and the result returned by sensing_last_sound(). */
+/* Record `seconds` of audio and classify it, without touching the trigger
+ * cooldown. Fills *audio (legacy mic.c features) and the result returned by
+ * sensing_last_sound(). */
 bool sensing_record_sound(uint32_t seconds, audio_result_t* p_audio);
 
 const sensing_sound_t* sensing_last_sound(void);
 
-/* Prints  [SOUND] group=MAMMAL label=DOG id=20 conf=82 rms=.. zcr=.. lost=0 feat_us=.. maxcall_us=.. model_us=..
- * plus a warning if the CPU budget (25% of the recording) or the ring slack is at risk. */
+/* Prints  [SOUND] group=MAMMAL label=DOG id=20 conf=82 rms=.. zcr=.. lost=0
+ * feat_us=.. maxcall_us=.. model_us=..
+ * plus a warning if the CPU budget (25% of the recording) or the ring slack is
+ * at risk. */
 void sensing_log_sound(void);
 
 const char* sensing_weather_name(int weather);
 
 #endif
+
+/*** end of file ***/
+

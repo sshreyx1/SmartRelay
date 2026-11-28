@@ -9,3 +9,6 @@ void pir_init(void);
 bool pir_is_motion_detected(void);
 
 #endif
+
+/*** end of file ***/
+

@@ -30,25 +30,26 @@
 
 #include "tusb.h"
 
-uint32_t tusb_time_millis_api(void)
+uint32_t tusb_time_millis_api (void)
 {
-    volatile uint32_t const* p_timer_raw_low = (volatile uint32_t const*)0x40054028u;
+    volatile uint32_t const* p_timer_raw_low =
+        (volatile uint32_t const*)0x40054028u;
     return *p_timer_raw_low / 1000U;
 }
 
-int tm_tusb_init(void)
+int tm_tusb_init (void)
 {
     return tusb_init() ? 1 : 0;
 }
 
-void tm_tusb_service(void)
+void tm_tusb_service (void)
 {
     tud_task();
 }
 
 /* True while the device stack still has queued events to process.  Used to
    drain a whole burst without returning to the scheduler between events. */
-int tm_tusb_event_ready(void)
+int tm_tusb_event_ready (void)
 {
     return tud_task_event_ready() ? 1 : 0;
 }
@@ -59,28 +60,28 @@ int tm_tusb_event_ready(void)
  * line state (DTR), which many terminal programs never assert, so gating on
  * it silently discards all output on an otherwise working link.
  */
-int tm_tusb_mounted(void)
+int tm_tusb_mounted (void)
 {
     return tud_mounted() ? 1 : 0;
 }
 
 /* DTR from the host.  Diagnostic only -- do not gate output on this. */
-int tm_tusb_connected(void)
+int tm_tusb_connected (void)
 {
     return tud_cdc_connected() ? 1 : 0;
 }
 
-unsigned tm_tusb_write_available(void)
+unsigned tm_tusb_write_available (void)
 {
     return tud_cdc_write_available();
 }
 
-void tm_tusb_write_char(char value)
+void tm_tusb_write_char (char value)
 {
     (void)tud_cdc_write_char(value);
 }
 
-void tm_tusb_write_flush(void)
+void tm_tusb_write_flush (void)
 {
     (void)tud_cdc_write_flush();
 }
@@ -92,18 +93,19 @@ void tm_tusb_write_flush(void)
  * plus a compiler barrier is enough, no spinlock needed. */
 #define CONSOLE_RX_RING_SIZE 32u
 static volatile unsigned char console_rx_ring[CONSOLE_RX_RING_SIZE];
-static volatile unsigned console_rx_head;
-static volatile unsigned console_rx_tail;
+static volatile unsigned      console_rx_head;
+static volatile unsigned      console_rx_tail;
 
-void tm_tusb_discard_input(void)
+void tm_tusb_discard_input (void)
 {
     while (tud_cdc_available())
     {
         unsigned char byte = (unsigned char)tud_cdc_read_char();
-        unsigned next = (console_rx_head + 1u) % CONSOLE_RX_RING_SIZE;
+        unsigned      next = (console_rx_head + 1u) % CONSOLE_RX_RING_SIZE;
         if (next == console_rx_tail)
         {
-            continue; /* ring full: drop the byte, same policy as the old discard */
+            /* ring full: drop the byte, same policy as the old discard */
+            continue;
         }
         console_rx_ring[console_rx_head] = byte;
         __asm volatile("" ::: "memory");
@@ -111,7 +113,7 @@ void tm_tusb_discard_input(void)
     }
 }
 
-int tm_console_rx_getchar(void)
+int tm_console_rx_getchar (void)
 {
     if (console_rx_tail == console_rx_head)
     {
@@ -130,24 +132,30 @@ int tm_console_rx_getchar(void)
 #include "hardware/structs/usb.h"
 #include "hardware/regs/usb.h"
 
-uint32_t tm_tusb_diag_controller_en(void)
+uint32_t tm_tusb_diag_controller_en (void)
 {
     return (usb_hw->main_ctrl & USB_MAIN_CTRL_CONTROLLER_EN_BITS) ? 1u : 0u;
 }
 
-uint32_t tm_tusb_diag_pullup_en(void)
+uint32_t tm_tusb_diag_pullup_en (void)
 {
     return (usb_hw->sie_ctrl & USB_SIE_CTRL_PULLUP_EN_BITS) ? 1u : 0u;
 }
 
-uint32_t tm_tusb_diag_bus_seen(void)
+uint32_t tm_tusb_diag_bus_seen (void)
 {
     /* Either the host has driven a bus reset, or the SIE reports a
        connection.  Both indicate the host is actually talking to us. */
-    return (usb_hw->sie_status & (USB_SIE_STATUS_BUS_RESET_BITS | USB_SIE_STATUS_CONNECTED_BITS)) ? 1u : 0u;
+    return (usb_hw->sie_status &
+            (USB_SIE_STATUS_BUS_RESET_BITS | USB_SIE_STATUS_CONNECTED_BITS))
+               ? 1u
+               : 0u;
 }
 
-uint32_t tm_tusb_diag_inte(void)
+uint32_t tm_tusb_diag_inte (void)
 {
     return usb_hw->inte;
 }
+
+/*** end of file ***/
+

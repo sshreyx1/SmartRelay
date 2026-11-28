@@ -6,9 +6,9 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 
-void board_spi1_idle(void)
+void board_spi1_idle (void)
 {
-    const uint pins[2] = { BOARD_LORA_CS_GPIO, BOARD_SD_CS_GPIO };
+    const uint pins[2] = {BOARD_LORA_CS_GPIO, BOARD_SD_CS_GPIO};
     for (int idx = 0; idx < 2; idx++)
     {
         gpio_init(pins[idx]);
@@ -17,7 +17,10 @@ void board_spi1_idle(void)
     }
 }
 
-void board_spi1_after_lora(void)
+void board_spi1_after_lora (void)
 {
     spi_set_baudrate(spi1, SPI1_BAUD_HZ);
 }
+
+/*** end of file ***/
+

@@ -7,13 +7,14 @@
  */
 #include <tk/tkernel.h>
 
-void app_main_smp(void);            /* firmware_smp/app/main_smp.c */
-void smartrelay_runtime_init(void); /* firmware_smp/buildglue/pico_runtime_mtk3.c */
+void app_main_smp(void); /* firmware_smp/app/main_smp.c */
+/* firmware_smp/buildglue/pico_runtime_mtk3.c */
+void smartrelay_runtime_init(void);
 
-EXPORT INT usermain(void)
+EXPORT INT usermain (void)
 {
-    /* Pico SDK runtime pieces (timer tick, clock bookkeeping, peripheral resets) before any
-     * driver runs; see pico_runtime_mtk3.c. */
+    /* Pico SDK runtime pieces (timer tick, clock bookkeeping, peripheral
+     * resets) before any driver runs; see pico_runtime_mtk3.c. */
     smartrelay_runtime_init();
     app_main_smp();
     /* usermain must not return (brief/app_main.c:522-524: the kernel shuts
@@ -21,3 +22,6 @@ EXPORT INT usermain(void)
     tk_slp_tsk(TMO_FEVR);
     return 0;
 }
+
+/*** end of file ***/
+

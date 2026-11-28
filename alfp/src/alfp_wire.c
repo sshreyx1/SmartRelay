@@ -1,5 +1,6 @@
 /*
- * alfp_wire.c - encode/decode ALFP packets. Pure functions, no state, no allocation.
+ * alfp_wire.c - encode/decode ALFP packets. Pure functions, no state, no
+ * allocation.
  */
 #include "alfp_wire.h"
 
@@ -7,15 +8,16 @@
 
 #include "alfp_crc.h"
 
-/* ---- little-endian helpers ------------------------------------------------------ */
+/* ---- little-endian helpers
+ * ------------------------------------------------------ */
 
-static void put16(uint8_t* p_buf, uint16_t value)
+static void put16 (uint8_t* p_buf, uint16_t value)
 {
     p_buf[0] = (uint8_t)value;
     p_buf[1] = (uint8_t)(value >> 8);
 }
 
-static void put32(uint8_t* p_buf, uint32_t value)
+static void put32 (uint8_t* p_buf, uint32_t value)
 {
     p_buf[0] = (uint8_t)value;
     p_buf[1] = (uint8_t)(value >> 8);
@@ -23,36 +25,39 @@ static void put32(uint8_t* p_buf, uint32_t value)
     p_buf[3] = (uint8_t)(value >> 24);
 }
 
-static uint16_t get16(const uint8_t* p_buf)
+static uint16_t get16 (const uint8_t* p_buf)
 {
     return (uint16_t)(p_buf[0] | (p_buf[1] << 8));
 }
 
-static uint32_t get32(const uint8_t* p_buf)
+static uint32_t get32 (const uint8_t* p_buf)
 {
-    return (uint32_t)p_buf[0] | ((uint32_t)p_buf[1] << 8) | ((uint32_t)p_buf[2] << 16) | ((uint32_t)p_buf[3] << 24);
+    return (uint32_t)p_buf[0] | ((uint32_t)p_buf[1] << 8) |
+           ((uint32_t)p_buf[2] << 16) | ((uint32_t)p_buf[3] << 24);
 }
 
-static uint8_t b0(uint8_t type)
+static uint8_t b0 (uint8_t type)
 {
     return (uint8_t)((ALFP_VERSION << 4) | (type & 0x0Fu));
 }
 
 /* Appends the CRC-16 of out[0..len) at out[len], returns len + 2. */
-static uint16_t seal(uint8_t* p_out, uint16_t len)
+static uint16_t seal (uint8_t* p_out, uint16_t len)
 {
     put16(p_out + len, alfp_crc16(ALFP_CRC16_INIT, p_out, len));
     return (uint16_t)(len + 2u);
 }
 
-static bool bit_get(const uint8_t* p_bitmap, uint16_t idx)
+static bool bit_get (const uint8_t* p_bitmap, uint16_t idx)
 {
     return (p_bitmap[idx >> 3] >> (idx & 7u)) & 1u;
 }
 
-/* ---- encoders -------------------------------------------------------------------- */
+/* ---- encoders
+ * -------------------------------------------------------------------- */
 
-uint16_t alfp_enc_manifest(uint8_t* p_out, uint16_t cap, uint16_t sid, const alfp_manifest_t* p_manifest)
+uint16_t alfp_enc_manifest (uint8_t* p_out, uint16_t cap, uint16_t sid,
+                            const alfp_manifest_t* p_manifest)
 {
     uint16_t len = (uint16_t)(ALFP_MANIFEST_OVERHEAD + p_manifest->meta_len);
     if ((len > cap) || (p_manifest->meta_len > ALFP_MAX_META))
@@ -74,7 +79,8 @@ uint16_t alfp_enc_manifest(uint8_t* p_out, uint16_t cap, uint16_t sid, const alf
     return seal(p_out, (uint16_t)(17u + p_manifest->meta_len));
 }
 
-uint16_t alfp_enc_data_header(uint8_t* p_out, uint16_t sid, uint16_t seq, uint16_t count)
+uint16_t alfp_enc_data_header (uint8_t* p_out, uint16_t sid, uint16_t seq,
+                               uint16_t count)
 {
     p_out[0] = b0(ALFP_T_DATA);
     put16(p_out + 1, sid);
@@ -83,12 +89,13 @@ uint16_t alfp_enc_data_header(uint8_t* p_out, uint16_t sid, uint16_t seq, uint16
     return 7u; /* payload goes at out + 7 */
 }
 
-uint16_t alfp_enc_data_finish(uint8_t* p_out, uint16_t payload_len)
+uint16_t alfp_enc_data_finish (uint8_t* p_out, uint16_t payload_len)
 {
     return seal(p_out, (uint16_t)(7u + payload_len));
 }
 
-uint16_t alfp_enc_poll(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t round)
+uint16_t alfp_enc_poll (uint8_t* p_out, uint16_t cap, uint16_t sid,
+                        uint8_t round)
 {
     if (cap < ALFP_POLL_LEN)
     {
@@ -100,7 +107,8 @@ uint16_t alfp_enc_poll(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t round
     return seal(p_out, 4);
 }
 
-uint16_t alfp_enc_ack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t status)
+uint16_t alfp_enc_ack (uint8_t* p_out, uint16_t cap, uint16_t sid,
+                       uint8_t status)
 {
     if (cap < ALFP_ACK_LEN)
     {
@@ -112,8 +120,10 @@ uint16_t alfp_enc_ack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t status
     return seal(p_out, 4);
 }
 
-uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags, uint8_t round,
-                       const uint8_t* p_have_bitmap, uint16_t frag_count, bool b_all)
+uint16_t alfp_enc_nack (uint8_t* p_out, uint16_t cap, uint16_t sid,
+                        uint8_t flags, uint8_t round,
+                        const uint8_t* p_have_bitmap, uint16_t frag_count,
+                        bool b_all)
 {
     if (cap < ALFP_NACK_MIN)
     {
@@ -132,8 +142,8 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
 
     /* Find the missing range and count. */
     uint16_t n_missing = 0;
-    uint16_t first = 0;
-    uint16_t last = 0;
+    uint16_t first     = 0;
+    uint16_t last      = 0;
     for (uint16_t idx = 0; idx < frag_count; idx++)
     {
         if (!bit_get(p_have_bitmap, idx))
@@ -153,16 +163,17 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
         return seal(p_out, 6);
     }
 
-    uint16_t nbits = (uint16_t)(last - first + 1u);
-    uint32_t list_body = 1u + 2u * (uint32_t)n_missing;
+    uint16_t nbits       = (uint16_t)(last - first + 1u);
+    uint32_t list_body   = 1u + 2u * (uint32_t)n_missing;
     uint32_t bitmap_body = 4u + (uint32_t)((nbits + 7u) / 8u);
-    uint32_t room = (uint32_t)cap - 8u; /* 6 header bytes + 2 crc */
+    uint32_t room        = (uint32_t)cap - 8u; /* 6 header bytes + 2 crc */
 
-    bool b_use_list = (n_missing <= 255u) && (list_body <= bitmap_body) && (list_body <= room);
+    bool b_use_list = (n_missing <= 255u) && (list_body <= bitmap_body) &&
+                      (list_body <= room);
     if (b_use_list)
     {
-        p_out[5] = ALFP_NACK_FMT_LIST;
-        p_out[6] = (uint8_t)n_missing;
+        p_out[5]       = ALFP_NACK_FMT_LIST;
+        p_out[6]       = (uint8_t)n_missing;
         uint16_t width = 7;
         for (uint16_t idx = first; idx <= last; idx++)
         {
@@ -177,7 +188,8 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
 
     if (bitmap_body > room)
     {
-        /* Cannot happen with ALFP_MAX_FRAGS=512 (64-byte bitmap), but stay safe: ask for everything. */
+        /* Cannot happen with ALFP_MAX_FRAGS=512 (64-byte bitmap), but stay
+         * safe: ask for everything. */
         p_out[5] = ALFP_NACK_FMT_ALL;
         return seal(p_out, 6);
     }
@@ -197,9 +209,10 @@ uint16_t alfp_enc_nack(uint8_t* p_out, uint16_t cap, uint16_t sid, uint8_t flags
     return seal(p_out, (uint16_t)(10u + nbytes));
 }
 
-/* ---- decoder --------------------------------------------------------------------- */
+/* ---- decoder
+ * --------------------------------------------------------------------- */
 
-alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
+alfp_dec_t alfp_decode (const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
 {
     if (len < 5u) /* b0 + sid2 + crc2 is the shortest conceivable packet */
     {
@@ -218,7 +231,7 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
     uint16_t body = (uint16_t)(len - 2u); /* bytes before the CRC */
     memset(p_pkt, 0, sizeof(*p_pkt));
     p_pkt->type = p_buf[0] & 0x0Fu;
-    p_pkt->sid = get16(p_buf + 1);
+    p_pkt->sid  = get16(p_buf + 1);
 
     switch (p_pkt->type)
     {
@@ -229,23 +242,27 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
                 return ALFP_DEC_SHORT;
             }
             alfp_manifest_t* p_manifest = &p_pkt->body.manifest;
-            p_manifest->file_size = get32(p_buf + 3);
-            p_manifest->frag_count = get16(p_buf + 7);
-            p_manifest->frag_size = get16(p_buf + 9);
-            p_manifest->file_crc32 = get32(p_buf + 11);
-            p_manifest->radio_id = p_buf[15];
-            p_manifest->meta_len = p_buf[16];
-            p_manifest->p_meta = p_buf + 17;
-            if (((uint32_t)17u + p_manifest->meta_len != body) || (p_manifest->meta_len > ALFP_MAX_META))
+            p_manifest->file_size       = get32(p_buf + 3);
+            p_manifest->frag_count      = get16(p_buf + 7);
+            p_manifest->frag_size       = get16(p_buf + 9);
+            p_manifest->file_crc32      = get32(p_buf + 11);
+            p_manifest->radio_id        = p_buf[15];
+            p_manifest->meta_len        = p_buf[16];
+            p_manifest->p_meta          = p_buf + 17;
+            if (((uint32_t)17u + p_manifest->meta_len != body) ||
+                (p_manifest->meta_len > ALFP_MAX_META))
             {
                 return ALFP_DEC_BAD_FIELD;
             }
-            if ((0 == p_manifest->frag_size) || (0 == p_manifest->frag_count) || (0 == p_manifest->file_size))
+            if ((0 == p_manifest->frag_size) || (0 == p_manifest->frag_count) ||
+                (0 == p_manifest->file_size))
             {
                 return ALFP_DEC_BAD_FIELD;
             }
             /* frag_count must be exactly ceil(file_size / frag_size) */
-            uint32_t expect = (p_manifest->file_size + p_manifest->frag_size - 1u) / p_manifest->frag_size;
+            uint32_t expect =
+                (p_manifest->file_size + p_manifest->frag_size - 1u) /
+                p_manifest->frag_size;
             if (expect != p_manifest->frag_count)
             {
                 return ALFP_DEC_BAD_FIELD;
@@ -259,11 +276,12 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
                 return ALFP_DEC_SHORT;
             }
             alfp_data_t* p_data = &p_pkt->body.data;
-            p_data->seq = get16(p_buf + 3);
-            p_data->frag_count = get16(p_buf + 5);
-            p_data->p_payload = p_buf + 7;
-            p_data->len = (uint16_t)(body - 7u);
-            if ((0 == p_data->frag_count) || (p_data->seq >= p_data->frag_count))
+            p_data->seq         = get16(p_buf + 3);
+            p_data->frag_count  = get16(p_buf + 5);
+            p_data->p_payload   = p_buf + 7;
+            p_data->len         = (uint16_t)(body - 7u);
+            if ((0 == p_data->frag_count) ||
+                (p_data->seq >= p_data->frag_count))
             {
                 return ALFP_DEC_BAD_FIELD;
             }
@@ -290,9 +308,9 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
                 return ALFP_DEC_SHORT;
             }
             alfp_nack_t* p_nack = &p_pkt->body.nack;
-            p_nack->flags = p_buf[3];
-            p_nack->round = p_buf[4];
-            p_nack->fmt = p_buf[5];
+            p_nack->flags       = p_buf[3];
+            p_nack->round       = p_buf[4];
+            p_nack->fmt         = p_buf[5];
             switch (p_nack->fmt)
             {
                 case ALFP_NACK_FMT_ALL:
@@ -303,18 +321,21 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
                     {
                         return ALFP_DEC_SHORT;
                     }
-                    p_nack->count = p_buf[6];
+                    p_nack->count  = p_buf[6];
                     p_nack->p_list = p_buf + 7;
-                    return (7u + 2u * (uint32_t)p_nack->count == body) ? ALFP_DEC_OK : ALFP_DEC_BAD_FIELD;
+                    return (7u + 2u * (uint32_t)p_nack->count == body)
+                               ? ALFP_DEC_OK
+                               : ALFP_DEC_BAD_FIELD;
                 case ALFP_NACK_FMT_BITMAP:
                     if (body < 10u)
                     {
                         return ALFP_DEC_SHORT;
                     }
-                    p_nack->base = get16(p_buf + 6);
-                    p_nack->nbits = get16(p_buf + 8);
+                    p_nack->base     = get16(p_buf + 6);
+                    p_nack->nbits    = get16(p_buf + 8);
                     p_nack->p_bitmap = p_buf + 10;
-                    if ((0 == p_nack->nbits) || (10u + (uint32_t)(p_nack->nbits + 7u) / 8u != body))
+                    if ((0 == p_nack->nbits) ||
+                        (10u + (uint32_t)(p_nack->nbits + 7u) / 8u != body))
                     {
                         return ALFP_DEC_BAD_FIELD;
                     }
@@ -328,7 +349,9 @@ alfp_dec_t alfp_decode(const uint8_t* p_buf, uint16_t len, alfp_pkt_t* p_pkt)
     }
 }
 
-void alfp_nack_for_each(const alfp_nack_t* p_nack, uint16_t frag_count, void (*p_callback)(uint16_t seq, void* p_user), void* p_user)
+void alfp_nack_for_each (const alfp_nack_t* p_nack, uint16_t frag_count,
+                         void (*p_callback)(uint16_t seq, void* p_user),
+                         void* p_user)
 {
     switch (p_nack->fmt)
     {
@@ -365,3 +388,6 @@ void alfp_nack_for_each(const alfp_nack_t* p_nack, uint16_t frag_count, void (*p
             break;
     }
 }
+
+/*** end of file ***/
+

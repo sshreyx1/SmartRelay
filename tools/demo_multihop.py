@@ -41,7 +41,7 @@ STATS = re.compile(r"mesh stats: tx (\d+) rx (\d+) delivered (\d+) relayed (\d+)
 def neighbours() -> dict:
     """Who hears whom, read from wifi_mesh_config.h (the same table the firmware uses)."""
     text = (WM / "wifi_mesh_config.h").read_text(encoding="utf-8")
-    body = text[text.index("WIFI_MESH_NEIGHBOURS"):]
+    body = text[text.index("wifi_mesh_neighbours["):]
     body = body[body.index("{") + 1:body.index("};")]
     rows = [r for r in (ln.split("/*")[0].strip().rstrip(",") for ln in body.splitlines()) if r]
     return {i: sorted(int(n) for n in re.findall(r"NB\((\d)\)", row)) for i, row in enumerate(rows) if i}

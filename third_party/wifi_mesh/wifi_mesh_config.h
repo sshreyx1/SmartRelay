@@ -13,17 +13,17 @@
  * Index = node ID (1-5 = A-E). Index 0 is unused.                        */
 /* DEVIATION (BARR-C 4.2.c.ii, storage allocated in a header file): this table
  * and the neighbour table below are small static const lookup tables (42 bytes)
- * that each includer gets its own copy of. They are kept here so the demo layout
- * is edited in one place; moving them to a .c would change the FreeRTOS, SMP and
- * host build file lists.
+ * that each includer gets its own copy of. They are kept here so the demo
+ * layout is edited in one place; moving them to a .c would change the FreeRTOS,
+ * SMP and host build file lists.
  * Approved by: ____________________ (project manager), date: __________ */
 static const uint8_t wifi_mesh_macs[6][6] = {
-    {0, 0, 0, 0, 0, 0},                       /* 0: unused          */
-    {0xAC, 0x0B, 0xFB, 0xC7, 0x7F, 0xE9},     /* 1: A  <- WST-1     */
-    {0xAC, 0x0B, 0xFB, 0xC8, 0x19, 0x96},     /* 2: B  <- WST-2     */
-    {0xAC, 0x0B, 0xFB, 0xC7, 0xF8, 0x91},     /* 3: C  <- WST-3     */
-    {0xAC, 0x0B, 0xFB, 0xC7, 0xE2, 0xFD},     /* 4: D  <- WST-4     */
-    {0xAC, 0x0B, 0xFB, 0xC8, 0x19, 0xC1},     /* 5: E  <- WST-5     */
+    {0, 0, 0, 0, 0, 0},                   /* 0: unused          */
+    {0xAC, 0x0B, 0xFB, 0xC7, 0x7F, 0xE9}, /* 1: A  <- WST-1     */
+    {0xAC, 0x0B, 0xFB, 0xC8, 0x19, 0x96}, /* 2: B  <- WST-2     */
+    {0xAC, 0x0B, 0xFB, 0xC7, 0xF8, 0x91}, /* 3: C  <- WST-3     */
+    {0xAC, 0x0B, 0xFB, 0xC7, 0xE2, 0xFD}, /* 4: D  <- WST-4     */
+    {0xAC, 0x0B, 0xFB, 0xC8, 0x19, 0xC1}, /* 5: E  <- WST-5     */
 };
 
 /* ---------- Demo layout (who can "hear" whom) ----------
@@ -39,27 +39,38 @@ static const uint8_t wifi_mesh_macs[6][6] = {
  *        A ----- D
  *
  * Bit n set = node n is a neighbour.                                     */
+/* clang-format off: tools/demo_multihop.py reads this table as text */
 #define NB(n) (1u << (n))
 static const uint8_t wifi_mesh_neighbours[6] = {
     0,
-    NB(2) | NB(3) | NB(4),            /* A: B, C, D    */
-    NB(1) | NB(3) | NB(4),            /* B: A, C, D    */
-    NB(1) | NB(2) | NB(4) | NB(5),    /* C: A, B, D, E */
-    NB(1) | NB(2) | NB(3) | NB(5),    /* D: A, B, C, E */
-    NB(3) | NB(4),                    /* E: C, D       */
+    NB(2) | NB(3) | NB(4),         /* A: B, C, D    */
+    NB(1) | NB(3) | NB(4),         /* B: A, C, D    */
+    NB(1) | NB(2) | NB(4) | NB(5), /* C: A, B, D, E */
+    NB(1) | NB(2) | NB(3) | NB(5), /* D: A, B, C, E */
+    NB(3) | NB(4),                 /* E: C, D       */
 };
 #undef NB
+/* clang-format on */
 
 /* ---------- Agreed numbers (Phase 2) ---------- */
-#define WIFI_MESH_BRIDGE_NODE      1       /* node A is plugged into the laptop */
-#define WIFI_MESH_HOP_LIMIT        4       /* relays allowed per packet         */
-#define WIFI_MESH_DUP_WINDOW_MS    30000   /* remember packet IDs for 30 s      */
-#define WIFI_MESH_HEARTBEAT_MS     3000    /* bridge heartbeat period           */
-#define WIFI_MESH_RELAY_DELAY_MIN  5       /* random wait before relaying (ms)  */
-#define WIFI_MESH_RELAY_DELAY_MAX  30
-#define WIFI_MESH_SEND_QUEUE       8
-#define WIFI_MESH_RELAY_QUEUE      8
-#define WIFI_MESH_RECV_QUEUE       8
-#define WIFI_MESH_DUP_CACHE        1024    /* packet IDs remembered             */
+/* node A is plugged into the laptop */
+#define WIFI_MESH_BRIDGE_NODE 1
+/* relays allowed per packet */
+#define WIFI_MESH_HOP_LIMIT 4
+/* remember packet IDs for 30 s */
+#define WIFI_MESH_DUP_WINDOW_MS 30000
+/* bridge heartbeat period */
+#define WIFI_MESH_HEARTBEAT_MS 3000
+/* random wait before relaying (ms) */
+#define WIFI_MESH_RELAY_DELAY_MIN 5
+#define WIFI_MESH_RELAY_DELAY_MAX 30
+#define WIFI_MESH_SEND_QUEUE      8
+#define WIFI_MESH_RELAY_QUEUE     8
+#define WIFI_MESH_RECV_QUEUE      8
+/* packet IDs remembered */
+#define WIFI_MESH_DUP_CACHE 1024
 
 #endif
+
+/*** end of file ***/
+

@@ -9,3 +9,6 @@ void sound_init(void);
 bool sound_is_triggered(void);
 
 #endif
+
+/*** end of file ***/
+

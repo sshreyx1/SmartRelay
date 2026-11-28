@@ -24,10 +24,10 @@
 #include "mesh_radio.h"
 
 #ifndef MESH_INTERNAL
-#define MESH_INTERNAL 0xFE   /* relayed + updates last_heard, never delivered */
+#define MESH_INTERNAL 0xFE /* relayed + updates last_heard, never delivered */
 #endif
 
-#define WIFI_MESH_MAX_PAYLOAD 245   /* 250 ESP-NOW bytes - 5 header bytes */
+#define WIFI_MESH_MAX_PAYLOAD 245 /* 250 ESP-NOW bytes - 5 header bytes */
 
 /* The radio object the fragmentation layer uses. */
 extern const mesh_radio_t g_wifi_mesh;
@@ -51,12 +51,16 @@ uint32_t wifi_mesh_filtered_count(void);
 
 /* Route of the packet recv() returned most recently (not part of mesh_radio_t):
  *   hops     links it travelled (1 = heard straight from its source)
- *   prev_hop node we heard it from, from the sender WST's MAC (0 = not in the table)
- * Returns false (and zeros) if recv() has not returned a packet yet.            */
-bool wifi_mesh_last_recv_info(uint8_t *p_hops, uint8_t *p_prev_hop);
+ *   prev_hop node we heard it from, from the sender WST's MAC (0 = not in the
+ *   table)
+ * Returns false (and zeros) if recv() has not returned a packet yet. */
+bool wifi_mesh_last_recv_info(uint8_t* p_hops, uint8_t* p_prev_hop);
 
 /* Packets from node src (1-5) this node has queued for relaying since boot
  * (wraps at 65536; use differences).                                        */
 uint16_t wifi_mesh_relayed_from(uint8_t src);
 
 #endif
+
+/*** end of file ***/
+

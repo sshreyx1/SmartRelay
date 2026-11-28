@@ -9,21 +9,25 @@ extern "C"
 #include "float_types.h"
 #include "pico/stdlib.h"
 
-#define DHT_OK 0
-#define DHT_ERROR_TIMEOUT -1
+#define DHT_OK             0
+#define DHT_ERROR_TIMEOUT  -1
 #define DHT_ERROR_CHECKSUM -2
 
-void dht_init();
-bool dht_read(float32_t *p_temperature, float32_t *p_humidity);
+    void dht_init();
+    bool dht_read(float32_t* p_temperature, float32_t* p_humidity);
 
-/* Called around the ~5 ms bit-timing part of dht_read() (not the 20 ms start pulse). Weak no-ops
- * in dht22.c; the dual-core firmware (firmware_smp/app/main_smp.c) masks interrupts on the
- * sensors core here, as agreed after Tri 1. Must not block or call the RTOS. */
-void dht_timing_enter(void);
-void dht_timing_exit(void);
+    /* Called around the ~5 ms bit-timing part of dht_read() (not the 20 ms
+     * start pulse). Weak no-ops in dht22.c; the dual-core firmware
+     * (firmware_smp/app/main_smp.c) masks interrupts on the sensors core here,
+     * as agreed after Tri 1. Must not block or call the RTOS. */
+    void dht_timing_enter(void);
+    void dht_timing_exit(void);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif // DHT22_H
+
+/*** end of file ***/
+

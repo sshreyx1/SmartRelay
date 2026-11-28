@@ -7,14 +7,16 @@
 #ifndef ALFP_CONFIG_H
 #define ALFP_CONFIG_H
 
-/* Largest file: ALFP_MAX_FRAGS fragments. At 236-241 bytes per fragment that is ~120 kB,
- * far above the 3-10 kB sample images, and keeps each bitmap at 64 bytes. */
+/* Largest file: ALFP_MAX_FRAGS fragments. At 236-241 bytes per fragment that is
+ * ~120 kB, far above the 3-10 kB sample images, and keeps each bitmap at 64
+ * bytes. */
 #ifndef ALFP_MAX_FRAGS
 #define ALFP_MAX_FRAGS 512u
 #endif
 #define ALFP_BITMAP_BYTES ((ALFP_MAX_FRAGS + 7u) / 8u)
 
-/* Largest packet we ever build or accept (LoRa limit is 255 including the 5-byte mesh header). */
+/* Largest packet we ever build or accept (LoRa limit is 255 including the
+ * 5-byte mesh header). */
 #ifndef ALFP_MAX_PKT
 #define ALFP_MAX_PKT 250u
 #endif
@@ -24,12 +26,14 @@
 #define ALFP_MAX_META 64u
 #endif
 
-/* Concurrent incoming transfers at the bridge (one per field node is enough: nodes send one at a time). */
+/* Concurrent incoming transfers at the bridge (one per field node is enough:
+ * nodes send one at a time). */
 #ifndef ALFP_RX_SESSIONS
 #define ALFP_RX_SESSIONS 4u
 #endif
 
-/* Recently completed sessions remembered so a lost ACK can be re-sent instead of restarting. */
+/* Recently completed sessions remembered so a lost ACK can be re-sent instead
+ * of restarting. */
 #ifndef ALFP_DONE_MEMORY
 #define ALFP_DONE_MEMORY 8u
 #endif
@@ -44,13 +48,18 @@
 #define ALFP_HASH_CHUNK 512u
 #endif
 
-/* Radio choice by payload size (see docs/DESIGN.md "Radio choice by size" for the measurements):
- * below this many bytes, prefer LoRa and fall back to WiFi; at or above it, prefer WiFi and fall
- * back to LoRa. Either fallback only applies if the preferred radio's bridge entry is not fresh.
- * 0 disables size-based choice entirely (alfp_outbox falls back to the plain preference-order
- * alfp_select_radio()). */
+/* Radio choice by payload size (see docs/DESIGN.md "Radio choice by size" for
+ * the measurements):
+ * below this many bytes, prefer LoRa and fall back to WiFi; at or above it,
+ * prefer WiFi and fall back to LoRa. Either fallback only applies if the
+ * preferred radio's bridge entry is not fresh.
+ * 0 disables size-based choice entirely (alfp_outbox falls back to the plain
+ * preference-order alfp_select_radio()). */
 #ifndef APP_RADIO_SIZE_THRESHOLD
 #define APP_RADIO_SIZE_THRESHOLD 1024u
 #endif
 
 #endif
+
+/*** end of file ***/
+

@@ -15,10 +15,12 @@ extern "C"
     /* Call once from usermain(), before any task touches a Pico SDK driver. */
     void smartrelay_runtime_init(void);
 
-    /* true when running in a kernel task with interrupts enabled (so a kernel delay is allowed). */
+    /* true when running in a kernel task with interrupts enabled (so a kernel
+     * delay is allowed). */
     bool smartrelay_in_task(void);
 
-    /* Every printf/puts/putchar byte lands here. Weak default discards; the firmware overrides it. */
+    /* Every printf/puts/putchar byte lands here. Weak default discards; the
+     * firmware overrides it. */
     void smartrelay_stdout_putc(char chr);
 
     /* Bytes of the newlib heap handed out so far (it never shrinks). */
@@ -32,3 +34,6 @@ extern "C"
 #endif
 
 #endif /* PICO_RUNTIME_MTK3_H */
+
+/*** end of file ***/
+

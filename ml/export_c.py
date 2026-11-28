@@ -22,6 +22,9 @@ import numpy as np
 
 from mlcommon import ML_DIR, REPO_ROOT, resolve, sc
 
+sys.path.insert(0, str(REPO_ROOT / "tools"))
+from c_style import finish_c_file  # noqa: E402
+
 OUT = REPO_ROOT / "firmware" / "sensing" / "sound_model.h"
 VEC_OUT = REPO_ROOT / "host" / "tests" / "sound_model_vectors.h"
 N_VECTORS = 200
@@ -57,7 +60,7 @@ def emit_model(prefix: str, q) -> str:
         code.update({n: -(i + 1) for i, n in enumerate(leaves)})
         p = f"{prefix}_t{ti}"
         out.append(arr("int8_t", f"{p}_feat", [int(t.feature[n]) for n in internal]))
-        out.append(arr("float", f"{p}_thr", [f32_down(float(t.threshold[n])) for n in internal], cfloat, 6))
+        out.append(arr("float32_t", f"{p}_thr", [f32_down(float(t.threshold[n])) for n in internal], cfloat, 6))
         out.append(arr("int16_t", f"{p}_left", [code[int(t.left[n])] for n in internal]))
         out.append(arr("int16_t", f"{p}_right", [code[int(t.right[n])] for n in internal]))
         out.append(arr("uint8_t", f"{p}_leaf", [int(v) for n in leaves for v in t.leaf_pct[n]], per_line=len(q.classes)))
@@ -67,8 +70,8 @@ def emit_model(prefix: str, q) -> str:
     out.append(f"static const uint8_t {prefix}_classes[] = {{{names}}};\n")
     out.append(f"static const sm_model_t {prefix} = {{{prefix}_trees, {len(q.trees)}, {len(q.classes)}, "
                f"{prefix}_classes}};\n")
-    out.append(f"static inline void {prefix}_predict(const float* f, uint8_t* label, uint8_t* conf)\n"
-               f"{{\n    sm_predict(&{prefix}, f, label, conf);\n}}\n")
+    out.append(f"static inline void {prefix}_predict(const float32_t* p_features, uint8_t* p_label, uint8_t* p_conf)\n"
+               f"{{\n    sm_predict(&{prefix}, p_features, p_label, p_conf);\n}}\n")
     return "\n".join(out)
 
 
@@ -115,6 +118,7 @@ def main() -> int:
 
 #include <stdint.h>
 
+#include "float_types.h"
 #include "sound_classes.h"
 #include "sound_classify.h"
 #include "sound_features.h"
@@ -137,6 +141,7 @@ def main() -> int:
             "static inline const sm_model_t* sm_stage2_for_group(uint8_t group)\n{\n    switch (group)\n    {\n"
             + "\n".join(cases) + "\n    default:\n        return 0;\n    }\n}\n\n#endif\n")
     OUT.write_text(head + "\n".join(body) + "\n" + tail, encoding="utf-8", newline="\n")
+    finish_c_file(OUT)
     print(f"wrote {OUT.relative_to(REPO_ROOT)}")
 
     if args.vectors:
@@ -155,11 +160,12 @@ def main() -> int:
 #ifndef SOUND_MODEL_VECTORS_H
 #define SOUND_MODEL_VECTORS_H
 
+#include "float_types.h"
 #include <stdint.h>
 
 #define SM_N_VECTORS {len(pick)}
 
-static const float sm_vec_features[SM_N_VECTORS][{len(d['features'])}] = {{
+static const float32_t sm_vec_features[SM_N_VECTORS][{len(d['features'])}] = {{
     {feats}}};
 
 static const uint8_t sm_vec_label[SM_N_VECTORS] = {{{", ".join(str(int(v)) for v in label)}}};
@@ -167,6 +173,7 @@ static const uint8_t sm_vec_conf[SM_N_VECTORS] = {{{", ".join(str(int(v)) for v 
 
 #endif
 """, encoding="utf-8", newline="\n")
+        finish_c_file(VEC_OUT)
         print(f"wrote {VEC_OUT.relative_to(REPO_ROOT)} ({len(pick)} vectors)")
     return 0
 

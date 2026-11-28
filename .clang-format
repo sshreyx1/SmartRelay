@@ -1,28 +1,39 @@
-# Matches the style already used throughout alfp/, common/, firmware/app/ and firmware/sensing/:
-# Allman braces (own line, always present, even for a single-statement if/for/while), 4-space
-# indent, no tabs, pointer stars attached to the type. ColumnLimit 120 matches this codebase's
-# longest existing lines (firmware/app/main.c runs up to 121 chars); BARR-C:2018 suggests a
-# narrower limit (traditionally 80) but this project's lines already exceed that everywhere, so
-# 120 is recorded here as a deliberate, pre-existing deviation (see docs/CODING_STANDARD.md).
-BasedOnStyle: WebKit
-Language: Cpp
-Standard: c++03
-IndentWidth: 4
+# Layout rules of BARR-C:2018 as used by this repository (docs/CODING_STANDARD.md).
+# Check:  tools/check_style.sh          Format:  clang-format -i <file>   (clang-format 18+)
+BasedOnStyle: LLVM
+IndentWidth: 4                      # 3.4.a
 TabWidth: 4
-UseTab: Never
-ColumnLimit: 120
-BreakBeforeBraces: Allman
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
-AllowShortBlocksOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortCaseLabelsOnASingleLine: false
-IndentCaseLabels: true
+UseTab: Never                       # 3.5.a
+ColumnLimit: 80                     # 1.2.a
+BreakBeforeBraces: Allman           # 1.3.b
+InsertBraces: true                  # 1.3.a
+SpaceBeforeParens: Custom           # 3.1.a, 3.1.j
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterForeachMacros: true
+  AfterFunctionDefinitionName: true
+  AfterFunctionDeclarationName: false
+  AfterIfMacros: true
+  AfterOverloadedOperator: false
+  BeforeNonEmptyParentheses: false
+IndentCaseLabels: true              # 3.4.b
+AlignConsecutiveDeclarations: Consecutive   # 3.2.a, 3.2.b
+AlignConsecutiveAssignments: Consecutive    # 3.2.c
+AlignConsecutiveMacros: Consecutive
+AlignTrailingComments: true
+AlignAfterOpenBracket: Align
 PointerAlignment: Left
 ReferenceAlignment: Left
-SpaceBeforeParens: ControlStatements
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
-AlignTrailingComments: true
-SortIncludes: false
+IndentPPDirectives: None            # 3.2.d: '#' stays in column 0
+AllowShortIfStatementsOnASingleLine: Never  # 3.3.a
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtEOF: true           # 3.3.c: blank line after the end-of-file comment
+SortIncludes: Never
 IncludeBlocks: Preserve
+ReflowComments: false             # comments are wrapped by hand so tables stay readable

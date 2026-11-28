@@ -1,6 +1,7 @@
 /*
- * test_capture_id.c - common/capture_id.h: format -> parse round trip, and the exact strings the
- * Python mirror (common/capture_id.py, host/tests/test_capture_id.py) must also produce.
+ * test_capture_id.c - common/capture_id.h: format -> parse round trip, and the
+ * exact strings the Python mirror (common/capture_id.py,
+ * host/tests/test_capture_id.py) must also produce.
  */
 #include <inttypes.h>
 #include <stdio.h>
@@ -10,7 +11,7 @@
 
 static int fails;
 
-static void expect_str(const char* p_got, const char* p_want)
+static void expect_str (const char* p_got, const char* p_want)
 {
     if (0 != strcmp(p_got, p_want))
     {
@@ -19,19 +20,23 @@ static void expect_str(const char* p_got, const char* p_want)
     }
 }
 
-static void expect_parse(const char* p_str, int ok_flag, unsigned node, uint32_t cap_id)
+static void expect_parse (const char* p_str, int ok_flag, unsigned node,
+                          uint32_t cap_id)
 {
-    uint8_t got_node = 0;
-    uint32_t value = 0;
-    int got = capture_id_parse(p_str, &got_node, &value);
-    if ((got != ok_flag) || (ok_flag && ((got_node != node) || (value != cap_id))))
+    uint8_t  got_node = 0;
+    uint32_t value    = 0;
+    int      got      = capture_id_parse(p_str, &got_node, &value);
+    if ((got != ok_flag) ||
+        (ok_flag && ((got_node != node) || (value != cap_id))))
     {
-        printf("FAIL: parse('%s') = %d N%u %" PRIu32 ", want %d N%u %" PRIu32 "\n", p_str, got, got_node, (uint32_t)value, ok_flag, node, cap_id);
+        printf("FAIL: parse('%s') = %d N%u %" PRIu32 ", want %d N%u %" PRIu32
+               "\n",
+               p_str, got, got_node, (uint32_t)value, ok_flag, node, cap_id);
         fails++;
     }
 }
 
-int main(void)
+int main (void)
 {
     char buf[CAPTURE_ID_STR_MAX];
     capture_id_format(buf, sizeof(buf), 2, 42);
@@ -56,7 +61,7 @@ int main(void)
     }
     expect_parse("N2_000042_full.scl", 1, 2, 42);
     expect_parse("n3-000007", 1, 3, 7);
-    expect_parse("N2-42", 0, 0, 0);    /* fewer than 6 digits */
+    expect_parse("N2-42", 0, 0, 0); /* fewer than 6 digits */
     expect_parse("N256-000001", 0, 0, 0);
     expect_parse("img_00.jpg", 0, 0, 0);
     expect_parse("N-000001", 0, 0, 0);
@@ -64,3 +69,6 @@ int main(void)
     printf("capture_id: %s\n", fails ? "FAILED" : "all tests passed");
     return fails ? 1 : 0;
 }
+
+/*** end of file ***/
+

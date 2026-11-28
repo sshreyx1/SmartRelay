@@ -1,20 +1,24 @@
 /*
- * sound_classes.h - the sound label table: ONE source of truth for the node, the bridge tools,
- * the backend and the dashboard.   Owner: Rhaylene.   Python mirror: common/sound_classes.py
+ * sound_classes.h - the sound label table: ONE source of truth for the node,
+ * the bridge tools,
+ * the backend and the dashboard.   Owner: Rhaylene.   Python mirror:
+ *                                  common/sound_classes.py
  * (host/tests/test_sound_classes.py parses this file and checks the two agree).
  *
- * capture_meta sound_class carries a label id from this table. The group comes from the table,
- * so the 27-byte meta layout stays version 1.
+ * capture_meta sound_class carries a label id from this table. The group comes
+ * from the table, so the 27-byte meta layout stays version 1.
  *
  *   0-6     group only (no finer label, or the finer label was rejected)
  *   16-47   Phase A animal sound types (ESC-50)
  *   64-127  Phase B Singapore species (B1)
  *   0xFF    unknown / capture failed (CM_UNKNOWN_U8)
  *
- * Ids are stable forever and never reused. Old values 1 LOUD_ANIMAL_CALL / 2 HIGH_FREQ_RUSTLE
- * (mic.c thresholds) are retired: 1 and 2 now mean BIRD and MAMMAL, so all nodes are reflashed together.
+ * Ids are stable forever and never reused. Old values 1 LOUD_ANIMAL_CALL / 2
+ * HIGH_FREQ_RUSTLE (mic.c thresholds) are retired: 1 and 2 now mean BIRD and
+ * MAMMAL, so all nodes are reflashed together.
  *
- * Columns: id, NAME, group id, kind, image prefix (SD card samples/<prefix>_NN.jpg).
+ * Columns: id, NAME, group id, kind, image prefix (SD card
+ * samples/<prefix>_NN.jpg).
  */
 #ifndef SOUND_CLASSES_H
 #define SOUND_CLASSES_H
@@ -22,8 +26,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SC_KIND_GROUP 0u
-#define SC_KIND_ANIMAL 1u
+#define SC_KIND_GROUP   0u
+#define SC_KIND_ANIMAL  1u
 #define SC_KIND_SPECIES 2u
 
 #define SC_UNKNOWN 0xFFu
@@ -58,7 +62,7 @@ enum
 #undef SC_ENUM
 };
 
-static inline bool sound_class_valid(uint8_t label_id)
+static inline bool sound_class_valid (uint8_t label_id)
 {
     switch (label_id)
     {
@@ -71,18 +75,19 @@ static inline bool sound_class_valid(uint8_t label_id)
     }
 }
 
-/* The SC_CASE helpers below set a result and break instead of returning, so no macro contains a
- * transfer of control (BARR-C 6.3.b.iv) and each function has one exit point. */
+/* The SC_CASE helpers below set a result and break instead of returning, so no
+ * macro contains a transfer of control (BARR-C 6.3.b.iv) and each function has
+ * one exit point. */
 
 /* "DOG"; "UNKNOWN" for 0xFF; "INVALID" for an id not in the table */
-static inline const char* sound_class_name(uint8_t label_id)
+static inline const char* sound_class_name (uint8_t label_id)
 {
     const char* p_result;
     switch (label_id)
     {
-#define SC_CASE(id, name, group, kind, prefix)                                                                         \
-    case id:                                                                                                           \
-        p_result = #name;                                                                                              \
+#define SC_CASE(id, name, group, kind, prefix)                                 \
+    case id:                                                                   \
+        p_result = #name;                                                      \
         break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
@@ -94,14 +99,14 @@ static inline const char* sound_class_name(uint8_t label_id)
 }
 
 /* group id (0-6) of a label; SC_UNKNOWN for unknown / invalid ids */
-static inline uint8_t sound_class_group(uint8_t label_id)
+static inline uint8_t sound_class_group (uint8_t label_id)
 {
     uint8_t result;
     switch (label_id)
     {
-#define SC_CASE(id, name, group, kind, prefix)                                                                         \
-    case id:                                                                                                           \
-        result = group;                                                                                                \
+#define SC_CASE(id, name, group, kind, prefix)                                 \
+    case id:                                                                   \
+        result = group;                                                        \
         break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
@@ -112,14 +117,14 @@ static inline uint8_t sound_class_group(uint8_t label_id)
     return result;
 }
 
-static inline uint8_t sound_class_kind(uint8_t label_id)
+static inline uint8_t sound_class_kind (uint8_t label_id)
 {
     uint8_t result;
     switch (label_id)
     {
-#define SC_CASE(id, name, group, kind, prefix)                                                                         \
-    case id:                                                                                                           \
-        result = kind;                                                                                                 \
+#define SC_CASE(id, name, group, kind, prefix)                                 \
+    case id:                                                                   \
+        result = kind;                                                         \
         break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
@@ -131,14 +136,14 @@ static inline uint8_t sound_class_kind(uint8_t label_id)
 }
 
 /* image prefix ("dog"); NULL for unknown / invalid ids */
-static inline const char* sound_class_prefix(uint8_t label_id)
+static inline const char* sound_class_prefix (uint8_t label_id)
 {
     const char* p_result;
     switch (label_id)
     {
-#define SC_CASE(id, name, group, kind, prefix)                                                                         \
-    case id:                                                                                                           \
-        p_result = prefix;                                                                                             \
+#define SC_CASE(id, name, group, kind, prefix)                                 \
+    case id:                                                                   \
+        p_result = prefix;                                                     \
         break;
         SOUND_CLASS_LIST(SC_CASE)
 #undef SC_CASE
@@ -150,3 +155,6 @@ static inline const char* sound_class_prefix(uint8_t label_id)
 }
 
 #endif
+
+/*** end of file ***/
+
