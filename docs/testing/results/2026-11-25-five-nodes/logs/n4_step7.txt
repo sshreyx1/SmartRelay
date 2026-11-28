@@ -1,0 +1,32 @@
+   1.005 injected loss 30%
+   2.011 
+   2.022 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+   7.027 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 13268.1 zcr 0.229 mean 2117, 80000 samples
+   7.028 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=38 rms=92 zcr=5787 lost=0 feat_us=1040880 maxcall_us=3499 model_us=1011
+   7.028 [ENV] Temp: 24.0 C | Hum: 60.9% | Light: 1205 | Weather: Cloudy | PIR 0 Sound 1
+   7.160 capture N4-000011: heard VEHICLE (38%) -> samples/vehicle_00.jpg
+   7.160 capture N4-000011 telemetry queued (tel/N4_000011.bin)
+   7.161 capture N4-000011 queued (samples/vehicle_00.jpg), outbox 2
+   7.161 tx tel/N4_000011.bin size=27 thr=1024 radio=lora reason=size
+   8.096 tx tel/N4_000011.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+   8.097 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+   8.261 [ENV] Temp: 24.1 C | Hum: 60.9% | Light: 1206 | Weather: Cloudy | PIR 0 Sound 1
+  12.848 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 3 rounds, 15 resent, 4.7 s
+  18.271 [ENV] Temp: 24.1 C | Hum: 60.8% | Light: 1168 | Weather: Cloudy | PIR 0 Sound 1
+  20.019 
+  20.041 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+  25.036 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 10668.3 zcr 0.240 mean 2111, 80000 samples
+  25.168 [SOUND] group=HUMAN label=HUMAN id=4 conf=46 rms=81 zcr=6254 lost=0 feat_us=1042679 maxcall_us=3552 model_us=999
+  25.170 [ENV] Temp: 24.1 C | Hum: 60.8% | Light: 1227 | Weather: Cloudy | PIR 0 Sound 1
+  25.170 capture N4-000012: heard HUMAN (46%) -> samples/human_00.jpg
+  25.170 capture N4-000012 telemetry queued (tel/N4_000012.bin)
+  25.170 capture N4-000012 queued (samples/human_00.jpg), outbox 2
+  25.170 tx tel/N4_000012.bin size=27 thr=1024 radio=lora reason=size
+  26.094 tx tel/N4_000012.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  26.095 tx samples/human_00.jpg size=10084 thr=1024 radio=wifi reason=size
+  28.283 [ENV] Temp: 24.1 C | Hum: 60.8% | Light: 1233 | Weather: Cloudy | PIR 1 Sound 1
+  30.395 tx samples/human_00.jpg: done via wifi, 43 frags, 3 rounds, 19 resent, 4.3 s
+  38.006 injected loss off
+  38.292 [ENV] Temp: 24.1 C | Hum: 60.8% | Light: 1201 | Weather: Cloudy | PIR 0 Sound 1
+  39.458 
+  39.491 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...

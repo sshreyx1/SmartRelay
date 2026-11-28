@@ -1,0 +1,21 @@
+   0.000 
+   0.000 
+   0.000 microT-Kernel Version 3.00
+   0.000 
+   0.526 wst: ESP-01 MAC AC:0B:FB:C7:7F:E9 = WST-1 | firmware node 1 | MATCH
+   2.046 node 1 | alfp in 46 badcrc 0 | tx ok 0 fail 0 | rx ok 2 crcfail 0 expired 0 | outbox 0
+   2.046   wifi: tx 1 rx 50 delivered 44 relayed 0 dup 6 rxerr 0
+   2.047   lora: tx 17 rx 7 delivered 2 relayed 0 dup 5 rxerr 0
+   2.047   dht22 good 0 fail 22 | lora up | wifi up
+   2.047   bridge never heard on wifi
+   2.047   bridge last heard on lora 31402 ms ago
+   2.047   task comms: core 0 prio 10 stack free 5888 of 8192 B
+   2.048   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   2.048   task sensors: core 1 prio 10 stack free 7400 of 8192 B
+   2.048   longest comms loop 199 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+   2.049   outbox dropped (full) 0 | msgq errors 0 (last 0) | uplink sent 2 bad 0 waiting 0 (max 1) inline 0
+   2.049   sd handles in use 0/8 | no SD errors
+   2.049   slowest SD call (ms): open_r 6 open_w 6 read 5 write 18 size 0 close 14 remove 0 rename 20 list 6 mkdir 107 | worst mkdir 107 ms on rcv/24
+   2.049   slowest comms step (ms): wifi poll 0 | lora poll 1 | alfp service 190 | captures 0 | outbox 0 | uplink 9
+   4.733 [ENV] DHT22: no reading (23 fails) | Light: 53 | Weather: unknown | PIR 0 Sound 0
+   5.004 [ENV] DHT22: no reading (23 fails) | Light: 53 | Weather: unknown | PIR 0 Sound 0

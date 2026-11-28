@@ -1,0 +1,69 @@
+   0.000 
+   0.000 
+   0.000 microT-Kernel Version 3.00
+   0.000 
+   0.011 msgq selftest: wanted 64, sent 64, extra accepted 0, drained 64 - ok
+   0.011 
+   0.012 CSC09 trail mesh, node 4, ALFP v1 (uT-Kernel 3 SMP build, dual core)
+   0.012 clocks (measured): sys 125000000 peri 125000000 usb 48001000 adc 48001000 Hz
+   0.012 msgq selftest: wanted 4, sent 4, extra accepted 0, drained 4 - ok
+   0.012 sensors: core 1
+   0.012 comms: core 0
+   0.013 sd: mounted, 35 sample images in 19 groups: ambient 2 bird 2 cat 2 cow 1 cricket 2 crow 2 dog 2 frog 2 hen 2 human 1 insect_buzz 2 insect_frog 2 mammal 2 pig 2 rooster 2 sheep 2 songbird 2 vehicle 2 weather 1
+   0.013 sd: 0 test payload file(s) in test_payloads/
+   0.014 capture id: next is N4-000099 (saved next 99, highest on card 98)
+   0.014 lora_radio: LR1121 firmware 0x0101, hardware 0x22
+   0.014 lora_radio: 924200000 Hz, SF7 BW125 CR4/5, 14 dBm, CRC on
+   0.014 wifi: ESP-01 MAC AC:0B:FB:C7:E2:FD = WST-4
+   0.015 node 4 ready (field node), outbox has 1 queued, radio size threshold 1024 B
+   0.015 sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20
+   0.015 
+   0.015 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+   0.016 tx samples/bird_01.jpg size=8976 thr=1024 radio=wifi reason=size
+   0.016 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 9747.7 zcr 0.237 mean 2105, 80000 samples
+   0.016 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=66 rms=80 zcr=5933 lost=0 feat_us=1046105 maxcall_us=4273 model_us=1207
+   0.017 [ENV] DHT22: no reading (0 fails) | Light: 1070 | Weather: unknown | PIR 0 Sound 1
+   0.017 capture N4-000099: heard VEHICLE (66%) -> samples/vehicle_00.jpg
+   0.017 capture N4-000099 telemetry queued (tel/N4_000099.bin)
+   0.017 capture N4-000099 queued (samples/vehicle_00.jpg), outbox 3
+   0.018 tx samples/bird_01.jpg: done via wifi, 39 frags, 2 rounds, 4 resent, 2.9 s
+   0.018 tx tel/N4_000099.bin size=27 thr=1024 radio=wifi reason=fallback
+   0.018 tx tel/N4_000099.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.2 s
+   0.018 tx samples/vehicle_00.jpg size=9222 thr=1024 radio=wifi reason=size
+   0.019 tx samples/vehicle_00.jpg: done via wifi, 40 frags, 2 rounds, 2 resent, 2.8 s
+   0.019 [ENV] Temp: 24.0 C | Hum: 60.7% | Light: 1314 | Weather: Cloudy | PIR 0 Sound 1
+   0.019 usb_owner: core 0
+   0.020 keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 captures fast | z T8: stall the console 5 s | k measure the 1 ms
+   0.020 tick (1 s) | w which ESP-01 (WST) | B reboot to BOOTSEL (reflash) | h help
+   1.040 wst: ESP-01 MAC AC:0B:FB:C7:E2:FD = WST-4 | firmware node 4 | MATCH
+   1.696 
+   1.696 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+   6.707 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 11301.5 zcr 0.245 mean 2105, 80000 samples
+   6.872 [SOUND] group=VEHICLE label=VEHICLE id=5 conf=48 rms=89 zcr=5824 lost=0 feat_us=1033527 maxcall_us=3606 model_us=1012
+   6.874 [ENV] Temp: 24.0 C | Hum: 60.7% | Light: 1068 | Weather: Cloudy | PIR 0 Sound 1
+   6.874 capture N4-000100: heard VEHICLE (48%) -> samples/vehicle_01.jpg
+   6.874 capture N4-000100 telemetry queued (tel/N4_000100.bin)
+   6.874 capture N4-000100 queued (samples/vehicle_01.jpg), outbox 2
+   6.874 tx tel/N4_000100.bin size=27 thr=1024 radio=wifi reason=fallback
+   7.160 tx tel/N4_000100.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.2 s
+   7.161 tx samples/vehicle_01.jpg size=10029 thr=1024 radio=wifi reason=size
+   8.733 [ENV] Temp: 24.0 C | Hum: 60.7% | Light: 1067 | Weather: Cloudy | PIR 0 Sound 1
+   9.899 tx samples/vehicle_01.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 2.7 s
+  18.725 [ENV] Temp: 24.1 C | Hum: 60.7% | Light: 1073 | Weather: Cloudy | PIR 0 Sound 1
+  28.742 [ENV] Temp: 24.1 C | Hum: 60.6% | Light: 1068 | Weather: Cloudy | PIR 0 Sound 1
+  38.071 node 4 | alfp in 10 badcrc 0 | tx ok 5 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  38.072   wifi: tx 143 rx 272 delivered 10 relayed 108 dup 154 rxerr 0
+  38.073   lora: tx 0 rx 58 delivered 0 relayed 55 dup 3 rxerr 0
+  38.073   dht22 good 19 fail 0 | lora up | wifi up
+  38.073   bridge last heard on wifi 1291 ms ago
+  38.073   bridge last heard on lora 1150 ms ago
+  38.073   task comms: core 0 prio 10 stack free 5224 of 8192 B
+  38.073   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  38.073   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  38.074   longest comms loop 154 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  38.074   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  38.074   sd handles in use 0/8 | no SD errors
+  38.075   slowest SD call (ms): open_r 13 open_w 11 read 7 write 17 size 0 close 17 remove 18 rename 23 list 12 mkdir 2 | worst rename 23 ms on meta/next_id
+  38.075   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 30 | captures 137 | outbox 37 | uplink 0
+  38.398 
+  38.449 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...

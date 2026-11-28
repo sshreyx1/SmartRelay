@@ -128,8 +128,17 @@ Shorter side-by-side runs against the FreeRTOS firmware on the bridge are in
 These measurements were taken before the later live-transfer changes and the coding-standard
 rewrite.
 
+### Five boards, 25 November 2026
+
+All five nodes on this build: boot logs showed `comms` and `usb_owner` on core 0 and `sensors` on
+core 1 on every node, and the message-queue self-test passed. 256 file transfers completed with none
+lost, through two-hop WiFi relaying, 30% injected loss, the bridge unplugged and the relay removed
+(LoRa fallback). Report and logs:
+[testing/results/2026-11-25-five-nodes/](testing/results/2026-11-25-five-nodes/REPORT.md).
+
 ## Not verified
 
-Multi-hop with five boards on this build has no recorded evidence in the repository, nor does a
-run with the ESP-01 physically removed. The single-core fallback (`SMP=0`) has been built but not
-run on hardware.
+A run with the ESP-01 physically removed has not been done (removing the WiFi relay was). The
+single-core fallback (`SMP=0`) has been built but not run on hardware. The five-board run used images
+from before the coding-standard restyle; see [CODING_STANDARD.md](CODING_STANDARD.md#verification)
+for how the restyled code was checked.

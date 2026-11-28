@@ -1,0 +1,53 @@
+   0.000 
+   0.000 
+   0.000 microT-Kernel Version 3.00
+   0.000 
+   0.014 msgq selftest: wanted 64, sent 64, extra accepted 0, drained 64 - ok
+   0.014 
+   0.014 CSC09 trail mesh, node 5, ALFP v1 (uT-Kernel 3 SMP build, dual core)
+   0.014 clocks (measured): sys 125000000 peri 125000000 usb 48000000 adc 48000000 Hz
+   0.014 msgq selftest: wanted 4, sent 4, extra accepted 0, drained 4 - ok
+   0.014 sensors: core 1
+   0.014 comms: core 0
+   0.014 sd: mounted, 35 sample images in 19 groups: ambient 2 bird 2 cat 2 cow 1 cricket 2 crow 2 dog 2 frog 2 hen 2 human 1 insect_buzz 2 insect_frog 2 mammal 2 pig 2 rooster 2 sheep 2 songbird 2 vehicle 2 weather 1
+   0.014 sd: 0 test payload file(s) in test_payloads/
+   0.014 capture id: next is N5-000001 (saved next 0, highest on card 0)
+   0.034 lora_radio: LR1121 firmware 0x0101, hardware 0x22
+   0.034 lora_radio: 924200000 Hz, SF7 BW125 CR4/5, 14 dBm, CRC on
+   0.034 wifi: ESP-01 MAC AC:0B:FB:C8:19:C1 = WST-5
+   0.034 node 5 ready (field node), outbox has 0 queued, radio size threshold 1024 B
+   0.034 sensors: PIR GP0, sound GP14, mic GP26, DHT22 GP4, light GP27, button GP20
+   0.034 
+   0.034 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+   0.034 usb_owner: core 0
+   0.034 keys: c capture now | e sensor readings | s stats | d toggle 30% loss | t toggle WiFi topology filter | H hold capture queue (T6) | p send next size-ladder test payload (A.3) | x T6: fire 5 captures fast | z T8: stall the console 5 s | k measure the 1 ms
+   0.034 tick (1 s) | w which ESP-01 (WST) | B reboot to BOOTSEL (reflash) | h help
+   2.865 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3784378.8 zcr 0.000 mean 102, 80000 samples
+   2.866 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=3450 lost=0 feat_us=1048531 maxcall_us=3600 model_us=938
+   2.866 [ENV] Temp: 23.2 C | Hum: 59.4% | Light: 1438 | Weather: Cloudy | PIR 0 Sound 0
+   2.998 capture N5-000001: heard AMBIENT (60%) -> samples/ambient_00.jpg
+   2.998 capture N5-000001 telemetry queued (tel/N5_000001.bin)
+   2.999 capture N5-000001 queued (samples/ambient_00.jpg), outbox 2
+   2.999 tx tel/N5_000001.bin size=27 thr=1024 radio=lora reason=size
+   4.011 tx tel/N5_000001.bin: done via lora, 1 frags, 1 rounds, 0 resent, 1.0 s
+   4.012 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+   4.439 [ENV] Temp: 23.2 C | Hum: 59.2% | Light: 1433 | Weather: Cloudy | PIR 0 Sound 0
+   6.934 tx samples/ambient_00.jpg: done via wifi, 41 frags, 1 rounds, 0 resent, 2.9 s
+  14.022 wst: ESP-01 MAC AC:0B:FB:C8:19:C1 = WST-5 | firmware node 5 | MATCH
+  14.469 [ENV] Temp: 23.3 C | Hum: 59.1% | Light: 1437 | Weather: Cloudy | PIR 0 Sound 0
+  20.046 node 5 | alfp in 3 badcrc 0 | tx ok 2 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  20.047   wifi: tx 44 rx 145 delivered 2 relayed 101 dup 42 rxerr 0
+  20.047   lora: tx 2 rx 9 delivered 1 relayed 8 dup 0 rxerr 0
+  20.047   dht22 good 10 fail 0 | lora up | wifi up
+  20.048   bridge last heard on wifi 1081 ms ago
+  20.048   bridge last heard on lora 1102 ms ago
+  20.048   task comms: core 0 prio 10 stack free 5096 of 8192 B
+  20.048   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  20.049   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  20.049   longest comms loop 124 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+  20.049   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  20.049   sd handles in use 0/8 | no SD errors
+  20.050   slowest SD call (ms): open_r 6 open_w 6 read 4 write 6 size 0 close 13 remove 19 rename 13 list 13 mkdir 119 | worst mkdir 119 ms on tel
+  20.050   slowest comms step (ms): wifi poll 1 | lora poll 1 | alfp service 35 | captures 105 | outbox 22 | uplink 0
+  24.504 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1401 | Weather: Cloudy | PIR 0 Sound 0
+  26.006 [ENV] Temp: 23.3 C | Hum: 59.0% | Light: 1395 | Weather: Cloudy | PIR 0 Sound 1

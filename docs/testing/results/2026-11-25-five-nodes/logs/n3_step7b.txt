@@ -1,0 +1,52 @@
+   1.009 injected loss 30%
+   2.150 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 18883.2 zcr 0.260 mean 2104, 80000 samples
+   2.151 [SOUND] group=BIRD label=BIRD id=1 conf=38 rms=125 zcr=6047 lost=0 feat_us=1039703 maxcall_us=3508 model_us=1213
+   2.151 [ENV] Temp: 23.3 C | Hum: 61.3% | Light: 1118 | Weather: Cloudy | PIR 1 Sound 0
+   2.305 [ENV] Temp: 23.4 C | Hum: 61.3% | Light: 1119 | Weather: Cloudy | PIR 1 Sound 0
+   2.305 
+   2.306 [ALERT] Manual capture (PIR 1, sound 0). Recording 5s of audio...
+   2.306 capture N3-000030: heard BIRD (38%) -> samples/bird_01.jpg
+   2.306 capture N3-000030 telemetry queued (tel/N3_000030.bin)
+   2.306 capture N3-000030 queued (samples/bird_01.jpg), outbox 2
+   2.306 tx tel/N3_000030.bin size=27 thr=1024 radio=lora reason=size
+   3.275 tx tel/N3_000030.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+   3.275 tx samples/bird_01.jpg size=8976 thr=1024 radio=wifi reason=size
+   6.741 tx samples/bird_01.jpg: done via wifi, 39 frags, 4 rounds, 18 resent, 3.4 s
+   7.182 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 20182.4 zcr 0.252 mean 2110, 80000 samples
+   7.183 [SOUND] group=BIRD label=BIRD id=1 conf=43 rms=128 zcr=6090 lost=0 feat_us=1056785 maxcall_us=4383 model_us=1216
+   7.183 [ENV] Temp: 23.4 C | Hum: 61.3% | Light: 1117 | Weather: Cloudy | PIR 0 Sound 0
+   7.299 capture N3-000031: heard BIRD (43%) -> samples/bird_00.jpg
+   7.337 capture N3-000031 telemetry queued (tel/N3_000031.bin)
+   7.337 capture N3-000031 queued (samples/bird_00.jpg), outbox 2
+   7.338 tx tel/N3_000031.bin size=27 thr=1024 radio=lora reason=size
+  11.562 tx tel/N3_000031.bin: done via lora, 1 frags, 2 rounds, 0 resent, 4.2 s
+  11.562 tx samples/bird_00.jpg size=8430 thr=1024 radio=wifi reason=size
+  12.166 [ENV] Temp: 23.4 C | Hum: 61.2% | Light: 1092 | Weather: Cloudy | PIR 0 Sound 0
+  15.323 tx samples/bird_00.jpg: done via wifi, 36 frags, 3 rounds, 10 resent, 3.7 s
+  15.485 
+  15.510 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  20.520 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 16262.7 zcr 0.307 mean 2095, 80000 samples
+  20.521 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=57 rms=118 zcr=5913 lost=0 feat_us=1038915 maxcall_us=3451 model_us=1206
+  20.521 [ENV] Temp: 23.4 C | Hum: 61.3% | Light: 1035 | Weather: Cloudy | PIR 0 Sound 0
+  20.631 
+  20.675 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+  20.676 capture N3-000032: heard MAMMAL (57%) -> samples/mammal_01.jpg
+  20.676 capture N3-000032 telemetry queued (tel/N3_000032.bin)
+  20.676 capture N3-000032 queued (samples/mammal_01.jpg), outbox 2
+  20.677 tx tel/N3_000032.bin size=27 thr=1024 radio=lora reason=size
+  21.655 tx tel/N3_000032.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  21.656 tx samples/mammal_01.jpg size=9098 thr=1024 radio=wifi reason=size
+  25.560 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 12125.3 zcr 0.213 mean 2101, 80000 samples
+  25.561 [SOUND] group=MAMMAL label=MAMMAL id=2 conf=55 rms=97 zcr=4887 lost=0 feat_us=1063465 maxcall_us=4349 model_us=1384
+  25.561 [ENV] Temp: 23.4 C | Hum: 61.3% | Light: 1065 | Weather: Cloudy | PIR 0 Sound 0
+  25.693 [ENV] Temp: 23.4 C | Hum: 61.2% | Light: 1068 | Weather: Cloudy | PIR 0 Sound 0
+  25.694 capture N3-000033: heard MAMMAL (55%) -> samples/mammal_00.jpg
+  25.694 capture N3-000033 telemetry queued (tel/N3_000033.bin)
+  25.694 capture N3-000033 queued (samples/mammal_00.jpg), outbox 3
+  26.123 tx samples/mammal_01.jpg: done via wifi, 39 frags, 5 rounds, 22 resent, 4.4 s
+  26.124 tx tel/N3_000033.bin size=27 thr=1024 radio=lora reason=size
+  27.091 tx tel/N3_000033.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  27.091 tx samples/mammal_00.jpg size=9223 thr=1024 radio=wifi reason=size
+  30.523 tx samples/mammal_00.jpg: done via wifi, 40 frags, 3 rounds, 14 resent, 3.4 s
+  35.583 [ENV] Temp: 23.4 C | Hum: 61.2% | Light: 1049 | Weather: Cloudy | PIR 0 Sound 0
+  38.027 injected loss off

@@ -1,0 +1,43 @@
+   1.024 injected loss 30%
+   1.786 [ENV] Temp: 23.5 C | Hum: 58.6% | Light: 1128 | Weather: Cloudy | PIR 0 Sound 0
+   2.033 
+   2.033 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+   7.049 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3783824.0 zcr 0.000 mean 102, 80000 samples
+   7.050 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=50 rms=2 zcr=2572 lost=0 feat_us=1046263 maxcall_us=3676 model_us=1109
+   7.050 [ENV] Temp: 23.5 C | Hum: 58.6% | Light: 1126 | Weather: Cloudy | PIR 0 Sound 0
+   7.215 capture N5-000037: heard AMBIENT (50%) -> samples/ambient_00.jpg
+   7.215 capture N5-000037 telemetry queued (tel/N5_000037.bin)
+   7.216 capture N5-000037 queued (samples/ambient_00.jpg), outbox 2
+   7.216 tx tel/N5_000037.bin size=27 thr=1024 radio=lora reason=size
+   8.151 tx tel/N5_000037.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+   8.151 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  11.825 [ENV] Temp: 23.5 C | Hum: 58.7% | Light: 1122 | Weather: Cloudy | PIR 0 Sound 0
+  14.195 
+  14.245 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  16.137 tx samples/ambient_00.jpg: done via wifi, 41 frags, 5 rounds, 31 resent, 8.0 s
+  19.251 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3783759.2 zcr 0.000 mean 102, 80000 samples
+  19.428 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=60 rms=2 zcr=2378 lost=0 feat_us=1039116 maxcall_us=4593 model_us=1038
+  19.429 [ENV] Temp: 23.5 C | Hum: 58.6% | Light: 1115 | Weather: Cloudy | PIR 0 Sound 0
+  19.430 capture N5-000038: heard AMBIENT (60%) -> samples/ambient_01.jpg
+  19.430 capture N5-000038 telemetry queued (tel/N5_000038.bin)
+  19.430 capture N5-000038 queued (samples/ambient_01.jpg), outbox 2
+  19.430 tx tel/N5_000038.bin size=27 thr=1024 radio=lora reason=size
+  20.508 tx tel/N5_000038.bin: done via lora, 1 frags, 1 rounds, 0 resent, 1.0 s
+  20.508 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  21.839 [ENV] Temp: 23.5 C | Hum: 58.6% | Light: 1108 | Weather: Cloudy | PIR 0 Sound 0
+  22.001 
+  22.023 [ALERT] Manual capture (PIR 0, sound 0). Recording 5s of audio...
+  27.028 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 3783924.8 zcr 0.000 mean 102, 80000 samples
+  27.029 [SOUND] group=AMBIENT label=AMBIENT id=0 conf=40 rms=2 zcr=2288 lost=0 feat_us=1056769 maxcall_us=4282 model_us=1351
+  27.029 [ENV] Temp: 23.5 C | Hum: 58.6% | Light: 1113 | Weather: Cloudy | PIR 0 Sound 0
+  27.183 capture N5-000039: heard AMBIENT (40%) -> samples/ambient_00.jpg
+  27.183 capture N5-000039 telemetry queued (tel/N5_000039.bin)
+  27.183 capture N5-000039 queued (samples/ambient_00.jpg), outbox 3
+  28.086 tx samples/ambient_01.jpg: done via wifi, 41 frags, 4 rounds, 31 resent, 7.5 s
+  28.086 tx tel/N5_000039.bin size=27 thr=1024 radio=lora reason=size
+  29.142 tx tel/N5_000039.bin: done via lora, 1 frags, 1 rounds, 0 resent, 1.0 s
+  29.142 tx samples/ambient_00.jpg size=9593 thr=1024 radio=wifi reason=size
+  31.848 [ENV] Temp: 23.5 C | Hum: 58.6% | Light: 1109 | Weather: Cloudy | PIR 0 Sound 0
+  37.051 tx samples/ambient_00.jpg: done via wifi, 41 frags, 3 rounds, 17 resent, 7.9 s
+  41.847 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1086 | Weather: Cloudy | PIR 0 Sound 0
+  43.029 injected loss off

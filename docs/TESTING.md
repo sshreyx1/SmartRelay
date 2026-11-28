@@ -80,13 +80,35 @@ are simulation results, not field measurements. Raw data is in `results/`; chart
 
 ![Completion under loss](figures/fig6_loss_sweep.png)
 
+## Hardware results (25 November 2026)
+
+All five boards on the dual-core build (commit `463f028`, before the coding-standard restyle). Full
+report and 53 raw logs: [testing/results/2026-11-25-five-nodes/](testing/results/2026-11-25-five-nodes/REPORT.md).
+Procedure: [testing/HARDWARE_TEST.md](testing/HARDWARE_TEST.md).
+
+| Measure | Result |
+| --- | --- |
+| File transfers completed | 256 across four field nodes; none lost (the 3 that gave up were retried and delivered) |
+| Telemetry over LoRa, direct | 104 transfers, median 0.9 s |
+| Photo over WiFi, 1 hop / 2 hops | median 2.6 s (83 transfers) / 3.3 s (32 transfers) |
+| Photo over LoRa when the WiFi relay was removed | 43.5 s median, all delivered |
+| Multi-hop | node 4 relayed 140 → 574 packets for node 5, which has no direct WiFi link to node 1 |
+| 30% packet loss | every file `done`; 10–31 fragments resent per image |
+| Bridge unplugged | 20, 20 and 14 files queued on nodes 3, 4 and 5; all delivered once it returned |
+| Hardware faults found | node 2's LoRa module (receives nothing) and node 5's microphone (flat signal) |
+
+Every requirement with its test and evidence: [testing/TRACEABILITY.md](testing/TRACEABILITY.md).
+
 ## Known gaps
 
-- **Five boards together:** the repository holds no recorded evidence of a five-node hardware run.
+- **Five boards on the final images:** the five-node run used images built before the restyle and
+  the live-transfer feature; the restyle was checked at machine-code level instead
+  ([CODING_STANDARD.md](CODING_STANDARD.md#verification)).
 - **Live transfer events on hardware:** the acceptance checklist for this feature has not been
   filled in. It was tested with the simulator and backend tests only.
 - **Hop-limit drops** are untested: the simulator cannot build a chain long enough.
-- **WiFi failing during a transfer** is tested in the simulator, not with the real mesh code.
+- **WiFi failing during a transfer** was shown on hardware by removing the relay (25 Nov, Step 6B):
+  the transfer gave up and was delivered over LoRa. Removing the ESP-01 itself was not tried.
 - **ESP-01 physically removed** on the dual-core build: not run.
 - **Size ladder:** only the 1024 B and 65,536 B payloads were run through the real mesh code.
 

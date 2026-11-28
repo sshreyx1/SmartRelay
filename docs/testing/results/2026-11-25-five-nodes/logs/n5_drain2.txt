@@ -1,0 +1,43 @@
+   1.825 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1107 | Weather: Cloudy | PIR 0 Sound 0
+   2.222 tx tel/N5_000031.bin: done via lora, 1 frags, 1 rounds, 0 resent, 3.6 s
+   2.222 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+   5.413 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 2 rounds, 2 resent, 3.1 s
+   5.413 tx tel/N5_000032.bin size=27 thr=1024 radio=lora reason=size
+   6.799 tx tel/N5_000032.bin: done via lora, 1 frags, 1 rounds, 0 resent, 1.3 s
+   6.799 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  10.539 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 8 resent, 3.7 s
+  10.539 tx tel/N5_000033.bin size=27 thr=1024 radio=lora reason=size
+  11.833 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1108 | Weather: Cloudy | PIR 0 Sound 0
+  11.958 tx tel/N5_000033.bin: done via lora, 1 frags, 1 rounds, 0 resent, 1.4 s
+  11.958 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+  15.874 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 1 rounds, 0 resent, 3.9 s
+  15.874 tx tel/N5_000034.bin size=27 thr=1024 radio=lora reason=size
+  16.853 tx tel/N5_000034.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  16.853 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  21.892 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1116 | Weather: Cloudy | PIR 0 Sound 0
+  22.519 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 5 resent, 5.6 s
+  22.519 tx tel/N5_000035.bin size=27 thr=1024 radio=lora reason=size
+  23.465 tx tel/N5_000035.bin: done via lora, 1 frags, 1 rounds, 0 resent, 0.9 s
+  23.465 tx samples/insect_frog_01.jpg size=9241 thr=1024 radio=wifi reason=size
+  29.570 tx samples/insect_frog_01.jpg: done via wifi, 40 frags, 2 rounds, 6 resent, 6.1 s
+  29.570 tx tel/N5_000036.bin size=27 thr=1024 radio=lora reason=size
+  30.945 tx tel/N5_000036.bin: done via lora, 1 frags, 1 rounds, 0 resent, 1.3 s
+  30.945 tx samples/ambient_01.jpg size=9495 thr=1024 radio=wifi reason=size
+  31.902 [ENV] Temp: 23.5 C | Hum: 58.4% | Light: 1108 | Weather: Cloudy | PIR 0 Sound 0
+  34.267 tx samples/ambient_01.jpg: done via wifi, 41 frags, 2 rounds, 6 resent, 3.3 s
+  41.901 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1130 | Weather: Cloudy | PIR 0 Sound 0
+  51.865 [ENV] Temp: 23.5 C | Hum: 58.4% | Light: 1129 | Weather: Cloudy | PIR 0 Sound 0
+  58.036 node 5 | alfp in 137 badcrc 0 | tx ok 72 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  58.037   wifi: tx 1695 rx 2485 delivered 86 relayed 927 dup 1472 rxerr 0
+  58.037   lora: tx 298 rx 380 delivered 51 relayed 212 dup 117 rxerr 11
+  58.037   dht22 good 205 fail 0 | lora up | wifi up
+  58.037   bridge last heard on wifi 1861 ms ago
+  58.038   bridge last heard on lora 1873 ms ago
+  58.038   task comms: core 0 prio 10 stack free 5096 of 8192 B
+  58.038   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  58.038   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  58.039   longest comms loop 159 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+  58.039   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  58.039   sd handles in use 0/8 | no SD errors
+  58.039   slowest SD call (ms): open_r 10 open_w 18 read 6 write 10 size 1 close 20 remove 25 rename 31 list 13 mkdir 119 | worst mkdir 119 ms on tel
+  58.040   slowest comms step (ms): wifi poll 1 | lora poll 2 | alfp service 42 | captures 159 | outbox 36 | uplink 0

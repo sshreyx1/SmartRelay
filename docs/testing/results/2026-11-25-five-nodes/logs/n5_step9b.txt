@@ -1,0 +1,29 @@
+   1.037 node 5 | alfp in 180 badcrc 0 | tx ok 92 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   1.037   wifi: tx 2267 rx 3512 delivered 118 relayed 1458 dup 1936 rxerr 0
+   1.038   lora: tx 329 rx 516 delivered 62 relayed 292 dup 162 rxerr 15
+   1.038   dht22 good 253 fail 0 | lora up | wifi up
+   1.038   bridge last heard on wifi 2516 ms ago
+   1.038   bridge last heard on lora 2555 ms ago
+   1.039   task comms: core 0 prio 10 stack free 5048 of 8192 B
+   1.039   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   1.039   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   1.039   longest comms loop 601 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+   1.039   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   1.040   sd handles in use 0/8 | no SD errors
+   1.040   slowest SD call (ms): open_r 10 open_w 18 read 6 write 10 size 1 close 20 remove 50 rename 31 list 13 mkdir 119 | worst mkdir 119 ms on tel
+   1.040   slowest comms step (ms): wifi poll 5 | lora poll 2 | alfp service 66 | captures 578 | outbox 36 | uplink 0
+   9.930 [ENV] Temp: 23.5 C | Hum: 58.5% | Light: 1289 | Weather: Cloudy | PIR 0 Sound 0
+  12.059 node 5 | alfp in 180 badcrc 0 | tx ok 92 fail 1 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  12.059   wifi: tx 2267 rx 3559 delivered 118 relayed 1505 dup 1936 rxerr 0
+  12.060   lora: tx 329 rx 524 delivered 62 relayed 298 dup 164 rxerr 15
+  12.060   dht22 good 258 fail 0 | lora up | wifi up
+  12.060   bridge last heard on wifi 1567 ms ago
+  12.060   bridge last heard on lora 1477 ms ago
+  12.061   task comms: core 0 prio 10 stack free 5048 of 8192 B
+  12.061   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  12.061   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  12.061   longest comms loop 601 ms | capture q full 1 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 17520 B
+  12.061   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  12.062   sd handles in use 0/8 | no SD errors
+  12.062   slowest SD call (ms): open_r 10 open_w 18 read 6 write 10 size 1 close 20 remove 50 rename 31 list 13 mkdir 119 | worst mkdir 119 ms on tel
+  12.062   slowest comms step (ms): wifi poll 5 | lora poll 2 | alfp service 66 | captures 578 | outbox 36 | uplink 0

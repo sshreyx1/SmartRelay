@@ -1,0 +1,83 @@
+   0.538 node 2 | alfp in 19 badcrc 0 | tx ok 11 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+   0.539   wifi: tx 285 rx 591 delivered 19 relayed 252 dup 320 rxerr 0
+   0.540   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+   0.540   dht22 good 41 fail 0 | lora up | wifi up
+   0.540   bridge last heard on wifi 643 ms ago
+   0.540   bridge never heard on lora
+   0.540   task comms: core 0 prio 10 stack free 5224 of 8192 B
+   0.540   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+   0.541   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+   0.541   longest comms loop 515 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+   0.541   outbox dropped (full) 0 | msgq errors 0 (last 0)
+   0.541   sd handles in use 0/8 | no SD errors
+   0.542   slowest SD call (ms): open_r 60 open_w 187 read 9 write 6 size 0 close 19 remove 75 rename 30 list 22 mkdir 5 | worst open_w 187 ms on tel/N2_000430.bin
+   0.542   slowest comms step (ms): wifi poll 2 | lora poll 1 | alfp service 96 | captures 370 | outbox 145 | uplink 0
+   3.038 
+   3.049 [ALERT] Manual capture (PIR 0, sound 1). Recording 5s of audio...
+   8.055 [AUDIO] legacy mic.c: HIGH_FREQ_RUSTLE energy 6185.0 zcr 0.366 mean 2052, 80000 samples
+   8.056 [SOUND] group=HUMAN label=HUMAN id=4 conf=32 rms=79 zcr=5872 lost=0 feat_us=1037515 maxcall_us=3476 model_us=1007
+   8.056 [ENV] Temp: 23.5 C | Hum: 61.7% | Light: 1026 | Weather: Cloudy | PIR 0 Sound 1
+   8.573 [ENV] Temp: 23.5 C | Hum: 61.7% | Light: 1027 | Weather: Cloudy | PIR 0 Sound 1
+   8.573 capture N2-000431: heard HUMAN (32%) -> samples/human_00.jpg
+   8.573 capture N2-000431 telemetry queued (tel/N2_000431.bin)
+   8.573 capture N2-000431 queued (samples/human_00.jpg), outbox 2
+   8.574 tx tel/N2_000431.bin size=27 thr=1024 radio=wifi reason=fallback
+   8.914 tx tel/N2_000431.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.2 s
+   8.915 tx samples/human_00.jpg size=10084 thr=1024 radio=wifi reason=size
+  11.642 tx samples/human_00.jpg: done via wifi, 43 frags, 2 rounds, 2 resent, 2.7 s
+  16.587 
+  16.626 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  21.631 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 74955.8 zcr 0.118 mean 2239, 80000 samples
+  21.631 [SOUND] group=HUMAN label=HUMAN id=4 conf=34 rms=196 zcr=6329 lost=0 feat_us=1037634 maxcall_us=3564 model_us=998
+  21.632 [ENV] Temp: 23.5 C | Hum: 61.6% | Light: 1579 | Weather: Cloudy | PIR 1 Sound 1
+  22.148 [ENV] Temp: 23.4 C | Hum: 61.9% | Light: 1580 | Weather: Cloudy | PIR 1 Sound 0
+  22.149 capture N2-000432: heard HUMAN (34%) -> samples/human_00.jpg
+  22.150 capture N2-000432 telemetry queued (tel/N2_000432.bin)
+  22.150 capture N2-000432 queued (samples/human_00.jpg), outbox 2
+  22.150 tx tel/N2_000432.bin size=27 thr=1024 radio=wifi reason=fallback
+  22.447 tx tel/N2_000432.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.2 s
+  22.447 tx samples/human_00.jpg size=10084 thr=1024 radio=wifi reason=size
+  25.076 tx samples/human_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 2.6 s
+  26.611 
+  26.639 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  31.607 [AUDIO] legacy mic.c: AMBIENT_NOISE energy 45468.7 zcr 0.083 mean 2206, 80000 samples
+  31.641 [SOUND] group=INSECT_FROG label=INSECT_FROG id=3 conf=43 rms=143 zcr=5424 lost=0 feat_us=1040662 maxcall_us=3443 model_us=1128
+  31.641 [ENV] Temp: 23.5 C | Hum: 62.6% | Light: 1541 | Weather: Cloudy | PIR 1 Sound 1
+  32.180 [ENV] Temp: 23.5 C | Hum: 62.8% | Light: 1594 | Weather: Cloudy | PIR 1 Sound 0
+  32.180 
+  32.181 [ALERT] Manual capture (PIR 1, sound 0). Recording 5s of audio...
+  32.181 capture N2-000433: heard INSECT_FROG (43%) -> samples/insect_frog_00.jpg
+  32.181 capture N2-000433 telemetry queued (tel/N2_000433.bin)
+  32.181 capture N2-000433 queued (samples/insect_frog_00.jpg), outbox 2
+  32.181 tx tel/N2_000433.bin size=27 thr=1024 radio=wifi reason=fallback
+  32.512 tx tel/N2_000433.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.2 s
+  32.512 tx samples/insect_frog_00.jpg size=10032 thr=1024 radio=wifi reason=size
+  36.308 tx samples/insect_frog_00.jpg: done via wifi, 43 frags, 2 rounds, 2 resent, 3.8 s
+  36.682 [AUDIO] legacy mic.c: LOUD_ANIMAL_CALL energy 135398.2 zcr 0.001 mean 2398, 80000 samples
+  37.200 [SOUND] group=HUMAN label=HUMAN id=4 conf=33 rms=112 zcr=9007 lost=0 feat_us=1060763 maxcall_us=4970 model_us=979
+  37.201 [ENV] Temp: 23.5 C | Hum: 62.8% | Light: 1619 | Weather: Cloudy | PIR 1 Sound 1
+  37.201 capture N2-000434: heard HUMAN (33%) -> samples/human_00.jpg
+  37.201 capture N2-000434 telemetry queued (tel/N2_000434.bin)
+  37.201 capture N2-000434 queued (samples/human_00.jpg), outbox 2
+  37.202 tx tel/N2_000434.bin size=27 thr=1024 radio=wifi reason=fallback
+  37.994 tx tel/N2_000434.bin: done via wifi, 1 frags, 1 rounds, 0 resent, 0.7 s
+  37.994 tx samples/human_00.jpg size=10084 thr=1024 radio=wifi reason=size
+  40.623 tx samples/human_00.jpg: done via wifi, 43 frags, 1 rounds, 0 resent, 2.6 s
+  41.633 [ENV] Temp: 23.5 C | Hum: 62.7% | Light: 1597 | Weather: Cloudy | PIR 0 Sound 1
+  51.667 [ENV] Temp: 23.5 C | Hum: 62.3% | Light: 1618 | Weather: Cloudy | PIR 0 Sound 1
+  59.383 
+  59.383 [ALERT] Dual trigger fired (PIR 1, sound 1). Recording 5s of audio...
+  60.013 node 2 | alfp in 36 badcrc 0 | tx ok 19 fail 0 | rx ok 0 crcfail 0 expired 0 | outbox 0
+  60.013   wifi: tx 485 rx 988 delivered 36 relayed 398 dup 553 rxerr 590
+  60.014   lora: tx 0 rx 0 delivered 0 relayed 0 dup 0 rxerr 0
+  60.014   dht22 good 62 fail 0 | lora up | wifi up
+  60.014   bridge last heard on wifi 355 ms ago
+  60.014   bridge never heard on lora
+  60.014   task comms: core 0 prio 10 stack free 5192 of 8192 B
+  60.015   task usb_owner: core 0 prio 20 stack free 2160 of 3072 B
+  60.015   task sensors: core 1 prio 10 stack free 7392 of 8192 B
+  60.016   longest comms loop 532 ms | capture q full 0 | log dropped 0 lines | usb dropped 0 lines 0 B | heap used 5232 B
+  60.016   outbox dropped (full) 0 | msgq errors 0 (last 0)
+  60.017   sd handles in use 0/8 | no SD errors
+  60.018   slowest SD call (ms): open_r 64 open_w 195 read 9 write 7 size 0 close 19 remove 83 rename 30 list 22 mkdir 5 | worst open_w 195 ms on tel/N2_000433.bin
+  60.018   slowest comms step (ms): wifi poll 3 | lora poll 1 | alfp service 102 | captures 379 | outbox 153 | uplink 0
