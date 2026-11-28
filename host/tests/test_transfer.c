@@ -127,9 +127,9 @@ static void no_leaks (void)
 {
     for (uint8_t idx = 1; idx <= net.cfg.n_nodes; idx++)
     {
-        CHECK(net.node[idx].posix.open_count == 0 ||
-              (idx == BRIDGE &&
-               net.node[idx].posix.open_count <= ALFP_RX_SESSIONS));
+        CHECK((0 == net.node[idx].posix.open_count) ||
+              ((BRIDGE == idx) &&
+               (net.node[idx].posix.open_count <= ALFP_RX_SESSIONS)));
     }
 }
 
@@ -142,11 +142,11 @@ static void test_lora_clean_link_one_round (void)
     CHECK(start_send(2, &g_sim_lora, "img/a.jpg", 10000, 1));
     CHECK(net_run_until(&net, sender2_done, 120000));
     alfp_tx_report_t* p_rep = &net.node[2].tx_reports[0];
-    CHECK(p_rep->result == ALFP_TX_DONE);
+    CHECK(ALFP_TX_DONE == p_rep->result);
     /* Even with no random loss, the bridge's 3 s heartbeat can collide with a
      * fragment (LoRa has no carrier sense), so allow one repair round. */
     CHECK(p_rep->rounds <= 2);
-    CHECK(p_rep->frag_count == 42 && p_rep->frag_size == 241); /* 250 - 9 */
+    CHECK((42 == p_rep->frag_count) && (241 == p_rep->frag_size)); /* 250 - 9 */
     CHECK(received_equals(2, "img/a.jpg", 0));
     printf("    LoRa 10 kB, 1 hop, no loss: %.1f s, %u packets\n",
            (p_rep->finished_ms - p_rep->started_ms) / 1000.0,
@@ -161,8 +161,8 @@ static void test_wifi_clean_link_one_round (void)
     CHECK(start_send(2, &g_sim_wifi, "img/a.jpg", 10000, 2));
     CHECK(net_run_until(&net, sender2_done, 60000));
     alfp_tx_report_t* p_rep = &net.node[2].tx_reports[0];
-    CHECK(p_rep->result == ALFP_TX_DONE && p_rep->rounds == 1);
-    CHECK(p_rep->frag_size == 236); /* 245 - 9 */
+    CHECK((ALFP_TX_DONE == p_rep->result) && (1 == p_rep->rounds));
+    CHECK(236 == p_rep->frag_size); /* 245 - 9 */
     CHECK(received_equals(2, "img/a.jpg", 0));
     printf("    WiFi 10 kB, 1 hop, no loss: %.2f s\n",
            (p_rep->finished_ms - p_rep->started_ms) / 1000.0);
@@ -180,8 +180,8 @@ static void test_lora_loss_sweep_multihop (void)
         bool b_fin = net_run_until(&net, bridge_has_one, 600000);
         net_run_ms(&net, 10000);
         CHECK(b_fin);
-        CHECK(net.node[3].n_tx == 1 &&
-              net.node[3].tx_reports[0].result == ALFP_TX_DONE);
+        CHECK((1 == net.node[3].n_tx) &&
+              (ALFP_TX_DONE == net.node[3].tx_reports[0].result));
         CHECK(received_equals(3, "img/b.jpg", 0));
         alfp_tx_report_t* p_rep = &net.node[3].tx_reports[0];
         printf("    LoRa 2 hops, %2.0f%% loss/hop: %u rounds, %u resent of %u, "
@@ -201,8 +201,8 @@ static void test_wifi_heavy_loss (void)
     CHECK(start_send(5, &g_sim_wifi, "img/c.jpg", 20000, 4));
     CHECK(net_run_until(&net, bridge_has_one, 300000));
     net_run_ms(&net, 3000);
-    CHECK(net.node[5].n_tx == 1 &&
-          net.node[5].tx_reports[0].result == ALFP_TX_DONE);
+    CHECK((1 == net.node[5].n_tx) &&
+          (ALFP_TX_DONE == net.node[5].tx_reports[0].result));
     CHECK(received_equals(5, "img/c.jpg", 0));
     net_close(&net);
 }
@@ -220,7 +220,7 @@ static void test_manifest_lost (void)
     sim_set_drop_rate(BRIDGE, SIM_LORA, 0.0f);
     CHECK(net_run_until(&net, sender2_done, 120000));
     alfp_tx_report_t* p_rep = &net.node[2].tx_reports[0];
-    CHECK(p_rep->result == ALFP_TX_DONE);
+    CHECK(ALFP_TX_DONE == p_rep->result);
     CHECK(p_rep->manifests_sent >= 2);
     CHECK(net.node[BRIDGE].alfp.stats.data_orphan >= 1);
     CHECK(received_equals(2, "img/d.jpg", 0));
@@ -240,11 +240,11 @@ static void test_ack_lost (void)
     net_run_ms(&net, 4000);
     sim_set_drop_rate(2, SIM_LORA, 0.0f);
     CHECK(net_run_until(&net, sender2_done, 60000));
-    CHECK(net.node[2].tx_reports[0].result == ALFP_TX_DONE);
+    CHECK(ALFP_TX_DONE == net.node[2].tx_reports[0].result);
     CHECK(net.node[2].tx_reports[0].polls_sent >= 2);
     net_run_ms(&net, 5000);
-    CHECK(net.node[BRIDGE].n_rx == 1);
-    CHECK(count_files(BRIDGE, "inbox", ".bin") == 1);
+    CHECK(1 == net.node[BRIDGE].n_rx);
+    CHECK(1 == count_files(BRIDGE, "inbox", ".bin"));
     net_close(&net);
 }
 
@@ -256,7 +256,7 @@ static void test_corruption_caught_by_crc16 (void)
     sim_set_corrupt_rate(SIM_LORA, 0.1f);
     CHECK(start_send(2, &g_sim_lora, "img/f.jpg", 10000, 7));
     CHECK(net_run_until(&net, sender2_done, 300000));
-    CHECK(net.node[2].tx_reports[0].result == ALFP_TX_DONE);
+    CHECK(ALFP_TX_DONE == net.node[2].tx_reports[0].result);
     CHECK(net.node[BRIDGE].alfp.stats.pkts_bad_crc > 0);
     CHECK(received_equals(2, "img/f.jpg", 0));
     printf("    %u corrupted packets rejected by CRC-16, file still exact\n",
@@ -275,7 +275,7 @@ static void test_sd_fault_caught_by_crc32 (void)
         net.node[BRIDGE].posix.writes + 10;
     CHECK(start_send(2, &g_sim_wifi, "img/g.jpg", 10000, 8));
     CHECK(net_run_until(&net, sender2_done, 120000));
-    CHECK(net.node[2].tx_reports[0].result == ALFP_TX_DONE);
+    CHECK(ALFP_TX_DONE == net.node[2].tx_reports[0].result);
     CHECK(net.node[BRIDGE].alfp.stats.rx_crc_fail >= 1);
     CHECK(received_equals(2, "img/g.jpg", 0));
     printf("    %u file CRC-32 mismatches caught and repaired\n",
@@ -299,7 +299,7 @@ static void test_radio_selection (void)
     sim_set_link(SIM_LORA, 1, 2, false);
     net_run_ms(&net, 12000);
     sim_set_current(2);
-    CHECK(alfp_select_radio(pref, 2, BRIDGE, sim_now(), 10000) == NULL);
+    CHECK(NULL == alfp_select_radio(pref, 2, BRIDGE, sim_now(), 10000));
     net_close(&net);
 }
 
@@ -382,14 +382,14 @@ static void test_radio_selection_for_size (void)
 
     /* Both stale, or never heard at all: NULL regardless of size. */
     g_fsz_wifi_heard = now_ms - fresh - 1u;
-    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, now_ms, fresh, 0u, thr) ==
-          NULL);
-    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, now_ms, fresh, thr,
-                                     thr) == NULL);
+    CHECK(NULL ==
+          alfp_select_radio_for_size(pref, 2, BRIDGE, now_ms, fresh, 0u, thr));
+    CHECK(NULL ==
+          alfp_select_radio_for_size(pref, 2, BRIDGE, now_ms, fresh, thr, thr));
     gb_fsz_have_lora = false;
     gb_fsz_have_wifi = false;
-    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, now_ms, fresh, 0u, thr) ==
-          NULL);
+    CHECK(NULL ==
+          alfp_select_radio_for_size(pref, 2, BRIDGE, now_ms, fresh, 0u, thr));
 
     /* now_ms wraparound: heard 16 ms before the 32-bit wrap, "now" 16 ms after
      * it (32 ms elapsed).
@@ -401,8 +401,8 @@ static void test_radio_selection_for_size (void)
     CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, wrapped_now, fresh, 0u,
                                      thr) == &fsz_lora);
     /* 32 ms > 20 ms fresh */
-    CHECK(alfp_select_radio_for_size(pref, 2, BRIDGE, wrapped_now, 20u, 0u,
-                                     thr) == NULL);
+    CHECK(NULL == alfp_select_radio_for_size(pref, 2, BRIDGE, wrapped_now, 20u,
+                                             0u, thr));
 }
 
 /* Outbox-level proof that the size rule actually drives radio choice end to
@@ -423,21 +423,21 @@ static void test_outbox_size_based_routing (void)
     CHECK(alfp_outbox_add(&net.node[2].outbox, "img/small.bin", NULL, 0));
     net_run_ms(&net, 50); /* outbox has started the small transfer */
     CHECK(alfp_tx_active(&net.node[2].alfp));
-    CHECK(net.node[2].alfp.tx_session.p_radio != NULL &&
-          strcmp(net.node[2].alfp.tx_session.p_radio->p_name, "lora") == 0);
+    CHECK((NULL != net.node[2].alfp.tx_session.p_radio) &&
+          (0 == strcmp(net.node[2].alfp.tx_session.p_radio->p_name, "lora")));
     CHECK(net_run_until(&net, sender2_done, 120000));
-    CHECK(strcmp(net.node[2].tx_reports[0].p_radio, "lora") == 0);
-    CHECK(net.node[2].tx_reports[0].result == ALFP_TX_DONE);
+    CHECK(0 == strcmp(net.node[2].tx_reports[0].p_radio, "lora"));
+    CHECK(ALFP_TX_DONE == net.node[2].tx_reports[0].result);
 
     sim_set_current(2);
     CHECK(alfp_outbox_add(&net.node[2].outbox, "img/large.bin", NULL, 0));
     net_run_ms(&net, 50);
     CHECK(alfp_tx_active(&net.node[2].alfp));
-    CHECK(net.node[2].alfp.tx_session.p_radio != NULL &&
-          strcmp(net.node[2].alfp.tx_session.p_radio->p_name, "wifi") == 0);
+    CHECK((NULL != net.node[2].alfp.tx_session.p_radio) &&
+          (0 == strcmp(net.node[2].alfp.tx_session.p_radio->p_name, "wifi")));
     CHECK(net_run_until(&net, sender2_sent_twice, 120000));
-    CHECK(strcmp(net.node[2].tx_reports[1].p_radio, "wifi") == 0);
-    CHECK(net.node[2].tx_reports[1].result == ALFP_TX_DONE);
+    CHECK(0 == strcmp(net.node[2].tx_reports[1].p_radio, "wifi"));
+    CHECK(ALFP_TX_DONE == net.node[2].tx_reports[1].result);
     net_close(&net);
 }
 
@@ -452,20 +452,21 @@ static void test_never_switch_mid_transfer (void)
     sim_set_current(2);
     CHECK(alfp_outbox_add(&net.node[2].outbox, "img/h.jpg", NULL, 0));
     net_run_ms(&net, 150); /* transfer has started on WiFi */
-    CHECK(alfp_tx_active(&net.node[2].alfp) &&
-          net.node[2].alfp.tx_session.p_radio == &g_sim_wifi);
+    CHECK((alfp_tx_active(&net.node[2].alfp)) &&
+          (net.node[2].alfp.tx_session.p_radio == &g_sim_wifi));
     sim_set_link(SIM_WIFI, 1, 2, false); /* WiFi dies mid-transfer */
     CHECK(net_run_until(&net, bridge_has_one, 400000));
     net_run_ms(&net, 5000);
     net_node_t* p_src_node = &net.node[2];
     CHECK(p_src_node->n_tx >= 2);
-    CHECK(strcmp(p_src_node->tx_reports[0].p_radio, "wifi") == 0 &&
-          p_src_node->tx_reports[0].result == ALFP_TX_GAVE_UP);
-    CHECK(strcmp(p_src_node->tx_reports[p_src_node->n_tx - 1].p_radio,
-                 "lora") == 0 &&
-          p_src_node->tx_reports[p_src_node->n_tx - 1].result == ALFP_TX_DONE);
+    CHECK((0 == strcmp(p_src_node->tx_reports[0].p_radio, "wifi")) &&
+          (ALFP_TX_GAVE_UP == p_src_node->tx_reports[0].result));
+    CHECK(
+        (0 == strcmp(p_src_node->tx_reports[p_src_node->n_tx - 1].p_radio,
+                     "lora")) &&
+        (ALFP_TX_DONE == p_src_node->tx_reports[p_src_node->n_tx - 1].result));
     CHECK(received_equals(2, "img/h.jpg", 0));
-    CHECK(alfp_outbox_count(&p_src_node->outbox) == 0);
+    CHECK(0 == alfp_outbox_count(&p_src_node->outbox));
     net_close(&net);
 }
 
@@ -495,8 +496,8 @@ static void test_store_and_forward (void)
                               sizeof(meta_buf)));
     }
     net_run_ms(&net, 20000);
-    CHECK(alfp_outbox_count(&net.node[3].outbox) == 3);
-    CHECK(net.node[3].n_tx == 0 && net.node[3].outbox.no_radio_waits > 0);
+    CHECK(3 == alfp_outbox_count(&net.node[3].outbox));
+    CHECK((0 == net.node[3].n_tx) && (net.node[3].outbox.no_radio_waits > 0));
     /* node 3 comes into range of the relay */
     sim_set_link(SIM_LORA, 3, 2, true);
     sim_set_link(SIM_LORA, 2, 1, true);
@@ -512,15 +513,15 @@ static void test_store_and_forward (void)
                alfp_tx_result_str(p_rep->result), p_rep->p_radio, p_rep->rounds,
                (p_rep->finished_ms - p_rep->started_ms) / 1000.0);
     }
-    CHECK(net.node[BRIDGE].n_rx == 3);
-    CHECK(alfp_outbox_count(&net.node[3].outbox) == 0);
+    CHECK(3 == net.node[BRIDGE].n_rx);
+    CHECK(0 == alfp_outbox_count(&net.node[3].outbox));
     for (unsigned idx = 0; (idx < net.node[BRIDGE].n_rx) && (idx < 3); idx++)
     {
         char path[32];
         snprintf(path, sizeof(path), "img/s%u.jpg", idx);
         CHECK(received_equals(3, path, idx)); /* oldest first */
     }
-    CHECK(count_files(BRIDGE, "inbox", ".met") == 3);
+    CHECK(3 == count_files(BRIDGE, "inbox", ".met"));
     net_close(&net);
 }
 
@@ -534,7 +535,7 @@ static void test_two_senders_at_once (void)
     {
         net_run_ms(&net, 500);
     }
-    CHECK(net.node[BRIDGE].n_rx == 2);
+    CHECK(2 == net.node[BRIDGE].n_rx);
     bool b_is_ok = true;
     for (unsigned idx = 0; idx < net.node[BRIDGE].n_rx; idx++)
     {
@@ -555,11 +556,11 @@ static void test_abandoned_session_expires (void)
     net_run_ms(&net, 300);
     net.node[2].n_radios = 0; /* node 2 loses power */
     sim_set_link(SIM_WIFI, 1, 2, false);
-    CHECK(count_files(BRIDGE, "rx", ".part") == 1);
+    CHECK(1 == count_files(BRIDGE, "rx", ".part"));
     net_run_ms(&net, 17000); /* WiFi rx_expiry is 15 s */
-    CHECK(net.node[BRIDGE].alfp.stats.rx_expired == 1);
-    CHECK(count_files(BRIDGE, "rx", ".part") == 0);
-    CHECK(net.node[BRIDGE].posix.open_count == 0);
+    CHECK(1 == net.node[BRIDGE].alfp.stats.rx_expired);
+    CHECK(0 == count_files(BRIDGE, "rx", ".part"));
+    CHECK(0 == net.node[BRIDGE].posix.open_count);
     net_close(&net);
 }
 
@@ -571,21 +572,21 @@ static void test_edge_sizes (void)
         setup(0, 2, 2, false, 120 + idx);
         CHECK(start_send(2, &g_sim_wifi, "img/e.bin", sizes[idx], 40 + idx));
         CHECK(net_run_until(&net, sender2_done, 600000));
-        CHECK(net.node[2].tx_reports[0].result == ALFP_TX_DONE);
+        CHECK(ALFP_TX_DONE == net.node[2].tx_reports[0].result);
         CHECK(received_equals(2, "img/e.bin", 0));
         net_close(&net);
     }
     setup(0, 2, 2, false, 130);
     net_make_file(&net, 2, "img/big.bin", 236u * ALFP_MAX_FRAGS + 1u, 50);
     sim_set_current(2);
-    CHECK(alfp_send_file(&net.node[2].alfp, &g_sim_wifi, BRIDGE, "img/big.bin",
-                         NULL, 0) == ALFP_E_TOO_BIG);
+    CHECK(ALFP_E_TOO_BIG == alfp_send_file(&net.node[2].alfp, &g_sim_wifi,
+                                           BRIDGE, "img/big.bin", NULL, 0));
     net_make_file(&net, 2, "img/empty.bin", 0, 51);
-    CHECK(alfp_send_file(&net.node[2].alfp, &g_sim_wifi, BRIDGE,
-                         "img/empty.bin", NULL, 0) == ALFP_E_EMPTY);
-    CHECK(alfp_send_file(&net.node[2].alfp, &g_sim_wifi, BRIDGE,
-                         "img/missing.bin", NULL, 0) == ALFP_E_OPEN);
-    CHECK(net.node[2].posix.open_count == 0);
+    CHECK(ALFP_E_EMPTY == alfp_send_file(&net.node[2].alfp, &g_sim_wifi, BRIDGE,
+                                         "img/empty.bin", NULL, 0));
+    CHECK(ALFP_E_OPEN == alfp_send_file(&net.node[2].alfp, &g_sim_wifi, BRIDGE,
+                                        "img/missing.bin", NULL, 0));
+    CHECK(0 == net.node[2].posix.open_count);
     net_close(&net);
 }
 
@@ -604,7 +605,7 @@ static void test_outbox_survives_reboot (void)
     sim_set_current(2);
     alfp_outbox_init(&again, &net.node[2].alfp, net.node[2].radios,
                      net.node[2].n_radios, BRIDGE, 10000, "outbox");
-    CHECK(alfp_outbox_count(&again) == 4);
+    CHECK(4 == alfp_outbox_count(&again));
     CHECK(again.next_seq == net.node[2].outbox.next_seq);
     net_close(&net);
 }
@@ -617,13 +618,13 @@ static void test_bridge_reboot_part_names (void)
     setup(0, 2, 2, false, 150);
     CHECK(start_send(2, &g_sim_wifi, "img/f3a.jpg", 5000, 70));
     CHECK(net_run_until(&net, sender2_done, 60000));
-    CHECK(net.node[BRIDGE].n_rx == 1);
+    CHECK(1 == net.node[BRIDGE].n_rx);
     uint16_t sid = net.node[2].tx_reports[0].sid;
 
     /* a transfer the "reboot" will cut short */
     CHECK(start_send(2, &g_sim_wifi, "img/cut.jpg", 20000, 71));
     net_run_ms(&net, 300);
-    CHECK(count_files(BRIDGE, "rx", ".part") == 1);
+    CHECK(1 == count_files(BRIDGE, "rx", ".part"));
     net.node[2].n_radios = 0;
     sim_set_link(SIM_WIFI, 1, 2, false);
 
@@ -641,7 +642,7 @@ static void test_bridge_reboot_part_names (void)
     alfp_cfg_t cfg = net.node[BRIDGE].alfp.cfg;
     sim_set_current(BRIDGE);
     alfp_init(&net.node[BRIDGE].alfp, &cfg);
-    CHECK(count_files(BRIDGE, "rx", ".part") == 0);
+    CHECK(0 == count_files(BRIDGE, "rx", ".part"));
 
     /* node 2 "reboots" too and draws the same session id again */
     if (net.node[2].alfp.tx_session.file_handle >= 0)
@@ -657,21 +658,21 @@ static void test_bridge_reboot_part_names (void)
     net.node[2].alfp.next_sid = sid;
     CHECK(start_send(2, &g_sim_wifi, "img/f3b.jpg", 6000, 72));
     CHECK(net_run_until(&net, sender2_sent_twice, 60000));
-    CHECK(net.node[2].n_tx == 2 &&
-          net.node[2].tx_reports[1].result == ALFP_TX_DONE);
+    CHECK((2 == net.node[2].n_tx) &&
+          (ALFP_TX_DONE == net.node[2].tx_reports[1].result));
     CHECK(net.node[2].tx_reports[1].sid == sid);
-    CHECK(net.node[BRIDGE].n_rx == 2);
-    CHECK(strcmp(net.node[BRIDGE].rx_paths[0], net.node[BRIDGE].rx_paths[1]) !=
-          0);
+    CHECK(2 == net.node[BRIDGE].n_rx);
+    CHECK(0 !=
+          strcmp(net.node[BRIDGE].rx_paths[0], net.node[BRIDGE].rx_paths[1]));
     /* the first file is still intact */
     CHECK(received_equals(2, "img/f3a.jpg", 0));
     CHECK(received_equals(2, "img/f3b.jpg", 1));
-    CHECK(count_files(BRIDGE, "inbox", ".bin") == 2);
+    CHECK(2 == count_files(BRIDGE, "inbox", ".bin"));
     char want[32];
     snprintf(want, sizeof(want), "inbox/%02x/n2_%05u", (unsigned)(sid >> 8),
              (unsigned)sid);
     /* sharded by sid >> 8 */
-    CHECK(strncmp(net.node[BRIDGE].rx_paths[0], want, strlen(want)) == 0);
+    CHECK(0 == strncmp(net.node[BRIDGE].rx_paths[0], want, strlen(want)));
     net_close(&net);
 }
 
@@ -690,8 +691,8 @@ static void test_metadata_delivered (void)
     capture_meta_pack(&meta, meta_buf);
     net_make_file(&net, 2, "img/m.jpg", 3000, 70);
     sim_set_current(2);
-    CHECK(alfp_send_file(&net.node[2].alfp, &g_sim_wifi, BRIDGE, "img/m.jpg",
-                         meta_buf, sizeof(meta_buf)) == ALFP_OK);
+    CHECK(ALFP_OK == alfp_send_file(&net.node[2].alfp, &g_sim_wifi, BRIDGE,
+                                    "img/m.jpg", meta_buf, sizeof(meta_buf)));
     CHECK(net_run_until(&net, sender2_done, 60000));
     char path[600];
     snprintf(path, sizeof(path), "%s/node1/%s", net.root,
@@ -699,15 +700,15 @@ static void test_metadata_delivered (void)
     char* p_dot = strrchr(path, '.');
     strcpy(p_dot, ".met");
     FILE* p_file = fopen(path, "rb");
-    CHECK(p_file != NULL);
+    CHECK(NULL != p_file);
     if (p_file)
     {
         uint8_t input[64];
         size_t  len = fread(input, 1, sizeof(input), p_file);
         fclose(p_file);
-        CHECK(capture_meta_unpack(input, (uint8_t)len, &back) == 0);
-        CHECK(back.capture_id == 4242 && back.humidity_x10 == 903 &&
-              back.weather_label == 3 && back.sound_class == 5);
+        CHECK(0 == capture_meta_unpack(input, (uint8_t)len, &back));
+        CHECK((4242 == back.capture_id) && (903 == back.humidity_x10) &&
+              (3 == back.weather_label) && (5 == back.sound_class));
     }
     net_close(&net);
 }
@@ -745,24 +746,24 @@ static void test_outbox_prepare_meta (void)
     CHECK(
         alfp_outbox_add(&net.node[2].outbox, "img/q.jpg", meta_buf, meta_len));
     CHECK(net_run_until(&net, sender2_done, 60000));
-    CHECK(g_stamped == 1);
+    CHECK(1 == g_stamped);
     char path[600];
     snprintf(path, sizeof(path), "%s/node1/%s", net.root,
              net.node[BRIDGE].rx_paths[0]);
     strcpy(strrchr(path, '.'), ".met");
     FILE* p_file = fopen(path, "rb");
-    CHECK(p_file != NULL);
+    CHECK(NULL != p_file);
     if (p_file)
     {
         uint8_t input[64];
         size_t  len = fread(input, 1, sizeof(input), p_file);
         fclose(p_file);
-        CHECK(len == meta_len &&
-              capture_meta_unpack(input, (uint8_t)len, &back) == 0);
-        CHECK(back.capture_id == 77 && back.queued_ms == 2600u);
-        CHECK(capture_meta_record_len(input, (uint8_t)len) ==
-                  CAPTURE_META_LEN_V2 &&
-              memcmp(input + 31, "x.jpg", 5) == 0);
+        CHECK((len == meta_len) &&
+              (0 == capture_meta_unpack(input, (uint8_t)len, &back)));
+        CHECK((77 == back.capture_id) && (2600u == back.queued_ms));
+        CHECK((CAPTURE_META_LEN_V2 ==
+               capture_meta_record_len(input, (uint8_t)len)) &&
+              (0 == memcmp(input + 31, "x.jpg", 5)));
     }
     net_close(&net);
 }
@@ -797,7 +798,7 @@ static void cb_rx_start (alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid,
                          const char* p_radio)
 {
     (void)p_ctx;
-    CHECK(src == 2 && strcmp(p_radio, "wifi") == 0);
+    CHECK((2 == src) && (0 == strcmp(p_radio, "wifi")));
     ev_push('S', sid, 0, 0, 0, false);
 }
 
@@ -811,7 +812,7 @@ static void cb_rx_manifest (alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid,
     (void)frag_size;
     (void)file_crc32;
     (void)p_meta;
-    CHECK(file_size == 6000 && meta_len == 0);
+    CHECK((6000 == file_size) && (0 == meta_len));
     ev_push('M', sid, 0, frag_count, 0, false);
 }
 
@@ -906,11 +907,11 @@ static void test_progress_callbacks (void)
     net_run_ms(&net, 2);
     sim_set_drop_rate(BRIDGE, SIM_WIFI, 0.0f);
     CHECK(net_run_until(&net, sender2_done, 60000));
-    CHECK(net.node[2].tx_reports[0].result == ALFP_TX_DONE);
+    CHECK(ALFP_TX_DONE == net.node[2].tx_reports[0].result);
     CHECK(received_equals(2, "img/ev.jpg", 0));
 
     /* order and content */
-    CHECK(g_nev > 0 && g_ev[0].kind == 'T');
+    CHECK((g_nev > 0) && ('T' == g_ev[0].kind));
     int      first_s  = -1;
     int      first_m  = -1;
     int      first_n  = -1;
@@ -937,8 +938,8 @@ static void test_progress_callbacks (void)
             if (first_n < 0)
             {
                 first_n = (int)idx;
-                CHECK(p_entry->round == 1 && p_entry->count >= 2 &&
-                      p_entry->count <= 4);
+                CHECK((1 == p_entry->round) && (p_entry->count >= 2) &&
+                      (p_entry->count <= 4));
                 if (!((p_entry->count >= 2) && (p_entry->count <= 4)))
                 {
                     printf("    first NACK asked for %u\n", p_entry->count);
@@ -956,7 +957,7 @@ static void test_progress_callbacks (void)
             }
             else
             {
-                CHECK(first_n >= 0 && p_entry->round >= 1);
+                CHECK((first_n >= 0) && (p_entry->round >= 1));
                 frags_r1++;
                 dups_r1 += p_entry->b_dup;
             }
@@ -964,12 +965,12 @@ static void test_progress_callbacks (void)
         tx_nacks += 'K' == p_entry->kind;
         n_fail += 'X' == p_entry->kind;
     }
-    CHECK(first_s >= 0 && first_m > first_s);
+    CHECK((first_s >= 0) && (first_m > first_s));
     CHECK(first_n > first_m);
-    CHECK(n_nacks >= 1 && tx_nacks >= 1);
+    CHECK((n_nacks >= 1) && (tx_nacks >= 1));
     CHECK(frags_r1 >= 2);
     CHECK(dups_r1 >= 1);
-    CHECK(n_fail == 0);
+    CHECK(0 == n_fail);
     CHECK(frags_r0 + frags_r1 - dups_r1 ==
           net.node[2].tx_reports[0].frag_count);
     printf("    events: %u, first-try frags %u, resent %u (%u dup), NACKs %u\n",

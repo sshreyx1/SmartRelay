@@ -621,7 +621,7 @@ static bool m_tx_busy (int kind)
  * the complete mesh_radio_t callback functions for one simulated radio (host
  * simulator only), so the returns are the generated functions' own and never
  * jump out of the code that uses the macro.
- * Approved by: ____________________ (project manager), date: __________ */
+ * Approved by: Senthil Shreya (project manager), 2026-11-28 */
 #define DEFINE_RADIO(NAME, KIND, STR)                                          \
     static bool NAME##_send(uint8_t dst, const uint8_t* p_buf, uint16_t len)   \
     {                                                                          \

@@ -123,8 +123,9 @@ def main() -> int:
 #include "sound_classify.h"
 #include "sound_features.h"
 
-#if SF_VERSION != 1 || SF_N_FEATURES != {len(d['features'])}
-#error "sound_model.h was trained on sound_features v1 (25 features): retrain and export again"
+#if (1 != SF_VERSION) || ({len(d['features'])} != SF_N_FEATURES)
+#error "sound_model.h was trained on sound_features v1 (25 features): " \\
+    "retrain and export again"
 #endif
 
 #define SOUND_MODEL_DATE "{m['date']}"

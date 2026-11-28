@@ -25,18 +25,18 @@
 #include "sound_classify.h"
 #include "sound_features.h"
 
-#if SF_VERSION != 1 || SF_N_FEATURES != 25
-#error "sound_model.h was trained on sound_features v1 (25 features): "
-"retrain and export again"
+#if (1 != SF_VERSION) || (25 != SF_N_FEATURES)
+#error "sound_model.h was trained on sound_features v1 (25 features): " \
+    "retrain and export again"
 #endif
 
 #define SOUND_MODEL_DATE      "2026-11-03"
 #define SOUND_STAGE2_MIN_CONF 101
 
-    static const int8_t sm_stage1_t0_feat[] = {
-        6,  11, 9,  14, 0,  18, 9,  14, 12, 18, 7,  14, 3,  14, 15, 2, 18, 1,
-        1,  16, 18, 10, 8,  11, 5,  23, 14, 11, 10, 11, 18, 8,  16, 1, 10, 9,
-        19, 17, 6,  3,  16, 23, 17, 18, 12, 23, 9,  23, 9,  17, 14, 1, 23, 14};
+static const int8_t sm_stage1_t0_feat[] = {
+    6,  11, 9,  14, 0,  18, 9,  14, 12, 18, 7,  14, 3,  14, 15, 2, 18, 1,
+    1,  16, 18, 10, 8,  11, 5,  23, 14, 11, 10, 11, 18, 8,  16, 1, 10, 9,
+    19, 17, 6,  3,  16, 23, 17, 18, 12, 23, 9,  23, 9,  17, 14, 1, 23, 14};
 
 static const float32_t sm_stage1_t0_thr[] = {
     -2.06002545f, 0.601095021f,  0.82171607f,  0.506575882f, -3.13687801f,

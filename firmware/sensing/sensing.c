@@ -156,10 +156,10 @@ bool sensing_record_sound (uint32_t seconds, audio_result_t* audio)
     }
     s_legacy_label = audio->p_label;
     /* 0 = mic.c's AMBIENT_NOISE */
-    p_snd->label_id  = audio->class_id == 0 ? SC_AMBIENT : SC_UNKNOWN;
+    p_snd->label_id  = (0 == audio->class_id) ? SC_AMBIENT : SC_UNKNOWN;
     p_snd->rms       = audio->rms;
     p_snd->zcr_per_s = audio->zcr_per_s;
-    p_snd->b_is_ok        = true;
+    p_snd->b_is_ok   = true;
     if (p_snd->lost)
     {
         printf("[AUDIO] warning: %" PRIu32 " samples lost (task too slow)\n",
@@ -224,8 +224,8 @@ void sensing_log_sound (void)
 #if SOUND_LEGACY_MODE
     printf("[SOUND] LEGACY mic.c thresholds: %s -> label=%s id=%u rms=%u "
            "zcr=%u lost=%" PRIu32 "\n",
-           s_legacy_label, sound_class_name(p_snd->label_id), p_snd->label_id, p_snd->rms,
-           p_snd->zcr_per_s, (uint32_t)p_snd->lost);
+           s_legacy_label, sound_class_name(p_snd->label_id), p_snd->label_id,
+           p_snd->rms, p_snd->zcr_per_s, (uint32_t)p_snd->lost);
     return;
 #endif
     printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%" PRIu32

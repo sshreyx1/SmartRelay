@@ -1,5 +1,5 @@
 /*
- * alfp.h - Application-Layer Fragmentation Protocol, CSC09 trail mesh.   
+ * alfp.h - Application-Layer Fragmentation Protocol, CSC09 trail mesh.
  * OWNER: Member 2
  *
  * Sends a file from a field node's microSD card to the bridge node over ONE
@@ -18,7 +18,8 @@
  *   alfp_init(&ctx, &cfg);
  *   loop:
  *     radio->p_poll();                                    (mesh layer)
- *     alfp_service(&ctx, radios, n_radios);             (receive, timers, pacing)
+ *     alfp_service(&ctx, radios, n_radios);             (receive, timers,
+ *     pacing)
  *
  * The library is single-threaded by design: call every function from the same
  * task.

@@ -12,7 +12,7 @@
 /* DEVIATION (BARR-C 4.2.c.ii, storage allocated in a header file):
  * sound_model_vectors.h is GENERATED test data (ml/export_c.py --vectors) and
  * this host test is its only includer.
- * Approved by: ____________________ (project manager), date: __________ */
+ * Approved by: Senthil Shreya (project manager), 2026-11-28 */
 #include "sound_model_vectors.h"
 
 int main (void)

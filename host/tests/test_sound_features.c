@@ -85,14 +85,14 @@ static void test_sine_bands (void)
     float32_t feats[SF_N_FEATURES];
     sine(1000, 800, 2100, 1, 3);
     features(4096, feats);
-    CHECK(dominant_band(feats) == 3, "1 kHz: dominant band %d, want 3 (1-2k)",
+    CHECK(3 == dominant_band(feats), "1 kHz: dominant band %d, want 3 (1-2k)",
           dominant_band(feats));
     CHECK(fabsf(feats[F_CENTROID] - 1000.0f) < 100.0f,
           "1 kHz: centroid %.1f Hz", (float64_t)feats[F_CENTROID]);
 
     sine(6000, 800, 2100, 2, 3);
     features(4096, feats);
-    CHECK(dominant_band(feats) == 7, "6 kHz: dominant band %d, want 7 (5.5-8k)",
+    CHECK(7 == dominant_band(feats), "6 kHz: dominant band %d, want 7 (5.5-8k)",
           dominant_band(feats));
 }
 
@@ -107,7 +107,7 @@ static void test_block_sizes (void)
          size_idx++)
     {
         features(sizes[size_idx], feats);
-        CHECK(memcmp(feats, ref, sizeof(feats)) == 0,
+        CHECK(0 == memcmp(feats, ref, sizeof(feats)),
               "block size %u changes the output", sizes[size_idx]);
     }
 }
@@ -146,7 +146,7 @@ static void test_silence_and_clipping (void)
         CHECK(isfinite(feats[kdx]), "silence: %s not finite",
               g_sf_feature_names[kdx]);
     }
-    CHECK(feats[F_LOGRMS] == 0.0f, "silence: log_rms %g",
+    CHECK(0.0f == feats[F_LOGRMS], "silence: log_rms %g",
           (float64_t)feats[F_LOGRMS]);
     for (int idx = 0; idx < N; idx++)
     {
@@ -231,7 +231,7 @@ static void test_quiet_keeps_shape (void)
     features(4096, loud);
     sine(2500, 4, 2100, 6, 0);
     features(4096, quiet);
-    CHECK(dominant_band(quiet) == 4, "quiet 2.5 kHz: dominant band %d, want 4",
+    CHECK(4 == dominant_band(quiet), "quiet 2.5 kHz: dominant band %d, want 4",
           dominant_band(quiet));
     CHECK(fabsf(loud[F_CENTROID] - quiet[F_CENTROID]) < 150.0f,
           "quiet centroid %.0f vs loud %.0f", (float64_t)quiet[F_CENTROID],

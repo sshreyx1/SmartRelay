@@ -74,8 +74,7 @@ void wst_link_init (void)
          * wst_link.c, never in firmware. wst_link_init() returns void (the real
          * API), so a test node that cannot bind its UDP port has to stop here
          * (and the integration test then fails).
-         * Approved by: ____________________ (project manager), date:
-         * __________ */
+         * Approved by: Senthil Shreya (project manager), 2026-11-28 */
         exit(5);
     }
     fcntl(sock, F_SETFL, O_NONBLOCK);

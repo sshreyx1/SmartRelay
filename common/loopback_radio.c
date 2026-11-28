@@ -142,7 +142,7 @@ static bool l_busy (int self_id)
  * complete callback functions for one loopback endpoint, so the returns are the
  * generated functions' own and never jump out of the code that uses the macro.
  * The only alternative is hand-copying each function.
- * Approved by: ____________________ (project manager), date: __________ */
+ * Approved by: Senthil Shreya (project manager), 2026-11-28 */
 #define END(N, I)                                                              \
     static bool N##_send(uint8_t dst, const uint8_t* p_buf, uint16_t len)      \
     {                                                                          \

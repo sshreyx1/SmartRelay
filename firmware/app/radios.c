@@ -74,8 +74,8 @@ static const mesh_radio_t lora_offline = {"lora",   off_send,      off_recv,
 #include "wst_link.h"
 #else
 static const mesh_radio_t g_wifi_mesh = {"wifi",   off_send,      off_recv,
-                                       off_poll, off_maxp_wifi, off_heard,
-                                       off_busy, off_stats,     off_drop};
+                                         off_poll, off_maxp_wifi, off_heard,
+                                         off_busy, off_stats,     off_drop};
 #endif
 
 #include "board.h"

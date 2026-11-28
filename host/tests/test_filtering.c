@@ -79,8 +79,8 @@ static void test_duplicate_suppression (void)
     net_init(&net, &cfg, "sim_out/test_filter", 1, false);
     net_make_file(&net, 5, "img/dup.jpg", 3000, 1);
     sim_set_current(5);
-    CHECK(alfp_send_file(&net.node[5].alfp, &g_sim_lora, BRIDGE, "img/dup.jpg",
-                         NULL, 0) == ALFP_OK);
+    CHECK(ALFP_OK == alfp_send_file(&net.node[5].alfp, &g_sim_lora, BRIDGE,
+                                    "img/dup.jpg", NULL, 0));
     CHECK(net_run_until(&net, bridge_has_one, 120000));
 
     uint32_t total_dup = 0;
@@ -109,13 +109,13 @@ static void test_other_node_not_delivered (void)
     net_init(&net, &cfg, "sim_out/test_filter", 1, false);
     net_make_file(&net, 3, "img/relay.jpg", 2000, 2);
     sim_set_current(3);
-    CHECK(alfp_send_file(&net.node[3].alfp, &g_sim_lora, BRIDGE,
-                         "img/relay.jpg", NULL, 0) == ALFP_OK);
+    CHECK(ALFP_OK == alfp_send_file(&net.node[3].alfp, &g_sim_lora, BRIDGE,
+                                    "img/relay.jpg", NULL, 0));
     CHECK(net_run_until(&net, bridge_has_one, 120000));
 
     mesh_stats_t relay_stats = stats_of(2, SIM_LORA);
     /* node 2 is not the destination: never delivered to its app layer */
-    CHECK(relay_stats.delivered == 0);
+    CHECK(0 == relay_stats.delivered);
     /* but it did relay the frames on toward the bridge */
     CHECK(relay_stats.relayed > 0);
     printf("    relay node: delivered=%" PRIu32 " (must be 0) relayed=%" PRIu32
@@ -138,13 +138,13 @@ static void test_30pct_loss_completes (void)
     sim_set_link_loss(SIM_LORA, 0.3f);
     net_make_file(&net, 2, "img/loss.jpg", 6000, 3);
     sim_set_current(2);
-    CHECK(alfp_send_file(&net.node[2].alfp, &g_sim_lora, BRIDGE, "img/loss.jpg",
-                         NULL, 0) == ALFP_OK);
+    CHECK(ALFP_OK == alfp_send_file(&net.node[2].alfp, &g_sim_lora, BRIDGE,
+                                    "img/loss.jpg", NULL, 0));
     CHECK(net_run_until(&net, sender2_done, 300000));
     sim_set_link_loss(SIM_LORA, 0.0f);
 
     alfp_tx_report_t* p_rep = &net.node[2].tx_reports[0];
-    CHECK(p_rep->result == ALFP_TX_DONE);
+    CHECK(ALFP_TX_DONE == p_rep->result);
     /* the repair (not the first round) is what proves loss injection did
      * something */
     CHECK(p_rep->data_resent > 0);
@@ -176,8 +176,8 @@ static void test_heartbeat_all_neighbours (void)
         for (uint8_t kdx = 0; kdx < net.node[idx].n_radios; kdx++)
         {
             uint32_t now_ms;
-            CHECK(net.node[idx].radios[kdx]->p_last_heard(BRIDGE, &now_ms) ||
-                  idx == BRIDGE);
+            CHECK((net.node[idx].radios[kdx]->p_last_heard(BRIDGE, &now_ms)) ||
+                  (BRIDGE == idx));
         }
     }
     net_close(&net);

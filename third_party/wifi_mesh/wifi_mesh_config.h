@@ -16,7 +16,7 @@
  * that each includer gets its own copy of. They are kept here so the demo
  * layout is edited in one place; moving them to a .c would change the FreeRTOS,
  * SMP and host build file lists.
- * Approved by: ____________________ (project manager), date: __________ */
+ * Approved by: Senthil Shreya (project manager), 2026-11-28 */
 static const uint8_t wifi_mesh_macs[6][6] = {
     {0, 0, 0, 0, 0, 0},                   /* 0: unused          */
     {0xAC, 0x0B, 0xFB, 0xC7, 0x7F, 0xE9}, /* 1: A  <- WST-1     */

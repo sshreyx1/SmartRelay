@@ -143,6 +143,10 @@ static void parse_kv (params_t* p_params, const char* p_key_value)
     {
         p_params->seed = (uint32_t)atoi(val_str);
     }
+    else
+    {
+        /* unknown key: ignored */
+    }
 }
 
 static bool sender_done (net_t* p_net)
@@ -204,8 +208,7 @@ static result_t run (const params_t* p_params)
             /* DEVIATION (BARR-C 8.5.b, exit()): laptop-only experiment tool,
              * never linked into firmware; a failed setup must stop the run
              * rather than write bogus CSV rows.
-             * Approved by: ____________________ (project manager), date:
-             * __________ */
+             * Approved by: Senthil Shreya (project manager), 2026-11-28 */
             exit(1);
         }
         uint32_t air0 = sim_airtime_used(p_params->radio);
@@ -308,8 +311,7 @@ static FILE* csv (const char* p_dir, const char* p_name, const char* p_header)
         perror(path);
         /* DEVIATION (BARR-C 8.5.b, exit()): laptop-only tool, see send_file
          * failure above.
-         * Approved by: ____________________ (project manager), date:
-         * __________ */
+         * Approved by: Senthil Shreya (project manager), 2026-11-28 */
         exit(1);
     }
     fprintf(p_file, "%s\n", p_header);

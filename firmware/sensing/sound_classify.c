@@ -10,7 +10,7 @@
  * const tables. This file is its only includer, so there is exactly one copy. A
  * hand edit would be overwritten on the next export; the fix belongs in the
  * generator (emit a .c file).
- * Approved by: ____________________ (project manager), date: __________ */
+ * Approved by: Senthil Shreya (project manager), 2026-11-28 */
 #include "sound_model.h"
 
 /* a variable, not the macro, so a threshold of 101 ("never") does not trip
