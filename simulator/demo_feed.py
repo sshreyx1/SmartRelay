@@ -158,7 +158,7 @@ def build_transfer_lines(node_id: int, image_bytes: bytes | None = None, label_d
     data = image_bytes if image_bytes is not None else label_bytes or _placeholder_jpeg(sid)
     meta = build_meta(node_id, cap_id, trigger_pir, trigger_sound, sound_class, image_name)
     crc = zlib.crc32(data) & 0xFFFFFFFF
-    radio = random.choice(["lora", "wifi"])
+    radio = "lora" if len(data) < 1024 else "wifi"  # the firmware's size rule (docs/PROTOCOLS.md)
     frags = max(1, (len(data) + 191) // 192)  # ALFP's real MAX_PAYLOAD-ish chunking, for a realistic count
 
     lines = [

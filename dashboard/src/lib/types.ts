@@ -322,3 +322,37 @@ export interface AppNotification {
 }
 
 export type ConnectionState = 'connecting' | 'live' | 'offline'
+
+/** GET /api/tests/suites and /api/tests/runs/{id} (backend/suite_runner.py). */
+export type RunStatus = 'running' | 'passed' | 'failed' | 'cancelled' | 'error'
+
+export interface TestCheck {
+  name: string
+  passed: boolean
+  detail: string
+}
+
+export interface TestRun {
+  id: number
+  suite: string
+  status: RunStatus
+  step: string
+  started_at: number
+  finished_at: number | null
+  exit_code: number | null
+  summary: string
+  checks: TestCheck[]
+  line_count: number
+  lines?: string[]
+}
+
+export interface TestSuite {
+  id: string
+  name: string
+  proves: string
+  duration: string
+  commands: string[]
+  available: boolean
+  missing: string[]
+  last: TestRun | null
+}

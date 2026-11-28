@@ -1715,3 +1715,96 @@ html[data-motion='reduced'] *::after {
   font-weight: 700;
   fill: var(--wifi);
 }
+
+/* ---- Tests page (pages/TestsPage.tsx) ---- */
+.suites {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.suite {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+.suite.is-current {
+  border-color: var(--forest);
+}
+.suite-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.suite-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.suite-proves {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.45;
+  flex: 1;
+}
+.suite-cmds {
+  list-style: none;
+  margin: 0;
+  padding: 6px 8px;
+  background: var(--surface-2);
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.suite-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.run-summary {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+.run-summary.ok {
+  color: var(--forest);
+}
+.run-summary.bad {
+  color: var(--red);
+}
+.checks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: grid;
+  gap: 6px;
+}
+.checks li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 6px;
+  align-items: baseline;
+}
+.checks li b {
+  grid-row: span 2;
+}
+.checks li.ok b {
+  color: var(--forest);
+}
+.checks li.bad b,
+.checks li.bad span {
+  color: var(--red);
+}
+.logbox.runlog {
+  max-height: 460px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.runlog .ok {
+  color: var(--forest);
+}
+.runlog .bad {
+  color: var(--red);
+}

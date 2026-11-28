@@ -43,7 +43,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -51,6 +51,7 @@ from pydantic import BaseModel
 
 from live_bridge import CompletedTransfer, LiveBridge, autodetect_port
 from storage import Filters, Store
+from suite_runner import make_runner
 from transfers import TransferTracker, kind_of
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
@@ -427,6 +428,54 @@ async def demo_ingest(body: DemoIngest) -> Dict[str, Any]:
     for line in body.lines:
         bridge.feed_line(line, is_demo=True)
     return {"ok": True, "lines_fed": len(body.lines)}
+
+
+# ---------------------------------------------------------------------------
+# Tests page: runs the project's fixed test suites (suite_runner.py). This machine only.
+# ---------------------------------------------------------------------------
+
+runner = make_runner(store, lambda line, demo: bridge.feed_line(line, is_demo=demo))
+LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
+
+
+def require_local(request: Request) -> None:
+    """The suites run programs on this laptop, so only a page served from this laptop may start them:
+    the caller must be on loopback and a browser Origin, if sent, must be localhost."""
+    host = request.client.host if request.client else ""
+    origin = request.headers.get("origin", "")
+    origin_host = origin.split("://", 1)[-1].split(":", 1)[0].strip("[]") if origin else ""
+    if host not in LOCAL_HOSTS or (origin and origin_host not in LOCAL_HOSTS):
+        raise HTTPException(status_code=403, detail="test runs are only allowed from this laptop")
+
+
+@app.get("/api/tests/suites", dependencies=[Depends(require_local)])
+async def api_test_suites() -> Dict[str, Any]:
+    cur = runner.current
+    return {"suites": runner.suites(), "current": cur.view(len(cur.lines)) if cur else None}
+
+
+@app.post("/api/tests/run/{suite_id}", dependencies=[Depends(require_local)])
+async def api_test_run(suite_id: str) -> Dict[str, Any]:
+    try:
+        run = runner.start(suite_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such suite")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return run.view()
+
+
+@app.get("/api/tests/runs/{run_id}", dependencies=[Depends(require_local)])
+async def api_test_run_status(run_id: int, after: int = Query(0, ge=0)) -> Dict[str, Any]:
+    run = runner.runs.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    return run.view(after)
+
+
+@app.post("/api/tests/cancel", dependencies=[Depends(require_local)])
+async def api_test_cancel() -> Dict[str, Any]:
+    return {"cancelled": runner.cancel()}
 
 
 # ---------------------------------------------------------------------------

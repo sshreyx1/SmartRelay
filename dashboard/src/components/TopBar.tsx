@@ -12,6 +12,7 @@ const TABS = [
   { to: '/nodes', label: 'Nodes', match: (p: string) => p.startsWith('/nodes') },
   { to: '/sounds', label: 'Sound classes', match: (p: string) => p.startsWith('/sounds') },
   { to: '/log', label: 'Bridge log', match: (p: string) => p.startsWith('/log') },
+  { to: '/tests', label: 'Tests', match: (p: string) => p.startsWith('/tests') },
 ]
 
 const STALE_AFTER_S = 10

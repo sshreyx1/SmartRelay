@@ -12,6 +12,7 @@ import { GalleryPage } from './pages/GalleryPage'
 import { NodesIndex, NodesPage } from './pages/NodesPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { SoundClassesPage } from './pages/SoundClassesPage'
+import { TestsPage } from './pages/TestsPage'
 import { LiveProvider } from './state/LiveContext'
 import { SummaryProvider, useSummary } from './state/SummaryContext'
 
@@ -33,13 +34,15 @@ function Shell() {
   const { pathname } = useLocation()
   const { filters } = useFilters()
   const { data: s } = useSummary()
-  const showFilters = !pathname.startsWith('/capture/') && !pathname.startsWith('/log') && pathname !== '/nodes/1'
+  const isTests = pathname.startsWith('/tests')
+  const showFilters =
+    !pathname.startsWith('/capture/') && !pathname.startsWith('/log') && pathname !== '/nodes/1' && !isTests
 
   return (
     <div className="app">
       <TopBar onPresenter={() => setPresenter(true)} />
       {showFilters && <FilterBar range={s?.range ?? null} />}
-      <NodeTabs total={filters.node == null ? s?.captures ?? null : null} />
+      {!isTests && <NodeTabs total={filters.node == null ? s?.captures ?? null : null} />}
       <main className="main">
         <Routes>
           <Route path="/" element={<OverviewPage />} />
@@ -50,6 +53,7 @@ function Shell() {
           <Route path="/nodes/:id" element={<NodesPage />} />
           <Route path="/sounds" element={<SoundClassesPage />} />
           <Route path="/log" element={<BridgeLogPage />} />
+          <Route path="/tests" element={<TestsPage />} />
           <Route
             path="*"
             element={

@@ -7,6 +7,8 @@ import type {
   MeshNode,
   SoundClassRow,
   Summary,
+  TestRun,
+  TestSuite,
   Transfer,
 } from './types'
 import type { FilterState } from './filters'
@@ -74,4 +76,21 @@ export const api = {
     return getJSON<{ lines: LogLine[] }>(`/api/log?${p}`, signal).then((r) => r.lines)
   },
   exportUrl: (f: FilterState, format: 'csv' | 'json') => `/api/captures/export?${filterParams(f, { format })}`,
+}
+
+async function postJSON<T>(path: string): Promise<T> {
+  const res = await fetch(path, { method: 'POST' })
+  const body = (await res.json().catch(() => ({}))) as T & { detail?: string }
+  if (!res.ok) throw new Error(body.detail ?? `${path} returned ${res.status}`)
+  return body
+}
+
+/** The Tests page (backend/suite_runner.py): fixed suites only, one run at a time, this laptop only. */
+export const testsApi = {
+  suites: (signal?: AbortSignal) =>
+    getJSON<{ suites: TestSuite[]; current: TestRun | null }>('/api/tests/suites', signal),
+  run: (suiteId: string) => postJSON<TestRun>(`/api/tests/run/${encodeURIComponent(suiteId)}`),
+  status: (runId: number, after: number, signal?: AbortSignal) =>
+    getJSON<TestRun>(`/api/tests/runs/${runId}?after=${after}`, signal),
+  cancel: () => postJSON<{ cancelled: boolean }>('/api/tests/cancel'),
 }
