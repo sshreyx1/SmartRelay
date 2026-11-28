@@ -5,6 +5,7 @@
  * this hardware, with three changes: 923 MHz + matching image calibration, LoRa
  * hardware CRC on, and the IRQ line polled instead of blocking calls.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include "wavesahre_lora_1121.h"
 #include "lora_radio.h"
@@ -222,7 +223,7 @@ bool lora_radio_init( void )
 
     b_tx_active         = false;
     last_irq_check_ms = now_ms( );
-    printf( "lora_radio: %lu Hz, SF%d BW125 CR4/5, %d dBm, CRC on\n", ( unsigned long ) LORA_FREQ_HZ,
+    printf( "lora_radio: %" PRIu32 " Hz, SF%d BW125 CR4/5, %d dBm, CRC on\n", (uint32_t) LORA_FREQ_HZ,
             ( int ) LORA_SF, LORA_TX_POWER_DBM );
     return start_rx( );
 }

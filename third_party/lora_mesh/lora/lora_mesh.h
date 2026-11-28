@@ -8,6 +8,7 @@
 #ifndef LORA_MESH_H
 #define LORA_MESH_H
 
+#include "float_types.h"
 #include "mesh_radio.h"
 
 // Tunable constants
@@ -31,7 +32,7 @@ uint16_t lora_mesh_max_payload( void );
 bool     lora_mesh_last_heard( uint8_t node_id, uint32_t* p_ms_since_boot );
 bool     lora_mesh_tx_busy( void );
 void     lora_mesh_get_stats( mesh_stats_t* p_out );
-void     lora_mesh_set_drop_rate( float rate );
+void     lora_mesh_set_drop_rate( float32_t rate );
 
 // Proposal for the "who sends the bridge heartbeat" open question: the bridge node
 // calls this once (e.g. 5000 ms). It floods an empty broadcast packet, which updates

@@ -1,6 +1,7 @@
 /*
  * uplink.c - see uplink.h.
  */
+#include <inttypes.h>
 #include "uplink.h"
 
 #include <stdio.h>
@@ -66,10 +67,10 @@ static void write_header(const uplink_job_t* p_jdx, uplink_write_fn p_out, void*
 {
     char line[200 + 2 * ALFP_MAX_META];
     int len = snprintf(line, sizeof(line),
-                     "@ALFP FILE v1 src=%u sid=%05u size=%lu crc=%08lx radio=%s frags=%u first=%lu done=%lu nacks=%u "
+                     "@ALFP FILE v1 src=%u sid=%05u size=%" PRIu32 " crc=%08" PRIx32 " radio=%s frags=%u first=%" PRIu32 " done=%" PRIu32 " nacks=%u "
                      "dups=%u meta=",
-                     (unsigned)p_jdx->src, (unsigned)p_jdx->sid, (unsigned long)p_jdx->file_size, (unsigned long)p_jdx->file_crc32,
-                     p_jdx->radio, (unsigned)p_jdx->frag_count, (unsigned long)p_jdx->first_ms, (unsigned long)p_jdx->done_ms,
+                     (unsigned)p_jdx->src, (unsigned)p_jdx->sid, (uint32_t)p_jdx->file_size, (uint32_t)p_jdx->file_crc32,
+                     p_jdx->radio, (unsigned)p_jdx->frag_count, (uint32_t)p_jdx->first_ms, (uint32_t)p_jdx->done_ms,
                      (unsigned)p_jdx->nacks, (unsigned)p_jdx->dups);
     size_t off = ((len > 0) && ((size_t)len < sizeof(line))) ? (size_t)len : 0u;
     for (unsigned idx = 0; (idx < p_jdx->meta_len) && (off + 3u < sizeof(line)); idx++)
@@ -170,7 +171,7 @@ unsigned uplink_queue_service(uplink_queue_t* p_queue, unsigned max_lines, uplin
         }
         if (p_queue->off >= p_jdx->file_size)
         {
-            snprintf(line, sizeof(line), "@ALFP END crc=%08lx\n", (unsigned long)p_queue->crc);
+            snprintf(line, sizeof(line), "@ALFP END crc=%08" PRIx32 "\n", (uint32_t)p_queue->crc);
             p_out(line, p_user);
             lines++;
             finish_job(p_queue, p_queue->crc == p_jdx->file_crc32);

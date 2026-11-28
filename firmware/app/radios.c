@@ -1,6 +1,7 @@
 /*
  * radios.c - see radios.h.
  */
+#include "float_types.h"
 #include "radios.h"
 
 #include <stdio.h>
@@ -46,7 +47,7 @@ static void off_stats(mesh_stats_t* p_out)
 {
     *p_out = (mesh_stats_t) { 0 };
 }
-static void off_drop(float rate)
+static void off_drop(float32_t rate)
 {
     (void)rate;
 }

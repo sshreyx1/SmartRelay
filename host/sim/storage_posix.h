@@ -4,6 +4,7 @@
 #ifndef STORAGE_POSIX_H
 #define STORAGE_POSIX_H
 
+#include "float_types.h"
 #include <stdio.h>
 
 #include "alfp_port.h"
@@ -14,7 +15,7 @@ typedef struct
 {
     char root[256];
     FILE* files[SP_MAX_FILES];
-    float write_fault_rate; /* test hook: chance a write silently flips a byte (SD fault) */
+    float32_t write_fault_rate; /* test hook: chance a write silently flips a byte (SD fault) */
     int fault_write_number; /* test hook: corrupt exactly the Nth write (1-based), 0 = off */
     int writes;
     unsigned (*p_rand_fn)(void);

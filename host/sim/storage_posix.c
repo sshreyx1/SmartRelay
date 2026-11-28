@@ -2,6 +2,7 @@
  * storage_posix.c - see storage_posix.h. Mirrors what storage_fatfs.c does on the Pico.
  */
 #define _POSIX_C_SOURCE 200809L
+#include "float_types.h"
 #include "storage_posix.h"
 
 #include <dirent.h>
@@ -82,7 +83,7 @@ static int p_write_at(void* p_ctx, int handle, uint32_t off, const uint8_t* p_bu
     size_t written;
     p_posix->writes++;
     bool b_fault = (p_posix->fault_write_number) && (p_posix->writes == p_posix->fault_write_number);
-    if ((p_posix->write_fault_rate > 0) && (p_posix->p_rand_fn) && ((float)(p_posix->p_rand_fn() % 1000000u) / 1e6f < p_posix->write_fault_rate))
+    if ((p_posix->write_fault_rate > 0) && (p_posix->p_rand_fn) && ((float32_t)(p_posix->p_rand_fn() % 1000000u) / 1e6f < p_posix->write_fault_rate))
     {
         b_fault = true;
     }

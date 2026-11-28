@@ -17,6 +17,7 @@
 #ifndef SOUND_MODEL_H
 #define SOUND_MODEL_H
 
+#include "float_types.h"
 #include <stdint.h>
 
 #include "sound_classes.h"
@@ -34,7 +35,7 @@ static const int8_t sm_stage1_t0_feat[]
     = { 6,  11, 9,  14, 0, 18, 9, 14, 12, 18, 7,  14, 3, 14, 15, 2,  18, 1,  1,  16, 18, 10, 8,  11, 5, 23, 14,
         11, 10, 11, 18, 8, 16, 1, 10, 9,  19, 17, 6,  3, 16, 23, 17, 18, 12, 23, 9,  23, 9,  17, 14, 1, 23, 14 };
 
-static const float sm_stage1_t0_thr[]
+static const float32_t sm_stage1_t0_thr[]
     = { -2.06002545f, 0.601095021f, 0.82171607f,  0.506575882f, -3.13687801f,  0.259514838f, 0.780691564f, 0.824568152f,
         0.590543568f, 0.381372541f, -4.72559309f, 0.642240345f, -1.9483341f,   0.727180839f, 1.25873768f,  -2.08519125f,
         0.422404468f, -4.51545525f, -3.61547375f, 3157.05542f,  0.237204626f,  0.683701038f, 1.30886829f,  0.512687266f,
@@ -76,7 +77,7 @@ static const int8_t sm_stage1_t1_feat[]
     = { 14, 23, 8,  14, 18, 0, 9,  16, 17, 10, 10, 16, 17, 6,  10, 3,  9, 15, 13, 4, 3, 18, 12, 6,
         6,  0,  11, 0,  10, 4, 10, 7,  8,  18, 23, 2,  2,  11, 6,  18, 2, 14, 17, 1, 2, 12, 5,  7 };
 
-static const float sm_stage1_t1_thr[] = {
+static const float32_t sm_stage1_t1_thr[] = {
     0.347653657f, 0.776530981f, 1.5277406f,   0.820084095f, 0.42452237f,  -6.15425634f, 1.14272141f,  3007.62988f,
     804.338684f,  0.632994354f, 0.645074844f, 3383.83496f,  799.82959f,   -2.04867554f, 0.628631592f, -2.05235362f,
     0.903498769f, 1.00367284f,  0.719502747f, -2.25436997f, -1.9903692f,  0.260457516f, 0.859745562f, -4.70687389f,
@@ -115,7 +116,7 @@ static const int8_t sm_stage1_t2_feat[]
     = { 14, 8, 1, 14, 5, 17, 0,  2, 17, 10, 0, 23, 0, 3,  9,  23, 3, 9,  5, 17, 23, 2, 19,
         18, 3, 2, 10, 6, 12, 10, 0, 23, 3,  1, 17, 5, 23, 15, 7,  1, 23, 8, 2,  19, 19 };
 
-static const float sm_stage1_t2_thr[]
+static const float32_t sm_stage1_t2_thr[]
     = { 0.347653657f, 1.54078233f,   -3.30025506f, 0.862460434f, -2.46362662f, 494.385284f,  -5.84419823f,
         -3.54733539f, 347.973694f,   0.735527933f, -4.60341167f, 0.552518904f, -5.93218327f, -2.31512403f,
         1.10873461f,  0.646942139f,  -1.4797883f,  1.42365265f,  -1.54062009f, 820.075439f,  0.634685874f,
@@ -150,7 +151,7 @@ static const uint8_t sm_stage1_t2_leaf[]
 static const int8_t sm_stage1_t3_feat[] = { 15, 17, 13, 1, 12, 7,  1,  11, 2,  19, 15, 23, 9, 6,  12, 18, 18, 23,
                                             13, 18, 23, 9, 23, 14, 15, 8,  17, 7,  3,  9,  7, 17, 10, 12, 5 };
 
-static const float sm_stage1_t3_thr[]
+static const float32_t sm_stage1_t3_thr[]
     = { 0.297041565f, 476.552521f,  0.84690702f,  -2.66377878f, 0.774570584f, -2.53281283f, -5.45626068f,
         0.511428893f, -3.07564497f, 0.050885886f, 0.885912597f, 0.579989254f, 0.822333574f, -2.00730586f,
         0.709196389f, 0.381372541f, 0.460746616f, 0.495112121f, 0.809256196f, 0.390302926f, 0.545205653f,
@@ -181,7 +182,7 @@ static const uint8_t sm_stage1_t3_leaf[]
 static const int8_t sm_stage1_t4_feat[] = { 14, 9,  13, 19, 0, 2,  14, 17, 13, 23, 23, 3, 0,  23, 19, 7,  23, 9, 8,
                                             4,  23, 11, 8,  6, 13, 18, 23, 13, 17, 15, 4, 17, 12, 4,  23, 11, 5, 12 };
 
-static const float sm_stage1_t4_thr[]
+static const float32_t sm_stage1_t4_thr[]
     = { 0.358412206f, 1.27838981f,  0.880001247f,  0.0855123401f, -2.72171712f, -3.57551289f, 0.801947594f,
         505.44281f,   0.679513335f, 0.64682287f,   0.47628507f,   -1.83872342f, -3.57770443f, 0.49736616f,
         0.116321683f, -2.87818813f, 0.613981247f,  0.981945992f,  1.15897918f,  -2.25150251f, 0.570125818f,
@@ -214,7 +215,7 @@ static const int8_t sm_stage1_t5_feat[]
     = { 14, 8, 1, 13, 5, 19, 5,  6, 1, 15, 13, 23, 12, 9,  7,  11, 5,  0, 14, 6, 5,
         6,  5, 7, 23, 0, 2,  12, 9, 9, 3,  16, 6,  23, 18, 10, 16, 14, 1, 7,  8, 5 };
 
-static const float sm_stage1_t5_thr[]
+static const float32_t sm_stage1_t5_thr[]
     = { 0.358412206f, 1.5277406f,   -2.66110134f, 0.880001247f, -1.06840503f, 0.0402208678f, -1.79061711f,
         -2.96847749f, -5.02206612f, 0.510541856f, 0.400485456f, 0.657749295f, 0.805269659f,  0.981285036f,
         -2.82740951f, 1.22618747f,  -2.38733506f, -4.60592318f, 0.40363425f,  -3.84425807f,  -4.11475658f,
@@ -249,7 +250,7 @@ static const int8_t sm_stage1_t6_feat[]
     = { 12, 9,  14, 16, 9, 8, 2,  16, 5,  18, 17, 13, 12, 1, 12, 2,  13, 11, 4,  9,  2,
         15, 10, 17, 2,  9, 5, 15, 11, 14, 17, 7,  4,  18, 9, 7,  13, 2,  12, 13, 10, 1 };
 
-static const float sm_stage1_t6_thr[]
+static const float32_t sm_stage1_t6_thr[]
     = { 0.353576928f, 1.34384131f,  1.23954082f,  3746.45508f,  0.82171607f,  1.0199846f,   -2.87295651f,
         2549.27808f,  -3.44348884f, 0.435268968f, 696.105957f,  0.400485456f, 0.454668641f, -3.63649035f,
         0.414209425f, -2.87442303f, 0.756649077f, 0.480018795f, -2.17937756f, 0.935695469f, -2.35746932f,
@@ -284,7 +285,7 @@ static const int8_t sm_stage1_t7_feat[]
     = { 10, 11, 8, 16, 10, 5,  18, 9,  9, 13, 14, 23, 3,  10, 2,  3,  19, 6, 16, 1,  1,  3, 14, 10, 10,
         1,  12, 3, 1,  1,  23, 0,  10, 7, 23, 6,  9,  10, 13, 14, 14, 10, 2, 23, 23, 14, 0, 7,  17 };
 
-static const float sm_stage1_t7_thr[]
+static const float32_t sm_stage1_t7_thr[]
     = { 0.542076945f, 0.393225133f, 1.52697146f,   1889.73376f,  0.683701038f, -2.72313356f, 0.205850929f,
         0.981285036f, 0.878410459f, 0.846928f,     0.820584714f, 0.558992624f, -1.99379039f, 0.64233619f,
         -2.16327858f, -1.86155915f, 0.0568501204f, -2.26191044f, 3435.28687f,  -5.3286314f,  -2.76754808f,
@@ -324,7 +325,7 @@ static const int8_t sm_stage1_t8_feat[]
     = { 11, 6, 12, 9, 13, 0, 6, 17, 2, 10, 18, 2,  8, 12, 14, 23, 4,  12, 19, 6,  3,  7, 11, 2,
         10, 1, 15, 1, 14, 5, 3, 16, 1, 0,  4,  11, 8, 8,  6,  23, 10, 15, 18, 11, 16, 4, 12 };
 
-static const float sm_stage1_t8_thr[]
+static const float32_t sm_stage1_t8_thr[]
     = { 0.355040789f, -2.09787679f, 0.301650435f,  1.28665233f,  0.880484521f, -6.46978235f, -4.0464263f,  375.409943f,
         -3.46035528f, 0.879425585f, 0.420732796f,  -3.57551289f, 1.17496228f,  0.535255373f, 1.06445265f,  0.623518765f,
         -2.34045553f, 0.697247744f, 0.0400862359f, -2.77852607f, -1.86155915f, -4.58191204f, 0.79408586f,  -2.93004465f,
@@ -360,7 +361,7 @@ static const int8_t sm_stage1_t9_feat[]
     = { 13, 6,  1,  12, 7,  13, 5,  11, 18, 3, 2,  14, 12, 10, 23, 3,  4, 10, 12, 10, 17, 4,  23, 5, 13, 10, 5,
         8,  19, 13, 1,  18, 11, 10, 19, 3,  7, 18, 23, 0,  3,  9,  13, 6, 4,  16, 13, 8,  15, 1,  2, 9,  14 };
 
-static const float sm_stage1_t9_thr[]
+static const float32_t sm_stage1_t9_thr[]
     = { 0.352659047f,  -2.00978112f,  -3.89946675f, 0.579552531f, -4.56470633f, 0.727688015f, -1.71298289f,
         0.600751638f,  0.386123687f,  -2.33549547f, -4.93175316f, 1.3424958f,   0.454928964f, 0.944091797f,
         0.738660455f,  -0.878396511f, -1.82130766f, 1.45289743f,  0.668201864f, 1.67814648f,  871.54834f,
@@ -416,14 +417,14 @@ static const uint8_t sm_stage1_classes[]
 
 static const sm_model_t sm_stage1 = { sm_stage1_trees, 10, 7, sm_stage1_classes };
 
-static inline void sm_stage1_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
+static inline void sm_stage1_predict(const float32_t* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
     sm_predict(&sm_stage1, p_features, p_label, p_conf);
 }
 
 static const int8_t sm_stage2_bird_t0_feat[] = { 1, 11, 18, 23, 19, 2, 4, 17, 14, 6, 3, 18, 16, 13, 8 };
 
-static const float sm_stage2_bird_t0_thr[]
+static const float32_t sm_stage2_bird_t0_thr[]
     = { -5.18080378f, 0.918359876f, 0.369052321f, 0.596995413f, 0.090102911f, -5.55308151f, -1.92243803f, 767.111206f,
         2.28879929f,  -3.96290588f, -2.35286951f, 0.331654906f, 2147.89941f,  1.19445276f,  1.63308632f };
 
@@ -438,7 +439,7 @@ static const uint8_t sm_stage2_bird_t0_leaf[]
 
 static const int8_t sm_stage2_bird_t1_feat[] = { 17, 9, 4, 4, 7, 15, 3, 6, 9, 0, 8, 1, 13 };
 
-static const float sm_stage2_bird_t1_thr[]
+static const float32_t sm_stage2_bird_t1_thr[]
     = { 1005.69733f,  1.41894555f, -2.83569145f, -1.92505193f, -3.22289324f, 1.51103497f, -2.78511953f,
         -3.51183414f, 2.32143688f, -4.75724363f, 2.0458169f,   -5.53278303f, 1.5468775f };
 
@@ -452,7 +453,7 @@ static const uint8_t sm_stage2_bird_t1_leaf[]
 
 static const int8_t sm_stage2_bird_t2_feat[] = { 16, 23, 14, 2, 17, 1, 18, 11, 3, 17, 13, 6, 13, 11, 3, 23 };
 
-static const float sm_stage2_bird_t2_thr[]
+static const float32_t sm_stage2_bird_t2_thr[]
     = { 3264.28662f,  0.648233414f, 1.94886506f,  -2.71471357f, 506.92807f,  -6.2773385f, 0.355447173f, 0.836958349f,
         -1.63236058f, 601.002686f,  0.927451074f, -3.73142934f, 1.10782957f, 1.34240425f, -2.27048635f, 0.549281955f };
 
@@ -467,7 +468,7 @@ static const uint8_t sm_stage2_bird_t2_leaf[]
 
 static const int8_t sm_stage2_bird_t3_feat[] = { 9, 14, 8, 8, 11, 19, 5, 15, 13, 7, 7, 10, 15, 6, 6, 16, 9, 4 };
 
-static const float sm_stage2_bird_t3_thr[]
+static const float32_t sm_stage2_bird_t3_thr[]
     = { 1.67006755f,  0.987178206f, 1.43414199f,  1.53498554f,  0.652282715f, 0.0809882209f,
         -2.13280487f, 1.41162348f,  0.858109117f, -3.46579266f, -4.64622402f, 1.09820545f,
         2.83857226f,  -3.0513916f,  -2.85622692f, 2711.51343f,  2.29143858f,  -1.42684293f };
@@ -485,7 +486,7 @@ static const uint8_t sm_stage2_bird_t3_leaf[]
 
 static const int8_t sm_stage2_bird_t4_feat[] = { 3, 8, 12, 0, 7, 23, 0, 12, 17, 7, 15, 7, 5 };
 
-static const float sm_stage2_bird_t4_thr[]
+static const float32_t sm_stage2_bird_t4_thr[]
     = { -3.34485126f, 2.44261026f, 0.866137922f, -4.68785524f, -2.54999447f, 0.646551728f, -5.29056883f,
         1.14625859f,  877.662781f, -2.47943091f, 2.44768238f,  -4.22633791f, -2.85663176f };
 
@@ -499,7 +500,7 @@ static const uint8_t sm_stage2_bird_t4_leaf[]
 
 static const int8_t sm_stage2_bird_t5_feat[] = { 8, 3, 17, 8, 0, 7, 10, 14, 13, 15, 19, 15, 8, 7, 6, 19, 19, 4 };
 
-static const float sm_stage2_bird_t5_thr[]
+static const float32_t sm_stage2_bird_t5_thr[]
     = { 2.17754698f, -2.42508626f, 865.596619f,  1.92034674f,  -5.80875397f,  -3.86167693f,
         1.48342395f, 1.06178498f,  0.864981949f, 1.4972918f,   0.0986396968f, 2.16493511f,
         2.4158597f,  -3.56371951f, -3.94437456f, 0.105968639f, 0.131118357f,  -1.64379132f };
@@ -516,7 +517,7 @@ static const uint8_t sm_stage2_bird_t5_leaf[]
 
 static const int8_t sm_stage2_bird_t6_feat[] = { 19, 9, 1, 3, 3, 8, 17, 17, 11, 2, 1, 3, 10, 23, 10, 2, 12 };
 
-static const float sm_stage2_bird_t6_thr[]
+static const float32_t sm_stage2_bird_t6_thr[]
     = { 0.0912902206f, 2.11774564f,  -4.67093372f, -1.69608927f, -3.04025245f, 1.81261051f,
         557.442566f,   679.116333f,  1.12783766f,  -3.6619978f,  -5.25367594f, -1.19249249f,
         1.15774381f,   0.557056367f, 1.24414027f,  -1.80527544f, 0.974363625f };
@@ -533,7 +534,7 @@ static const uint8_t sm_stage2_bird_t6_leaf[]
 
 static const int8_t sm_stage2_bird_t7_feat[] = { 3, 6, 19, 5, 2, 18, 10, 5, 12, 3, 12, 6, 0, 5, 7, 19 };
 
-static const float sm_stage2_bird_t7_thr[] = { -1.95488882f, -2.91124701f, 0.0990397632f, -1.96802068f,
+static const float32_t sm_stage2_bird_t7_thr[] = { -1.95488882f, -2.91124701f, 0.0990397632f, -1.96802068f,
                                                -3.44588876f, 0.334470838f, 1.48047161f,   -2.31496716f,
                                                1.23652089f,  -1.17311621f, 1.02791286f,   -4.21475697f,
                                                -5.81262541f, -1.54828608f, -2.98499537f,  0.065532133f };
@@ -549,7 +550,7 @@ static const uint8_t sm_stage2_bird_t7_leaf[]
 
 static const int8_t sm_stage2_bird_t8_feat[] = { 11, 19, 9, 12, 3, 23, 12, 4, 2, 12, 14 };
 
-static const float sm_stage2_bird_t8_thr[]
+static const float32_t sm_stage2_bird_t8_thr[]
     = { 1.61447537f, 0.133166164f, 2.15276623f,  1.31662631f,  -2.8892498f, 0.645246863f,
         1.16121483f, -1.4732554f,  -2.89163589f, 0.750878632f, 2.12011051f };
 
@@ -563,7 +564,7 @@ static const uint8_t sm_stage2_bird_t8_leaf[]
 
 static const int8_t sm_stage2_bird_t9_feat[] = { 14, 17, 8, 9, 3, 8, 18, 19, 12, 2, 12, 7, 7, 12 };
 
-static const float sm_stage2_bird_t9_thr[]
+static const float32_t sm_stage2_bird_t9_thr[]
     = { 1.17063022f,   746.038574f,  1.6361959f,   2.12757158f, -3.13558531f, 2.46559477f,  0.357910335f,
         0.0928794295f, 0.896728635f, -2.34565973f, 1.16686583f, -2.17447186f, -3.98329663f, 0.767222822f };
 
@@ -578,7 +579,7 @@ static const uint8_t sm_stage2_bird_t9_leaf[]
 
 static const int8_t sm_stage2_bird_t10_feat[] = { 10, 14, 8, 2, 17, 5, 6, 2, 5, 8, 1, 2, 8, 23, 0, 3 };
 
-static const float sm_stage2_bird_t10_thr[]
+static const float32_t sm_stage2_bird_t10_thr[]
     = { 1.07504511f,  1.23487639f, 2.32703185f,  -2.76874208f, 1062.95776f, -1.54667795f, -2.33050799f, -4.11938047f,
         -2.83270669f, 1.94308043f, -5.44444513f, -2.61545539f, 1.70383799f, 0.68128407f,  -5.72057533f, -3.40777016f };
 
@@ -593,7 +594,7 @@ static const uint8_t sm_stage2_bird_t10_leaf[]
 
 static const int8_t sm_stage2_bird_t11_feat[] = { 8, 14, 14, 23, 12, 5, 9, 3, 5, 12, 11, 3, 18 };
 
-static const float sm_stage2_bird_t11_thr[]
+static const float32_t sm_stage2_bird_t11_thr[]
     = { 1.47608626f,  1.27008474f,  1.3834666f,   0.599814236f, 0.935789645f, -2.5696342f, 2.58113885f,
         -2.10691166f, -2.90127754f, 0.846213579f, 1.54600191f,  -3.19193506f, 0.284239054f };
 
@@ -608,7 +609,7 @@ static const uint8_t sm_stage2_bird_t11_leaf[] = { 0,   0,   0,   100, 0, 0, 0, 
 
 static const int8_t sm_stage2_bird_t12_feat[] = { 15, 15, 8, 5, 7, 9, 5, 15, 23, 11, 3, 15, 10 };
 
-static const float sm_stage2_bird_t12_thr[]
+static const float32_t sm_stage2_bird_t12_thr[]
     = { 1.70292366f, 1.4358201f,   1.88826609f,  -2.81372261f, -4.08794451f, 1.61063135f, -2.2494514f,
         2.89935207f, 0.517643392f, 0.972372055f, -1.6373471f,  2.37924027f,  1.65384686f };
 
@@ -622,7 +623,7 @@ static const uint8_t sm_stage2_bird_t12_leaf[]
 
 static const int8_t sm_stage2_bird_t13_feat[] = { 15, 18, 19, 16, 18, 5, 7, 1, 4, 15, 23, 23, 12, 9, 9, 12, 12, 13 };
 
-static const float sm_stage2_bird_t13_thr[]
+static const float32_t sm_stage2_bird_t13_thr[]
     = { 1.4092561f,   0.367353976f, 0.0655550882f, 2315.73242f,  0.365647852f, -2.94011164f,
         -3.91024518f, -5.2989502f,  -2.90068269f,  2.36678433f,  0.734621763f, 0.654935122f,
         0.654147625f, 2.63511658f,  2.94296908f,   0.864844859f, 1.23256254f,  0.78945154f };
@@ -640,7 +641,7 @@ static const uint8_t sm_stage2_bird_t13_leaf[]
 
 static const int8_t sm_stage2_bird_t14_feat[] = { 8, 2, 9, 14, 23, 5, 23, 0, 13, 8, 18, 15, 15, 19, 9 };
 
-static const float sm_stage2_bird_t14_thr[]
+static const float32_t sm_stage2_bird_t14_thr[]
     = { 1.38484633f, -3.18796706f, 2.74673772f,  1.4250176f,  0.726177752f, -1.91598833f, 0.628368437f, -5.871243f,
         1.50382483f, 1.99031723f,  0.260226279f, 1.65994954f, 2.51825833f,  0.129811928f, 2.72098398f };
 
@@ -655,7 +656,7 @@ static const uint8_t sm_stage2_bird_t14_leaf[]
 
 static const int8_t sm_stage2_bird_t15_feat[] = { 3, 15, 4, 3, 14, 5, 8, 6, 7 };
 
-static const float sm_stage2_bird_t15_thr[] = { -2.96478629f, 2.88418436f, -2.13889551f, -2.60493779f, 2.24908042f,
+static const float32_t sm_stage2_bird_t15_thr[] = { -2.96478629f, 2.88418436f, -2.13889551f, -2.60493779f, 2.24908042f,
                                                 -2.45786119f, 1.13869786f, -4.6587038f,  -4.20784807f };
 
 static const int16_t sm_stage2_bird_t15_left[] = { -1, 2, 3, -2, 5, -3, -6, -7, -8 };
@@ -668,7 +669,7 @@ static const uint8_t sm_stage2_bird_t15_leaf[]
 
 static const int8_t sm_stage2_bird_t16_feat[] = { 3, 19, 19, 3, 8, 8, 12, 10, 16, 18, 16, 23, 13, 8, 12, 6 };
 
-static const float sm_stage2_bird_t16_thr[]
+static const float32_t sm_stage2_bird_t16_thr[]
     = { -2.37051105f, 0.0908437297f, 0.061244227f, -2.69970727f, 2.73490357f, 1.74610662f, 0.812090993f, 0.998209059f,
         2374.94336f,  0.321876913f,  2345.02173f,  0.62667191f,  1.11965084f, 2.06093669f, 1.86813867f,  -4.22955227f };
 
@@ -683,7 +684,7 @@ static const uint8_t sm_stage2_bird_t16_leaf[]
 
 static const int8_t sm_stage2_bird_t17_feat[] = { 15, 19, 8, 1, 16, 23, 0, 3, 18, 23, 18 };
 
-static const float sm_stage2_bird_t17_thr[]
+static const float32_t sm_stage2_bird_t17_thr[]
     = { 1.38928318f,  0.0698990226f, 2.00576234f,  -4.80827236f, 2270.4646f,  0.611839652f,
         -5.18622208f, -2.96627498f,  0.332167208f, 0.710631728f, 0.342303038f };
 
@@ -697,7 +698,7 @@ static const uint8_t sm_stage2_bird_t17_leaf[]
 
 static const int8_t sm_stage2_bird_t18_feat[] = { 4, 14, 11, 8, 3, 19, 14, 4, 5, 8, 18, 8, 5, 0, 14, 16 };
 
-static const float sm_stage2_bird_t18_thr[]
+static const float32_t sm_stage2_bird_t18_thr[]
     = { -1.7417717f,  2.17622495f, 0.928638339f, 1.78902388f, -2.2050817f, 0.0887550339f, 1.81662261f, -2.31109548f,
         -2.31593561f, 1.52934837f, 0.380616814f, 2.16670489f, -2.2895236f, -6.08662415f,  1.82292771f, 2848.51782f };
 
@@ -712,7 +713,7 @@ static const uint8_t sm_stage2_bird_t18_leaf[]
 
 static const int8_t sm_stage2_bird_t19_feat[] = { 17, 1, 4, 19, 18, 6, 10, 8, 11, 9, 11, 15, 15, 0, 18, 10 };
 
-static const float sm_stage2_bird_t19_thr[]
+static const float32_t sm_stage2_bird_t19_thr[]
     = { 792.957764f,  -5.41888189f, -1.93729925f, 0.0685401559f, 0.237604097f, -3.39887404f, 1.13204718f, 1.40144813f,
         0.705294669f, 1.75654483f,  0.699161828f, 1.0778507f,    2.73370671f,  -6.92313004f, 0.34962225f, 1.38151002f };
 
@@ -772,14 +773,14 @@ static const uint8_t sm_stage2_bird_classes[] = { SC_ROOSTER, SC_HEN, SC_CROW, S
 
 static const sm_model_t sm_stage2_bird = { sm_stage2_bird_trees, 20, 4, sm_stage2_bird_classes };
 
-static inline void sm_stage2_bird_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
+static inline void sm_stage2_bird_predict(const float32_t* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
     sm_predict(&sm_stage2_bird, p_features, p_label, p_conf);
 }
 
 static const int8_t sm_stage2_mammal_t0_feat[] = { 23, 9, 0, 7, 14, 14 };
 
-static const float sm_stage2_mammal_t0_thr[]
+static const float32_t sm_stage2_mammal_t0_thr[]
     = { 0.634128392f, 2.01378751f, -5.70146561f, -3.05455685f, 1.72669232f, 2.11747527f };
 
 static const int16_t sm_stage2_mammal_t0_left[] = { 1, 2, -1, -2, -5, -6 };
@@ -798,14 +799,14 @@ static const uint8_t sm_stage2_mammal_classes[] = { SC_DOG, SC_CAT, SC_COW, SC_P
 
 static const sm_model_t sm_stage2_mammal = { sm_stage2_mammal_trees, 1, 5, sm_stage2_mammal_classes };
 
-static inline void sm_stage2_mammal_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
+static inline void sm_stage2_mammal_predict(const float32_t* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
     sm_predict(&sm_stage2_mammal, p_features, p_label, p_conf);
 }
 
 static const int8_t sm_stage2_insect_frog_t0_feat[] = { 7, 1, 5, 11 };
 
-static const float sm_stage2_insect_frog_t0_thr[] = { -2.65322208f, -4.24147129f, -2.69546795f, 0.45450002f };
+static const float32_t sm_stage2_insect_frog_t0_thr[] = { -2.65322208f, -4.24147129f, -2.69546795f, 0.45450002f };
 
 static const int16_t sm_stage2_insect_frog_t0_left[] = { 1, 2, -1, -3 };
 
@@ -815,7 +816,7 @@ static const uint8_t sm_stage2_insect_frog_t0_leaf[] = { 100, 0, 0, 33, 67, 0, 0
 
 static const int8_t sm_stage2_insect_frog_t1_feat[] = { 15, 7, 0, 5, 10, 15 };
 
-static const float sm_stage2_insect_frog_t1_thr[]
+static const float32_t sm_stage2_insect_frog_t1_thr[]
     = { 1.44111001f, -2.09986329f, -5.5077877f, -3.36903214f, 1.89927268f, 2.0899446f };
 
 static const int16_t sm_stage2_insect_frog_t1_left[] = { 1, 2, -1, -2, -5, -6 };
@@ -827,7 +828,7 @@ static const uint8_t sm_stage2_insect_frog_t1_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t2_feat[] = { 9, 3, 1, 10 };
 
-static const float sm_stage2_insect_frog_t2_thr[] = { 1.46221578f, -1.53566313f, -2.97385979f, 2.11930418f };
+static const float32_t sm_stage2_insect_frog_t2_thr[] = { 1.46221578f, -1.53566313f, -2.97385979f, 2.11930418f };
 
 static const int16_t sm_stage2_insect_frog_t2_left[] = { 1, 2, -1, -4 };
 
@@ -837,7 +838,7 @@ static const uint8_t sm_stage2_insect_frog_t2_leaf[] = { 0, 100, 0, 0, 50, 50, 0
 
 static const int8_t sm_stage2_insect_frog_t3_feat[] = { 15, 17, 1, 16 };
 
-static const float sm_stage2_insect_frog_t3_thr[] = { 1.35803902f, 413.46405f, -4.34559441f, 3009.6333f };
+static const float32_t sm_stage2_insect_frog_t3_thr[] = { 1.35803902f, 413.46405f, -4.34559441f, 3009.6333f };
 
 static const int16_t sm_stage2_insect_frog_t3_left[] = { 1, -1, -2, -4 };
 
@@ -847,7 +848,7 @@ static const uint8_t sm_stage2_insect_frog_t3_leaf[] = { 0, 100, 0, 0, 100, 0, 0
 
 static const int8_t sm_stage2_insect_frog_t4_feat[] = { 14, 3, 8, 14, 13, 3, 1 };
 
-static const float sm_stage2_insect_frog_t4_thr[]
+static const float32_t sm_stage2_insect_frog_t4_thr[]
     = { 1.1390897f, -1.53958726f, 1.32262802f, 0.832845449f, 0.943870366f, -2.55790567f, -4.15029478f };
 
 static const int16_t sm_stage2_insect_frog_t4_left[] = { 1, 2, 3, -1, -3, -6, -7 };
@@ -859,7 +860,7 @@ static const uint8_t sm_stage2_insect_frog_t4_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t5_feat[] = { 9, 7, 1, 13, 5, 19 };
 
-static const float sm_stage2_insect_frog_t5_thr[]
+static const float32_t sm_stage2_insect_frog_t5_thr[]
     = { 1.38747811f, -2.15504289f, -4.24147129f, 0.4499605f, -4.64618111f, 0.0465962626f };
 
 static const int16_t sm_stage2_insect_frog_t5_left[] = { 1, 2, -1, -2, -5, -6 };
@@ -871,7 +872,7 @@ static const uint8_t sm_stage2_insect_frog_t5_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t6_feat[] = { 1, 9, 3, 14 };
 
-static const float sm_stage2_insect_frog_t6_thr[] = { -3.92405462f, 1.38747811f, -1.83087313f, 0.733803749f };
+static const float32_t sm_stage2_insect_frog_t6_thr[] = { -3.92405462f, 1.38747811f, -1.83087313f, 0.733803749f };
 
 static const int16_t sm_stage2_insect_frog_t6_left[] = { 1, 2, -1, -4 };
 
@@ -881,7 +882,7 @@ static const uint8_t sm_stage2_insect_frog_t6_leaf[] = { 0, 100, 0, 50, 50, 0, 1
 
 static const int8_t sm_stage2_insect_frog_t7_feat[] = { 16, 12, 16, 16, 0, 5, 19 };
 
-static const float sm_stage2_insect_frog_t7_thr[]
+static const float32_t sm_stage2_insect_frog_t7_thr[]
     = { 3326.60132f, 0.60267514f, 2248.20239f, 2124.09839f, -4.14069557f, -3.4256556f, 0.105370618f };
 
 static const int16_t sm_stage2_insect_frog_t7_left[] = { 1, 2, 3, -1, -3, -5, -6 };
@@ -893,7 +894,7 @@ static const uint8_t sm_stage2_insect_frog_t7_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t8_feat[] = { 18, 23, 12, 17, 4 };
 
-static const float sm_stage2_insect_frog_t8_thr[]
+static const float32_t sm_stage2_insect_frog_t8_thr[]
     = { 0.418985665f, 0.620355129f, 0.417756557f, 617.563538f, -0.428506017f };
 
 static const int16_t sm_stage2_insect_frog_t8_left[] = { 1, 2, -1, 4, -3 };
@@ -905,7 +906,7 @@ static const uint8_t sm_stage2_insect_frog_t8_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t9_feat[] = { 1, 6, 5, 18, 6 };
 
-static const float sm_stage2_insect_frog_t9_thr[]
+static const float32_t sm_stage2_insect_frog_t9_thr[]
     = { -3.83442283f, -3.87745309f, -5.53530741f, 0.326376319f, -3.03719139f };
 
 static const int16_t sm_stage2_insect_frog_t9_left[] = { 1, 2, -1, -2, -5 };
@@ -917,7 +918,7 @@ static const uint8_t sm_stage2_insect_frog_t9_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t10_feat[] = { 10, 15, 4, 3 };
 
-static const float sm_stage2_insect_frog_t10_thr[] = { 1.35806715f, 0.633378744f, -1.06627953f, -2.59362197f };
+static const float32_t sm_stage2_insect_frog_t10_thr[] = { 1.35806715f, 0.633378744f, -1.06627953f, -2.59362197f };
 
 static const int16_t sm_stage2_insect_frog_t10_left[] = { 1, -1, -2, -4 };
 
@@ -927,7 +928,7 @@ static const uint8_t sm_stage2_insect_frog_t10_leaf[] = { 0, 100, 0, 0, 0, 100, 
 
 static const int8_t sm_stage2_insect_frog_t11_feat[] = { 1, 17, 18, 2, 19, 6 };
 
-static const float sm_stage2_insect_frog_t11_thr[]
+static const float32_t sm_stage2_insect_frog_t11_thr[]
     = { -3.83442283f, 634.772827f, 0.333892673f, -5.4155426f, 0.110923298f, -2.72801065f };
 
 static const int16_t sm_stage2_insect_frog_t11_left[] = { 1, 2, 3, -1, -4, -6 };
@@ -939,7 +940,7 @@ static const uint8_t sm_stage2_insect_frog_t11_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t12_feat[] = { 13, 18, 10, 11, 9, 5, 6, 14 };
 
-static const float sm_stage2_insect_frog_t12_thr[]
+static const float32_t sm_stage2_insect_frog_t12_thr[]
     = { 0.851412833f, 0.379367769f, 0.586561024f, 0.434639633f, 1.11816251f, -4.79536819f, -3.83943915f, 1.71468997f };
 
 static const int16_t sm_stage2_insect_frog_t12_left[] = { 1, 2, -1, -2, -3, -6, -7, -8 };
@@ -951,7 +952,7 @@ static const uint8_t sm_stage2_insect_frog_t12_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t13_feat[] = { 15, 10, 3, 17 };
 
-static const float sm_stage2_insect_frog_t13_thr[] = { 0.633378744f, 0.838571548f, -2.59362197f, 516.752258f };
+static const float32_t sm_stage2_insect_frog_t13_thr[] = { 0.633378744f, 0.838571548f, -2.59362197f, 516.752258f };
 
 static const int16_t sm_stage2_insect_frog_t13_left[] = { -1, -2, -3, -4 };
 
@@ -961,7 +962,7 @@ static const uint8_t sm_stage2_insect_frog_t13_leaf[] = { 0, 100, 0, 0, 0, 100, 
 
 static const int8_t sm_stage2_insect_frog_t14_feat[] = { 9, 16, 8, 0, 18 };
 
-static const float sm_stage2_insect_frog_t14_thr[]
+static const float32_t sm_stage2_insect_frog_t14_thr[]
     = { 1.6378113f, 2709.29907f, 0.883594513f, -5.07707834f, 0.379141539f };
 
 static const int16_t sm_stage2_insect_frog_t14_left[] = { 1, 2, -1, -2, -5 };
@@ -973,7 +974,7 @@ static const uint8_t sm_stage2_insect_frog_t14_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t15_feat[] = { 8, 1, 15, 1, 4 };
 
-static const float sm_stage2_insect_frog_t15_thr[]
+static const float32_t sm_stage2_insect_frog_t15_thr[]
     = { 1.46863914f, -4.4169631f, 0.648939848f, -7.79603481f, -1.70748281f };
 
 static const int16_t sm_stage2_insect_frog_t15_left[] = { 1, -1, -2, -4, -5 };
@@ -985,7 +986,7 @@ static const uint8_t sm_stage2_insect_frog_t15_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t16_feat[] = { 1, 15, 10, 14 };
 
-static const float sm_stage2_insect_frog_t16_thr[] = { -4.22216749f, 1.44111001f, 2.11930418f, 0.591245532f };
+static const float32_t sm_stage2_insect_frog_t16_thr[] = { -4.22216749f, 1.44111001f, 2.11930418f, 0.591245532f };
 
 static const int16_t sm_stage2_insect_frog_t16_left[] = { 1, -1, -2, -4 };
 
@@ -995,7 +996,7 @@ static const uint8_t sm_stage2_insect_frog_t16_leaf[] = { 0, 100, 0, 100, 0, 0, 
 
 static const int8_t sm_stage2_insect_frog_t17_feat[] = { 5, 2, 23, 7, 1, 0 };
 
-static const float sm_stage2_insect_frog_t17_thr[]
+static const float32_t sm_stage2_insect_frog_t17_thr[]
     = { -3.45528769f, -5.50602961f, 0.673013449f, -2.95623016f, -4.70997906f, -7.54469395f };
 
 static const int16_t sm_stage2_insect_frog_t17_left[] = { 1, -1, -2, 4, 5, -4 };
@@ -1007,7 +1008,7 @@ static const uint8_t sm_stage2_insect_frog_t17_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t18_feat[] = { 9, 8, 4, 18, 2 };
 
-static const float sm_stage2_insect_frog_t18_thr[]
+static const float32_t sm_stage2_insect_frog_t18_thr[]
     = { 1.11420822f, 0.883594513f, -1.60923278f, 0.370902479f, -5.31431961f };
 
 static const int16_t sm_stage2_insect_frog_t18_left[] = { 1, -1, 3, -2, -5 };
@@ -1019,7 +1020,7 @@ static const uint8_t sm_stage2_insect_frog_t18_leaf[]
 
 static const int8_t sm_stage2_insect_frog_t19_feat[] = { 15, 17, 5, 1, 9, 17 };
 
-static const float sm_stage2_insect_frog_t19_thr[]
+static const float32_t sm_stage2_insect_frog_t19_thr[]
     = { 1.21482635f, 734.713501f, -2.35478354f, -4.00658369f, 1.11420822f, 617.563538f };
 
 static const int16_t sm_stage2_insect_frog_t19_left[] = { 1, 2, 3, -1, -5, -6 };
@@ -1076,7 +1077,7 @@ static const uint8_t sm_stage2_insect_frog_classes[] = { SC_FROG, SC_CRICKET, SC
 
 static const sm_model_t sm_stage2_insect_frog = { sm_stage2_insect_frog_trees, 20, 3, sm_stage2_insect_frog_classes };
 
-static inline void sm_stage2_insect_frog_predict(const float* p_features, uint8_t* p_label, uint8_t* p_conf)
+static inline void sm_stage2_insect_frog_predict(const float32_t* p_features, uint8_t* p_label, uint8_t* p_conf)
 {
     sm_predict(&sm_stage2_insect_frog, p_features, p_label, p_conf);
 }

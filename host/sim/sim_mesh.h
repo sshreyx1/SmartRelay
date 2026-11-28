@@ -22,6 +22,7 @@
 #ifndef SIM_MESH_H
 #define SIM_MESH_H
 
+#include "float_types.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -34,8 +35,8 @@
 
 typedef struct
 {
-    float link_loss;        /* per-hop random loss 0..1 */
-    float corrupt_rate;     /* chance a delivered payload has one bit flipped (after radio CRC) */
+    float32_t link_loss;        /* per-hop random loss 0..1 */
+    float32_t corrupt_rate;     /* chance a delivered payload has one bit flipped (after radio CRC) */
     uint16_t relay_min_ms;
     uint16_t relay_max_ms;
     bool b_carrier_sense;
@@ -64,25 +65,25 @@ void sim_topology_trail(sim_cfg_t* p_cfg, int kind);   /* chain + skip links (re
 void sim_init(const sim_cfg_t* p_cfg);
 /* Change a link while running (a node walks out of range, a link comes back). */
 void sim_set_link(int kind, uint8_t node_a, uint8_t node_b, bool b_link_up);
-void sim_set_link_loss(int kind, float loss);
-void sim_set_corrupt_rate(int kind, float rate);
+void sim_set_link_loss(int kind, float32_t loss);
+void sim_set_corrupt_rate(int kind, float32_t rate);
 void sim_set_current(uint8_t node_id);
 uint32_t sim_now(void);
 /* Advance the physical layer by 1 ms (finish transmissions, deliver, collide). */
 void sim_tick(void);
 uint32_t sim_rand(void);
-float sim_frand(void);
+float32_t sim_frand(void);
 
 extern const mesh_radio_t g_sim_lora;
 extern const mesh_radio_t g_sim_wifi;
 
 /* Per-node stats access for experiments. */
 void sim_get_stats(uint8_t node_id, int kind, mesh_stats_t* p_out);
-void sim_set_drop_rate(uint8_t node_id, int kind, float rate);
+void sim_set_drop_rate(uint8_t node_id, int kind, float32_t rate);
 /* Total ms any node spent transmitting on this radio (channel usage). */
 uint32_t sim_airtime_used(int kind);
 
 /* LoRa time on air (ms) for a payload of n bytes at SF7/125 kHz/CR4/5, 8 preamble, header+CRC on. */
-double sim_lora_airtime_ms(uint16_t len);
+float64_t sim_lora_airtime_ms(uint16_t len);
 
 #endif

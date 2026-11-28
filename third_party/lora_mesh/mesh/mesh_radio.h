@@ -15,6 +15,7 @@
 #ifndef MESH_RADIO_H
 #define MESH_RADIO_H
 
+#include "float_types.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -71,7 +72,7 @@ typedef struct mesh_radio_s
     void ( *p_get_stats )( mesh_stats_t* p_out );
 
     // Demo only: fraction (0.0-1.0) of received packets to discard on purpose.
-    void ( *p_set_drop_rate )( float rate );
+    void ( *p_set_drop_rate )( float32_t rate );
 } mesh_radio_t;
 
 #endif  // MESH_RADIO_H

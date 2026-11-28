@@ -7,6 +7,7 @@
  *   - half duplex: a packet arriving while this node is transmitting is lost
  *   - LORA_LOSS env var: random loss per received packet (0.0 - 1.0)
  */
+#include "float_types.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <math.h>
@@ -29,7 +30,7 @@ static uint32_t tx_end;
 static uint32_t tx_start;
 static uint8_t tx_buf[256];
 static uint8_t tx_len;
-static double loss;
+static float64_t loss;
 
 void fake_radio_set_node(int node_id) { self = node_id; }
 
@@ -38,8 +39,8 @@ static uint32_t now(void) { return to_ms_since_boot(get_absolute_time()); }
 uint32_t lora_radio_time_on_air_ms(uint8_t len)
 {
     const int spread = 7, coding_rate = 1, crc = 1, npre = 8;
-    double time_spec = (double)(1 << spread) / 125000.0 * 1000.0;
-    double sym = ceil((8.0 * len - 4.0 * spread + 28 + 16 * crc) / (4.0 * spread)) * (coding_rate + 4);
+    float64_t time_spec = (float64_t)(1 << spread) / 125000.0 * 1000.0;
+    float64_t sym = ceil((8.0 * len - 4.0 * spread + 28 + 16 * crc) / (4.0 * spread)) * (coding_rate + 4);
     if (sym < 0) sym = 0;
     return (uint32_t)ceil((npre + 4.25) * time_spec + (8 + sym) * time_spec);
 }
@@ -93,7 +94,7 @@ lora_radio_event_t lora_radio_service(uint8_t* p_buf, uint8_t* p_len, int8_t* p_
     ssize_t ret = recv(sock, tmp, sizeof(tmp), 0);
     if (ret <= 0) return LORA_EVT_NONE;
     if (b_tx_on) return LORA_EVT_RX_ERROR;                 /* half duplex: we were talking */
-    if ((double)rand() / RAND_MAX < loss) return LORA_EVT_NONE; /* lost in the air */
+    if ((float64_t)rand() / RAND_MAX < loss) return LORA_EVT_NONE; /* lost in the air */
     memcpy(p_buf, tmp, (size_t)ret);
     *p_len = (uint8_t)ret;
     *p_rssi = -60;

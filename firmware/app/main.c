@@ -25,6 +25,7 @@
  *   rx/ n3_00042.part        bridge: partial transfers
  *   inbox/n3_00042.bin/.meta bridge: finished, verified files (+ metadata)
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -156,7 +157,7 @@ static void on_tx_start(alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session)
     capture_meta_t meta;
     if (0 != capture_meta_unpack(p_tx_session->meta, p_tx_session->meta_len, &meta))
     {
-        printf("tx start: %s %lu B via %s, %u frags x %u B, sid %u\n", p_tx_session->path, (unsigned long)p_tx_session->file_size,
+        printf("tx start: %s %" PRIu32 " B via %s, %u frags x %u B, sid %u\n", p_tx_session->path, (uint32_t)p_tx_session->file_size,
                p_tx_session->p_radio->p_name, p_tx_session->frag_count, p_tx_session->frag_size, p_tx_session->sid);
         return;
     }
@@ -170,8 +171,8 @@ static void on_tx_start(alfp_ctx_t* p_ctx, const alfp_tx_t* p_tx_session)
     {
         snprintf(waited, sizeof(waited), ", waited %.1f s", meta.queued_ms / 1000.0);
     }
-    printf("tx start: capture %s %s %lu B via %s, %u frags x %u B, sid %u%s\n", id_str, b_tel ? "telemetry" : "image",
-           (unsigned long)p_tx_session->file_size, p_tx_session->p_radio->p_name, p_tx_session->frag_count, p_tx_session->frag_size, p_tx_session->sid, waited);
+    printf("tx start: capture %s %s %" PRIu32 " B via %s, %u frags x %u B, sid %u%s\n", id_str, b_tel ? "telemetry" : "image",
+           (uint32_t)p_tx_session->file_size, p_tx_session->p_radio->p_name, p_tx_session->frag_count, p_tx_session->frag_size, p_tx_session->sid, waited);
 }
 
 static void on_tx_nack(alfp_ctx_t* p_ctx, uint16_t sid, uint8_t round, uint16_t missing)
@@ -256,7 +257,7 @@ static void evt_line(const char* p_fmt, ...)
 static void ev_rx_start(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, const char* p_radio)
 {
     (void)p_ctx;
-    evt_line("@EVT RXS src=%u sid=%u radio=%s t=%lu", src, sid, p_radio, (unsigned long)p_now(NULL));
+    evt_line("@EVT RXS src=%u sid=%u radio=%s t=%" PRIu32, src, sid, p_radio, (uint32_t)p_now(NULL));
 }
 
 static void ev_rx_manifest(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t frag_count, uint16_t frag_size,
@@ -270,8 +271,8 @@ static void ev_rx_manifest(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_
         snprintf(hex + 2 * idx, 3, "%02x", p_meta[idx]);
     }
     hex[2 * len] = 0;
-    evt_line("@EVT RXM src=%u sid=%u frags=%u fsz=%u size=%lu crc=%08lx meta=%s t=%lu", src, sid, frag_count,
-             frag_size, (unsigned long)file_size, (unsigned long)file_crc32, hex, (unsigned long)p_now(NULL));
+    evt_line("@EVT RXM src=%u sid=%u frags=%u fsz=%u size=%" PRIu32 " crc=%08" PRIx32 " meta=%s t=%" PRIu32, src, sid, frag_count,
+             frag_size, (uint32_t)file_size, (uint32_t)file_crc32, hex, (uint32_t)p_now(NULL));
 }
 
 static void ev_rx_frag(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t seq, uint8_t round, bool b_dup)
@@ -281,31 +282,31 @@ static void ev_rx_frag(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint16_t se
     {
         return;
     }
-    evt_line("@EVT RXF src=%u sid=%u seq=%u r=%u h=%u v=%u d=%u t=%lu", src, sid, seq, round, g_pkt_hops, g_pkt_prev,
-             b_dup ? 1u : 0u, (unsigned long)p_now(NULL));
+    evt_line("@EVT RXF src=%u sid=%u seq=%u r=%u h=%u v=%u d=%u t=%" PRIu32, src, sid, seq, round, g_pkt_hops, g_pkt_prev,
+             b_dup ? 1u : 0u, (uint32_t)p_now(NULL));
 }
 
 static void ev_rx_nack(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, uint8_t round, uint16_t missing)
 {
     (void)p_ctx;
-    evt_line("@EVT NACK src=%u sid=%u r=%u miss=%u t=%lu", src, sid, round, missing, (unsigned long)p_now(NULL));
+    evt_line("@EVT NACK src=%u sid=%u r=%u miss=%u t=%" PRIu32, src, sid, round, missing, (uint32_t)p_now(NULL));
 }
 
 static void ev_rx_fail(alfp_ctx_t* p_ctx, uint8_t src, uint16_t sid, const char* p_why)
 {
     (void)p_ctx;
-    evt_line("@EVT RXFAIL src=%u sid=%u why=%s t=%lu", src, sid, p_why, (unsigned long)p_now(NULL));
+    evt_line("@EVT RXFAIL src=%u sid=%u why=%s t=%" PRIu32, src, sid, p_why, (uint32_t)p_now(NULL));
 }
 
 static void on_rx_done(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
 {
     if (APP_TRANSFER_EVENTS)
     {
-        evt_line("@EVT RXOK src=%u sid=%u first=%lu done=%lu nacks=%u dups=%u frags=%u t=%lu", p_rep->src, p_rep->sid,
-                 (unsigned long)p_rep->first_ms, (unsigned long)p_rep->done_ms, p_rep->nacks_sent, p_rep->duplicates, p_rep->frag_count,
-                 (unsigned long)p_now(NULL));
+        evt_line("@EVT RXOK src=%u sid=%u first=%" PRIu32 " done=%" PRIu32 " nacks=%u dups=%u frags=%u t=%" PRIu32, p_rep->src, p_rep->sid,
+                 (uint32_t)p_rep->first_ms, (uint32_t)p_rep->done_ms, p_rep->nacks_sent, p_rep->duplicates, p_rep->frag_count,
+                 (uint32_t)p_now(NULL));
     }
-    printf("rx from node %u: %s, %lu bytes via %s, %u dup\n", p_rep->src, p_rep->p_path, (unsigned long)p_rep->file_size, p_rep->p_radio,
+    printf("rx from node %u: %s, %" PRIu32 " bytes via %s, %u dup\n", p_rep->src, p_rep->p_path, (uint32_t)p_rep->file_size, p_rep->p_radio,
            p_rep->duplicates);
     if (!uplink_queue_add(&g_uplink, p_rep))
     {
@@ -389,7 +390,7 @@ static uint32_t read_u32_file(const alfp_storage_t* p_store, const char* p_path)
 static void store_next_id(const alfp_storage_t* p_store, uint32_t next)
 {
     char txt[16];
-    int len = snprintf(txt, sizeof(txt), "%lu\n", (unsigned long)next);
+    int len = snprintf(txt, sizeof(txt), "%" PRIu32 "\n", (uint32_t)next);
     int handle = p_store->p_open_write(p_store->p_ctx, ID_TMP);
     bool b_is_ok = (handle >= 0) && (p_store->p_write_at(p_store->p_ctx, handle, 0, (const uint8_t*)txt, (uint16_t)len) == len);
     if (handle >= 0)
@@ -436,7 +437,7 @@ static uint32_t highest_id_on_card(const alfp_storage_t* p_store)
     for (uint32_t idx = 0; idx < s_n_jobs; idx++)
     {
         char path[32];
-        snprintf(path, sizeof(path), "outbox/q%08lu.job", (unsigned long)s_job_seq[idx]);
+        snprintf(path, sizeof(path), "outbox/q%08" PRIu32 ".job", (uint32_t)s_job_seq[idx]);
         uint8_t buf[2 + 1 + ALFP_PATH_MAX + 1 + ALFP_MAX_META];
         int handle = p_store->p_open_read(p_store->p_ctx, path);
         if (handle < 0)
@@ -492,8 +493,8 @@ static void restore_capture_id(const alfp_storage_t* p_store)
     g_boot_first_id = g_capture_id + 1u;
     char id_str[CAPTURE_ID_STR_MAX];
     capture_id_format(id_str, sizeof(id_str), NODE_ID, g_capture_id + 1u);
-    printf("capture id: next is %s (saved next %lu, highest on card %lu)\n", id_str, (unsigned long)next,
-           (unsigned long)seen);
+    printf("capture id: next is %s (saved next %" PRIu32 ", highest on card %" PRIu32 ")\n", id_str, (uint32_t)next,
+           (uint32_t)seen);
 }
 
 static void handle_capture(const capture_meta_t* p_request)
@@ -627,42 +628,42 @@ static void comms_service(void)
 static void print_stats(void)
 {
     const alfp_stats_t* p_stats = &g_alfp.stats;
-    printf("node %u | alfp in %lu badcrc %lu | tx ok %lu fail %lu | rx ok %lu crcfail %lu expired %lu | outbox %u\n",
-           (unsigned)NODE_ID, (unsigned long)p_stats->pkts_in, (unsigned long)p_stats->pkts_bad_crc, (unsigned long)p_stats->tx_ok,
-           (unsigned long)p_stats->tx_failed, (unsigned long)p_stats->rx_ok, (unsigned long)p_stats->rx_crc_fail,
-           (unsigned long)p_stats->rx_expired, alfp_outbox_count(&g_outbox));
+    printf("node %u | alfp in %" PRIu32 " badcrc %" PRIu32 " | tx ok %" PRIu32 " fail %" PRIu32 " | rx ok %" PRIu32 " crcfail %" PRIu32 " expired %" PRIu32 " | outbox %u\n",
+           (unsigned)NODE_ID, (uint32_t)p_stats->pkts_in, (uint32_t)p_stats->pkts_bad_crc, (uint32_t)p_stats->tx_ok,
+           (uint32_t)p_stats->tx_failed, (uint32_t)p_stats->rx_ok, (uint32_t)p_stats->rx_crc_fail,
+           (uint32_t)p_stats->rx_expired, alfp_outbox_count(&g_outbox));
     for (int idx = 0; idx < 2; idx++)
     {
         mesh_stats_t stats;
         g_radios[idx]->p_get_stats(&stats);
-        printf("  %s: tx %lu rx %lu delivered %lu relayed %lu dup %lu rxerr %lu\n", g_radios[idx]->p_name,
-               (unsigned long)stats.tx_count, (unsigned long)stats.rx_count, (unsigned long)stats.delivered, (unsigned long)stats.relayed,
-               (unsigned long)stats.dup_dropped, (unsigned long)stats.rx_error);
+        printf("  %s: tx %" PRIu32 " rx %" PRIu32 " delivered %" PRIu32 " relayed %" PRIu32 " dup %" PRIu32 " rxerr %" PRIu32 "\n", g_radios[idx]->p_name,
+               (uint32_t)stats.tx_count, (uint32_t)stats.rx_count, (uint32_t)stats.delivered, (uint32_t)stats.relayed,
+               (uint32_t)stats.dup_dropped, (uint32_t)stats.rx_error);
     }
     const sensing_env_t* p_env = sensing_env();
-    printf("  dht22 good %lu fail %lu | lora %s | wifi %s\n", (unsigned long)p_env->dht_good, (unsigned long)p_env->dht_fail,
+    printf("  dht22 good %" PRIu32 " fail %" PRIu32 " | lora %s | wifi %s\n", (uint32_t)p_env->dht_good, (uint32_t)p_env->dht_fail,
            radios_lora_ok() ? "up" : "DOWN", radios_wifi_ok() ? "up" : "DOWN");
     uint32_t now_ms;
     for (int idx = 0; idx < 2; idx++)
     {
         if (g_radios[idx]->p_last_heard(BRIDGE_ID, &now_ms))
         {
-            printf("  bridge last heard on %s %lu ms ago\n", g_radios[idx]->p_name, (unsigned long)(p_now(NULL) - now_ms));
+            printf("  bridge last heard on %s %" PRIu32 " ms ago\n", g_radios[idx]->p_name, (uint32_t)(p_now(NULL) - now_ms));
         }
         else
         {
             printf("  bridge never heard on %s\n", g_radios[idx]->p_name);
         }
     }
-    printf("  comms stack free: %lu words, heap free %lu bytes\n", (unsigned long)uxTaskGetStackHighWaterMark(NULL),
-           (unsigned long)xPortGetFreeHeapSize());
-    printf("  longest comms loop %lu ms | outbox dropped (full) %lu", (unsigned long)g_longest_comms_loop_ms,
-           (unsigned long)g_outbox.dropped_full);
+    printf("  comms stack free: %" PRIu32 " words, heap free %" PRIu32 " bytes\n", (uint32_t)uxTaskGetStackHighWaterMark(NULL),
+           (uint32_t)xPortGetFreeHeapSize());
+    printf("  longest comms loop %" PRIu32 " ms | outbox dropped (full) %" PRIu32, (uint32_t)g_longest_comms_loop_ms,
+           (uint32_t)g_outbox.dropped_full);
     if (NODE_ID == BRIDGE_ID)
     {
-        printf(" | uplink sent %lu bad %lu waiting %u (max %u) inline %lu", (unsigned long)g_uplink.sent_ok,
-               (unsigned long)g_uplink.sent_bad, uplink_queue_waiting(&g_uplink), (unsigned)g_uplink.max_waiting,
-               (unsigned long)g_uplink.queue_full);
+        printf(" | uplink sent %" PRIu32 " bad %" PRIu32 " waiting %u (max %u) inline %" PRIu32, (uint32_t)g_uplink.sent_ok,
+               (uint32_t)g_uplink.sent_bad, uplink_queue_waiting(&g_uplink), (unsigned)g_uplink.max_waiting,
+               (uint32_t)g_uplink.queue_full);
     }
     printf("\n");
 }
@@ -843,8 +844,8 @@ static void print_env(void)
     }
     else
     {
-        printf("[ENV] DHT22: no reading (%lu fails) | Light: %u | Weather: unknown | PIR %d Sound %d\n",
-               (unsigned long)p_env->dht_fail, p_env->light, sensing_pir(), sensing_sound_trigger());
+        printf("[ENV] DHT22: no reading (%" PRIu32 " fails) | Light: %u | Weather: unknown | PIR %d Sound %d\n",
+               (uint32_t)p_env->dht_fail, p_env->light, sensing_pir(), sensing_sound_trigger());
     }
 }
 
@@ -896,8 +897,8 @@ static void sensors_task(void* p_arg)
             capture_meta_t meta;
             audio_result_t audio;
             sensing_capture(now, flags, &meta, &audio);
-            printf("[AUDIO] legacy mic.c: %s energy %.1f zcr %.3f mean %u, %lu samples\n", audio.p_label, audio.energy, audio.zcr,
-                   audio.mean_adc, (unsigned long)audio.samples);
+            printf("[AUDIO] legacy mic.c: %s energy %.1f zcr %.3f mean %u, %" PRIu32 " samples\n", audio.p_label, audio.energy, audio.zcr,
+                   audio.mean_adc, (uint32_t)audio.samples);
             sensing_log_sound();
             print_env();
             if ((NODE_ID != BRIDGE_ID) && (!app_request_capture(&meta)))

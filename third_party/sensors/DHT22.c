@@ -1,3 +1,4 @@
+#include "float_types.h"
 #include "DHT22.h"
 #include "hardware/gpio.h"
 #include "pico/time.h"
@@ -20,7 +21,7 @@ void DHT_init() {
     gpio_pull_up(DHT_PIN);
 }
 
-bool DHT_read(float *p_temperature, float *p_humidity) {
+bool DHT_read(float32_t *p_temperature, float32_t *p_humidity) {
     uint32_t current_millis = to_ms_since_boot(get_absolute_time());
     static uint32_t last_read_time = 0;
 

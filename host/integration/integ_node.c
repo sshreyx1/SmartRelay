@@ -9,6 +9,7 @@
  *   ./integ_node N <dir> relay           relay only: runs the mesh for 120 s, or until SIGINT/SIGTERM,
  *                                        then prints its mesh stats
  */
+#include <inttypes.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +52,8 @@ static uint32_t p_rand(void* p_ctx) { (void)p_ctx; return get_rand_32(); }
 static void on_tx(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
 {
     (void)p_ctx;
-    printf("[sender] %s: %s, %lu bytes, crc %08lx, %u frags, %u rounds, %u resent, %.1f s\n", p_rep->p_path,
-           alfp_tx_result_str(p_rep->result), (unsigned long)p_rep->file_size, (unsigned long)p_rep->file_crc32, p_rep->frag_count,
+    printf("[sender] %s: %s, %" PRIu32 " bytes, crc %08" PRIx32 ", %u frags, %u rounds, %u resent, %.1f s\n", p_rep->p_path,
+           alfp_tx_result_str(p_rep->result), (uint32_t)p_rep->file_size, (uint32_t)p_rep->file_crc32, p_rep->frag_count,
            p_rep->rounds, p_rep->data_resent, (p_rep->finished_ms - p_rep->started_ms) / 1000.0);
     done = 1;
     ok_flag = ALFP_TX_DONE == p_rep->result;
@@ -61,8 +62,8 @@ static void on_tx(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
 static void on_rx(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
 {
     (void)p_ctx;
-    printf("[receiver] got %s from node %u: %lu bytes, crc %08lx verified, %u dup\n", p_rep->p_path, p_rep->src,
-           (unsigned long)p_rep->file_size, (unsigned long)p_rep->file_crc32, p_rep->duplicates);
+    printf("[receiver] got %s from node %u: %" PRIu32 " bytes, crc %08" PRIx32 " verified, %u dup\n", p_rep->p_path, p_rep->src,
+           (uint32_t)p_rep->file_size, (uint32_t)p_rep->file_crc32, p_rep->duplicates);
     snprintf(rx_path, sizeof(rx_path), "%s", p_rep->p_path);
     done = 1;
     ok_flag = 1;

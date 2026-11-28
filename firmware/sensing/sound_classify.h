@@ -15,6 +15,7 @@
 #ifndef SOUND_CLASSIFY_H
 #define SOUND_CLASSIFY_H
 
+#include "float_types.h"
 #include <stdint.h>
 
 #include "sound_features.h"
@@ -24,7 +25,7 @@
 typedef struct
 {
     const int8_t* p_feat;  /* per internal node: feature index */
-    const float* p_thr;    /* go left if f[feat] <= thr */
+    const float32_t* p_thr;    /* go left if f[feat] <= thr */
     const int16_t* p_left; /* >= 0: internal node; < 0: leaf -(child + 1) */
     const int16_t* p_right;
     const uint8_t* p_leaf; /* n_leaves x n_classes, percent */
@@ -40,10 +41,10 @@ typedef struct
 } sm_model_t;
 
 /* One stage: label id of the winning class and its confidence 0-100. */
-void sm_predict(const sm_model_t* p_model, const float* p_features, uint8_t* p_label, uint8_t* p_conf);
+void sm_predict(const sm_model_t* p_model, const float32_t* p_features, uint8_t* p_label, uint8_t* p_conf);
 
 /* Both stages + rejection. label_id: common/sound_classes.h. conf 0-100. */
-void sound_classify(const float features[SF_N_FEATURES], uint8_t* p_label_id, uint8_t* p_conf);
+void sound_classify(const float32_t features[SF_N_FEATURES], uint8_t* p_label_id, uint8_t* p_conf);
 
 /* The rejection threshold the model was exported with (SOUND_STAGE2_MIN_CONF). */
 uint8_t sound_classify_min_conf(void);

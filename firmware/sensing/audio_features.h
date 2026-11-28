@@ -21,6 +21,7 @@
 #ifndef AUDIO_FEATURES_H
 #define AUDIO_FEATURES_H
 
+#include "float_types.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -38,8 +39,8 @@ typedef struct
 
 typedef struct
 {
-    float energy;       /* same as SoundAnalysis.energy */
-    float zcr;          /* same as SoundAnalysis.zcr (crossings per sample) */
+    float32_t energy;       /* same as SoundAnalysis.energy */
+    float32_t zcr;          /* same as SoundAnalysis.zcr (crossings per sample) */
     int class_id;       /* same as SoundAnalysis.class_id */
     const char* p_label;  /* same as SoundAnalysis.label */
     uint16_t rms;       /* sqrt(energy), ADC counts: what capture_meta carries as sound_rms */

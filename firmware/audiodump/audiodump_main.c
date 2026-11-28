@@ -19,6 +19,8 @@
  * Base64 text instead of raw bytes because Pico stdio turns \n into \r\n.
  * Receiver: ml/pico_audio.py.
  */
+#include "float_types.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -51,7 +53,7 @@ static bool record(uint32_t seconds)
     /* the same ADC setup as audio_capture.c */
     adc_select_input(BOARD_MIC_ADC);
     adc_fifo_setup(true, true, 1, false, false);
-    adc_set_clkdiv(48000000.0f / (float)RATE - 1.0f);
+    adc_set_clkdiv(48000000.0f / (float32_t)RATE - 1.0f);
     adc_fifo_drain();
 
     dma_channel_config dma_cfg = dma_channel_get_default_config((uint)chan);
@@ -124,18 +126,18 @@ static void send_recording(void)
     }
     const uint8_t* p_bytes = (const uint8_t*)s_buf; /* RP2040 is little-endian */
     const uint32_t len = s_n * 2u;
-    printf("@AUD BEGIN rate=%u n=%lu mean=%lu\n", RATE, (unsigned long)s_n, (unsigned long)(sum / s_n));
+    printf("@AUD BEGIN rate=%u n=%" PRIu32 " mean=%" PRIu32 "\n", RATE, (uint32_t)s_n, (uint32_t)(sum / s_n));
     for (uint32_t off = 0; off < len; off += B64_LINE_BYTES)
     {
         b64_line(p_bytes + off, len - off < B64_LINE_BYTES ? len - off : B64_LINE_BYTES);
     }
-    printf("@AUD END n=%lu crc=%08lx\n", (unsigned long)s_n, (unsigned long)crc32_bytes(p_bytes, len));
+    printf("@AUD END n=%" PRIu32 " crc=%08" PRIx32 "\n", (uint32_t)s_n, (uint32_t)crc32_bytes(p_bytes, len));
     fflush(stdout);
 }
 
 /* Runs the streaming extractor over the stored recording in DMA-ring-sized chunks, exactly as the
  * node does while recording. */
-static void compute_features(float out[SF_N_FEATURES])
+static void compute_features(float32_t out[SF_N_FEATURES])
 {
     sf_reset(&s_sf);
     for (uint32_t off = 0; off < s_n; off += 4096u)
@@ -147,26 +149,26 @@ static void compute_features(float out[SF_N_FEATURES])
 
 static void send_features(void)
 {
-    float features[SF_N_FEATURES];
+    float32_t features[SF_N_FEATURES];
     compute_features(features);
     printf("@FEAT ");
     for (int idx = 0; idx < SF_N_FEATURES; idx++)
     {
-        printf(idx ? ",%.9g" : "%.9g", (double)features[idx]);
+        printf(idx ? ",%.9g" : "%.9g", (float64_t)features[idx]);
     }
     printf("\n");
 }
 
 static void send_class(void)
 {
-    float features[SF_N_FEATURES];
+    float32_t features[SF_N_FEATURES];
     compute_features(features);
     uint8_t label_id = SC_UNKNOWN, conf = SC_UNKNOWN;
     uint32_t start_t = time_us_32();
     sound_classify(features, &label_id, &conf);
     uint32_t usec = time_us_32() - start_t;
-    printf("@CLS id=%u name=%s group=%s conf=%u model_us=%lu\n", label_id, sound_class_name(label_id),
-           sound_class_name(sound_class_group(label_id)), conf, (unsigned long)usec);
+    printf("@CLS id=%u name=%s group=%s conf=%u model_us=%" PRIu32 "\n", label_id, sound_class_name(label_id),
+           sound_class_name(sound_class_group(label_id)), conf, (uint32_t)usec);
 }
 
 static void handle(const char* p_line)

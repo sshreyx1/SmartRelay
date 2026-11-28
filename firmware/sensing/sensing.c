@@ -1,6 +1,8 @@
 /*
  * sensing.c - see sensing.h.
  */
+#include "float_types.h"
+#include <inttypes.h>
 #include "sensing.h"
 
 #include <math.h>
@@ -44,7 +46,7 @@ static void update_weather(uint32_t now_ms)
     s_env.b_dht_ok = b_s_have_dht && ((now_ms - s_last_dht_good) < SENSING_DHT_STALE_MS);
     if (s_env.b_dht_ok)
     {
-        float features[3] = { s_env.temp_c, s_env.hum_pct, (float)s_env.light };
+        float32_t features[3] = { s_env.temp_c, s_env.hum_pct, (float32_t)s_env.light };
         s_env.weather = weather_predict(features);
     }
     else
@@ -75,7 +77,7 @@ bool sensing_env_poll(uint32_t now_ms)
     s_last_dht_try = now_ms;
     s_env.light = read_light();
 
-    float temp_c = 0.0f, humidity = 0.0f;
+    float32_t temp_c = 0.0f, humidity = 0.0f;
     if (s_h.p_timing_begin)
     {
         s_h.p_timing_begin();
@@ -128,7 +130,7 @@ bool sensing_dual_trigger(uint32_t now_ms)
     return (sound_is_triggered()) && (pir_is_motion_detected());
 }
 
-static int16_t to_x10_i16(float value)
+static int16_t to_x10_i16(float32_t value)
 {
     return (int16_t)lroundf(value * 10.0f);
 }
@@ -151,12 +153,12 @@ bool sensing_record_sound(uint32_t seconds, audio_result_t* audio)
     r->ok = true;
     if (r->lost)
     {
-        printf("[AUDIO] warning: %lu samples lost (task too slow)\n", (unsigned long)r->lost);
+        printf("[AUDIO] warning: %" PRIu32 " samples lost (task too slow)\n", (uint32_t)r->lost);
     }
     return true;
 }
 #else
-static uint16_t to_u16_meta(float value)
+static uint16_t to_u16_meta(float32_t value)
 {
     /* 0xFFFF is CM_MISSING_U16, so a real reading saturates one below it */
     return (uint16_t)(value >= 65534.0f ? 65534.0f : value <= 0.0f ? 0.0f : value + 0.5f);
@@ -174,7 +176,7 @@ bool sensing_record_sound(uint32_t seconds, audio_result_t* p_audio)
         return false;
     }
     const uint32_t start_t = time_us_32();
-    float features[SF_N_FEATURES];
+    float32_t features[SF_N_FEATURES];
     sf_finish(&s_sf, features);
     sound_classify(features, &p_snd->label_id, &p_snd->conf);
     p_snd->model_us = time_us_32() - start_t;
@@ -185,7 +187,7 @@ bool sensing_record_sound(uint32_t seconds, audio_result_t* p_audio)
     p_snd->b_is_ok = true;
     if (p_snd->lost)
     {
-        printf("[AUDIO] warning: %lu samples lost (task too slow)\n", (unsigned long)p_snd->lost);
+        printf("[AUDIO] warning: %" PRIu32 " samples lost (task too slow)\n", (uint32_t)p_snd->lost);
     }
     return true;
 }
@@ -205,24 +207,24 @@ void sensing_log_sound(void)
         return;
     }
 #if SOUND_LEGACY_MODE
-    printf("[SOUND] LEGACY mic.c thresholds: %s -> label=%s id=%u rms=%u zcr=%u lost=%lu\n", s_legacy_label,
-           sound_class_name(r->label_id), r->label_id, r->rms, r->zcr_per_s, (unsigned long)r->lost);
+    printf("[SOUND] LEGACY mic.c thresholds: %s -> label=%s id=%u rms=%u zcr=%u lost=%" PRIu32 "\n", s_legacy_label,
+           sound_class_name(r->label_id), r->label_id, r->rms, r->zcr_per_s, (uint32_t)r->lost);
     return;
 #endif
-    printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%lu feat_us=%lu maxcall_us=%lu model_us=%lu\n",
+    printf("[SOUND] group=%s label=%s id=%u conf=%u rms=%u zcr=%u lost=%" PRIu32 " feat_us=%" PRIu32 " maxcall_us=%" PRIu32 " model_us=%" PRIu32 "\n",
            sound_class_name(sound_class_group(p_snd->label_id)), sound_class_name(p_snd->label_id), p_snd->label_id, p_snd->conf,
-           p_snd->rms, p_snd->zcr_per_s, (unsigned long)p_snd->lost, (unsigned long)p_snd->feat_us, (unsigned long)p_snd->maxcall_us,
-           (unsigned long)p_snd->model_us);
+           p_snd->rms, p_snd->zcr_per_s, (uint32_t)p_snd->lost, (uint32_t)p_snd->feat_us, (uint32_t)p_snd->maxcall_us,
+           (uint32_t)p_snd->model_us);
     const uint32_t budget_us = AUDIO_SECONDS * 1000000u / 4u; /* 25% of the recording */
     if (p_snd->feat_us + p_snd->model_us > budget_us)
     {
-        printf("[SOUND] warning: feature + model time %lu us is over the 25%% CPU budget (%lu us)\n",
-               (unsigned long)(p_snd->feat_us + p_snd->model_us), (unsigned long)budget_us);
+        printf("[SOUND] warning: feature + model time %" PRIu32 " us is over the 25%% CPU budget (%" PRIu32 " us)\n",
+               (uint32_t)(p_snd->feat_us + p_snd->model_us), (uint32_t)budget_us);
     }
     if (p_snd->maxcall_us > 100000u)
     {
-        printf("[SOUND] warning: one feature call took %lu us, eating into the ~512 ms ring slack\n",
-               (unsigned long)p_snd->maxcall_us);
+        printf("[SOUND] warning: one feature call took %" PRIu32 " us, eating into the ~512 ms ring slack\n",
+               (uint32_t)p_snd->maxcall_us);
     }
 }
 

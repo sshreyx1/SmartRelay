@@ -9,6 +9,7 @@
  *     250 bytes) plus 1 ms on air; tx_busy() is true meanwhile, like the real TXDONE wait
  *   - WIFI_LOSS env var: random loss per received packet (0.0 - 1.0)
  */
+#include "float_types.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -25,7 +26,7 @@
 
 static int sock = -1;
 static int self;
-static double loss;
+static float64_t loss;
 static wst_link_stats_t stats;
 static struct
 {
@@ -139,7 +140,7 @@ bool wst_link_recv(wst_rx_pkt_t* p_out)
         {
             return false;
         }
-        if ((double)rand() / RAND_MAX < loss)
+        if ((float64_t)rand() / RAND_MAX < loss)
         {
             continue; /* lost in the air */
         }

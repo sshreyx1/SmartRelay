@@ -2,6 +2,7 @@
  * test_capture_id.c - common/capture_id.h: format -> parse round trip, and the exact strings the
  * Python mirror (common/capture_id.py, host/tests/test_capture_id.py) must also produce.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -25,7 +26,7 @@ static void expect_parse(const char* p_str, int ok_flag, unsigned node, unsigned
     int got = capture_id_parse(p_str, &got_node, &value);
     if ((got != ok_flag) || (ok_flag && ((got_node != node) || (value != cap_id))))
     {
-        printf("FAIL: parse('%s') = %d N%u %lu, want %d N%u %lu\n", p_str, got, got_node, (unsigned long)value, ok_flag, node, cap_id);
+        printf("FAIL: parse('%s') = %d N%u %" PRIu32 ", want %d N%u %lu\n", p_str, got, got_node, (uint32_t)value, ok_flag, node, cap_id);
         fails++;
     }
 }

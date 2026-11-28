@@ -19,6 +19,8 @@
  *   2. tools/bridge_receiver.py on the laptop saves the photo again and re-checks the CRC; open it;
  *   3. optionally put the receiver's SD card in a laptop and compare inbox/ with the original.
  */
+#include "float_types.h"
+#include <inttypes.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -99,19 +101,19 @@ static void print_stats(void)
     mesh_stats_t stats;
     gp_lora->p_get_stats(&stats);
     const alfp_stats_t* p_stats = &g_alfp.stats;
-    printf("LoRa: tx %lu rx %lu delivered %lu relayed %lu dup %lu rx_error %lu tx_fail %lu drop_injected %lu\n",
-           (unsigned long)stats.tx_count, (unsigned long)stats.rx_count, (unsigned long)stats.delivered, (unsigned long)stats.relayed,
-           (unsigned long)stats.dup_dropped, (unsigned long)stats.rx_error, (unsigned long)stats.tx_fail,
-           (unsigned long)stats.drop_injected);
-    printf("ALFP: packets in %lu, bad CRC-16 %lu, sent ok %lu, failed %lu, received ok %lu, CRC-32 fails %lu\n",
-           (unsigned long)p_stats->pkts_in, (unsigned long)p_stats->pkts_bad_crc, (unsigned long)p_stats->tx_ok,
-           (unsigned long)p_stats->tx_failed, (unsigned long)p_stats->rx_ok, (unsigned long)p_stats->rx_crc_fail);
+    printf("LoRa: tx %" PRIu32 " rx %" PRIu32 " delivered %" PRIu32 " relayed %" PRIu32 " dup %" PRIu32 " rx_error %" PRIu32 " tx_fail %" PRIu32 " drop_injected %" PRIu32 "\n",
+           (uint32_t)stats.tx_count, (uint32_t)stats.rx_count, (uint32_t)stats.delivered, (uint32_t)stats.relayed,
+           (uint32_t)stats.dup_dropped, (uint32_t)stats.rx_error, (uint32_t)stats.tx_fail,
+           (uint32_t)stats.drop_injected);
+    printf("ALFP: packets in %" PRIu32 ", bad CRC-16 %" PRIu32 ", sent ok %" PRIu32 ", failed %" PRIu32 ", received ok %" PRIu32 ", CRC-32 fails %" PRIu32 "\n",
+           (uint32_t)p_stats->pkts_in, (uint32_t)p_stats->pkts_bad_crc, (uint32_t)p_stats->tx_ok,
+           (uint32_t)p_stats->tx_failed, (uint32_t)p_stats->rx_ok, (uint32_t)p_stats->rx_crc_fail);
     link_quality();
     uint32_t now_ms;
     uint8_t other = IS_RECEIVER ? 2 : RECEIVER_ID;
     if (gp_lora->p_last_heard(other, &now_ms))
     {
-        printf("  node %u last heard %lu ms ago\n", other, (unsigned long)(p_now(NULL) - now_ms));
+        printf("  node %u last heard %" PRIu32 " ms ago\n", other, (uint32_t)(p_now(NULL) - now_ms));
     }
     else
     {
@@ -189,16 +191,16 @@ static void list_photos(void)
     for (int idx = 0; idx < g_n_photos; idx++)
     {
         uint16_t frags = frags_for(g_photos[idx].size);
-        double est = frags * (0.40 + g_prof[0].gap_ms / 1000.0) + 2.0;
+        float64_t est = frags * (0.40 + g_prof[0].gap_ms / 1000.0) + 2.0;
         if (g_photos[idx].size > MAX_FILE_BYTES)
         {
-            printf("  %d  %-32s %7lu bytes  TOO BIG: max %u bytes, resize it (tools/make_sample_images.py)\n",
-                   idx + 1, g_photos[idx].path, (unsigned long)g_photos[idx].size, (unsigned)MAX_FILE_BYTES);
+            printf("  %d  %-32s %7" PRIu32 " bytes  TOO BIG: max %u bytes, resize it (tools/make_sample_images.py)\n",
+                   idx + 1, g_photos[idx].path, (uint32_t)g_photos[idx].size, (unsigned)MAX_FILE_BYTES);
         }
         else
         {
-            printf("  %d  %-32s %7lu bytes  %3u fragments  ~%.0f s over LoRa\n", idx + 1, g_photos[idx].path,
-                   (unsigned long)g_photos[idx].size, frags, est);
+            printf("  %d  %-32s %7" PRIu32 " bytes  %3u fragments  ~%.0f s over LoRa\n", idx + 1, g_photos[idx].path,
+                   (uint32_t)g_photos[idx].size, frags, est);
         }
     }
     printf("Press 1-%d to send one, a to send all.\n\n", g_n_photos);
@@ -248,20 +250,20 @@ static bool start_photo(int idx)
         return false;
     }
     g_sending = idx;
-    printf("\nSENDING %s: %lu bytes as %u fragments of 241 bytes to node %u over LoRa\n", g_photos[idx].path,
-           (unsigned long)g_photos[idx].size, frags_for(g_photos[idx].size), RECEIVER_ID);
+    printf("\nSENDING %s: %" PRIu32 " bytes as %u fragments of 241 bytes to node %u over LoRa\n", g_photos[idx].path,
+           (uint32_t)g_photos[idx].size, frags_for(g_photos[idx].size), RECEIVER_ID);
     return true;
 }
 
 static void on_tx_done(alfp_ctx_t* p_ctx, const alfp_tx_report_t* p_rep)
 {
     (void)p_ctx;
-    double secs = (p_rep->finished_ms - p_rep->started_ms) / 1000.0;
+    float64_t secs = (p_rep->finished_ms - p_rep->started_ms) / 1000.0;
     if (ALFP_TX_DONE == p_rep->result)
     {
-        printf("DONE  %s: receiver confirmed it. %lu bytes, CRC-32 %08lx, %u fragments, %u rounds, %u resent, "
+        printf("DONE  %s: receiver confirmed it. %" PRIu32 " bytes, CRC-32 %08" PRIx32 ", %u fragments, %u rounds, %u resent, "
                "%.1f s (%.0f bytes/s)\n",
-               p_rep->p_path, (unsigned long)p_rep->file_size, (unsigned long)p_rep->file_crc32, p_rep->frag_count, p_rep->rounds,
+               p_rep->p_path, (uint32_t)p_rep->file_size, (uint32_t)p_rep->file_crc32, p_rep->frag_count, p_rep->rounds,
                p_rep->data_resent, secs, secs > 0 ? p_rep->file_size / secs : 0.0);
     }
     else
@@ -302,10 +304,10 @@ static void on_rx_done(alfp_ctx_t* p_ctx, const alfp_rx_report_t* p_rep)
     snprintf(final_path, sizeof(final_path), "inbox/n%u_%05u_%s", p_rep->src, p_rep->sid, name);
     const char* p_path = 0 == p_store->p_rename(p_store->p_ctx, p_rep->p_path, final_path) ? final_path : p_rep->p_path;
 
-    double secs = (p_rep->done_ms - p_rep->first_ms) / 1000.0;
-    printf("\nRECEIVED %s from node %u: %lu bytes, CRC-32 %08lx verified, %u fragments, %u duplicates ignored, "
+    float64_t secs = (p_rep->done_ms - p_rep->first_ms) / 1000.0;
+    printf("\nRECEIVED %s from node %u: %" PRIu32 " bytes, CRC-32 %08" PRIx32 " verified, %u fragments, %u duplicates ignored, "
            "%.1f s\n",
-           p_path, p_rep->src, (unsigned long)p_rep->file_size, (unsigned long)p_rep->file_crc32, p_rep->frag_count, p_rep->duplicates,
+           p_path, p_rep->src, (uint32_t)p_rep->file_size, (uint32_t)p_rep->file_crc32, p_rep->frag_count, p_rep->duplicates,
            secs);
     link_quality();
 
@@ -324,7 +326,7 @@ static void list_cb(const char* p_name, void* p_user)
     int handle = p_store->p_open_read(p_store->p_ctx, path);
     if (handle >= 0)
     {
-        printf("  %-40s %7ld bytes\n", path, (long)p_store->p_size(p_store->p_ctx, handle));
+        printf("  %-40s %7" PRId32 " bytes\n", path, (int32_t)p_store->p_size(p_store->p_ctx, handle));
         p_store->p_close(p_store->p_ctx, handle);
     }
 }
@@ -372,8 +374,8 @@ int main(void)
         sleep_ms(2000);
     }
     board_spi1_after_lora();
-    printf("LoRa ready: %u bytes per packet, a full packet takes %lu ms on air\n", gp_lora->p_max_payload(),
-           (unsigned long)lora_radio_time_on_air_ms(255));
+    printf("LoRa ready: %u bytes per packet, a full packet takes %" PRIu32 " ms on air\n", gp_lora->p_max_payload(),
+           (uint32_t)lora_radio_time_on_air_ms(255));
 
     alfp_cfg_t cfg = {
         .node_id = NODE_ID,
@@ -476,7 +478,7 @@ int main(void)
         {
             uint32_t gap_ms = 150u == g_prof[0].gap_ms ? 500u : 150u;
             g_prof[0].gap_ms = g_prof[0].gap_max_ms = gap_ms;
-            printf("gap between packets: %lu ms (applies to the next photo)\n", (unsigned long)gap_ms);
+            printf("gap between packets: %" PRIu32 " ms (applies to the next photo)\n", (uint32_t)gap_ms);
         }
         else
         {

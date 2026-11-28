@@ -10,6 +10,7 @@
  *
  * Best effort only: no ACKs or retries here, that is the fragmentation layer's job.
  */
+#include "float_types.h"
 #include <string.h>
 #include "pico/stdlib.h"
 #include "pico/rand.h"
@@ -446,7 +447,7 @@ void lora_mesh_get_stats( mesh_stats_t* p_out )
     *p_out = stats;
 }
 
-void lora_mesh_set_drop_rate( float rate )
+void lora_mesh_set_drop_rate( float32_t rate )
 {
     if( rate <= 0.0f )
     {

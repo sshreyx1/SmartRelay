@@ -21,6 +21,7 @@
  *     wifi_mesh_init() call) as part of run_wifi_integration.sh's multi-hop E->C->A scenario --
  *     that is where this filter is actually exercised, not here. See docs/TEST_REPORT.md.
  */
+#include <inttypes.h>
 #include <string.h>
 
 #include "sim_net.h"
@@ -71,7 +72,7 @@ static void test_duplicate_suppression(void)
         total_dup += stats_of(idx, SIM_LORA).dup_dropped;
     }
     CHECK(total_dup > 0);
-    printf("    duplicate packets dropped across the mesh: %lu\n", (unsigned long)total_dup);
+    printf("    duplicate packets dropped across the mesh: %" PRIu32 "\n", (uint32_t)total_dup);
     net_close(&net);
 }
 
@@ -93,8 +94,8 @@ static void test_not_addressed_to_node_is_not_delivered(void)
     mesh_stats_t relay_stats = stats_of(2, SIM_LORA);
     CHECK(relay_stats.delivered == 0); /* node 2 is not the destination: never delivered to its app layer */
     CHECK(relay_stats.relayed > 0);    /* but it did relay the frames on toward the bridge */
-    printf("    relay node: delivered=%lu (must be 0) relayed=%lu\n", (unsigned long)relay_stats.delivered,
-           (unsigned long)relay_stats.relayed);
+    printf("    relay node: delivered=%" PRIu32 " (must be 0) relayed=%" PRIu32 "\n", (uint32_t)relay_stats.delivered,
+           (uint32_t)relay_stats.relayed);
     net_close(&net);
 }
 

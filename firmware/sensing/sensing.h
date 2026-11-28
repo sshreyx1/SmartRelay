@@ -13,6 +13,7 @@
 #ifndef SENSING_H
 #define SENSING_H
 
+#include "float_types.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -36,8 +37,8 @@ typedef struct
 typedef struct
 {
     bool b_dht_ok;       /* a good DHT22 reading in the last SENSING_DHT_STALE_MS */
-    float temp_c;      /* valid if dht_ok */
-    float hum_pct;     /* valid if dht_ok */
+    float32_t temp_c;      /* valid if dht_ok */
+    float32_t hum_pct;     /* valid if dht_ok */
     uint16_t light;    /* 0-4095 */
     int weather;       /* weather_tree.h: 0 Cloudy, 1 Hot_Dry, 2 Humid_Rainy, -1 unknown (no DHT) */
     uint32_t dht_fail; /* failed DHT22 reads since boot */

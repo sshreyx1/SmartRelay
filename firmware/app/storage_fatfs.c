@@ -5,6 +5,7 @@
  * (see hw_config.c). FatFs is built with FF_FS_REENTRANT = 0, i.e. NOT thread-safe, so only the
  * comms task may call these functions. That is a deliberate design rule, not an accident.
  */
+#include <inttypes.h>
 #include "storage_fatfs.h"
 
 #include <stdio.h>
@@ -222,8 +223,8 @@ void storage_fatfs_status(char* p_out, size_t cap)
     }
     else
     {
-        snprintf(p_out, cap, "sd handles in use %d/%d | %lu SD errors, last: %s FR=%d on %s", used, MAX_OPEN,
-                 (unsigned long)g_err_count, gp_last_err_op, (int)g_last_err, g_last_err_path);
+        snprintf(p_out, cap, "sd handles in use %d/%d | %" PRIu32 " SD errors, last: %s FR=%d on %s", used, MAX_OPEN,
+                 (uint32_t)g_err_count, gp_last_err_op, (int)g_last_err, g_last_err_path);
     }
 }
 

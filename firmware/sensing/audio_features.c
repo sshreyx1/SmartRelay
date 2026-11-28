@@ -1,6 +1,7 @@
 /*
  * audio_features.c - see audio_features.h.
  */
+#include "float_types.h"
 #include "audio_features.h"
 
 #include <math.h>
@@ -49,8 +50,8 @@ void audio_feat_finish(const audio_feat_t* p_feat, uint32_t sample_rate, audio_r
         return;
     }
     /* mic.c: (float)(energy_acc / num_samples) with a double accumulator holding exact integers */
-    p_out->energy = (float)((double)p_feat->sum_sq / (double)(int)p_feat->count);
-    p_out->zcr = (float)p_feat->crossings / (float)(int)p_feat->count;
+    p_out->energy = (float32_t)((float64_t)p_feat->sum_sq / (float64_t)(int)p_feat->count);
+    p_out->zcr = (float32_t)p_feat->crossings / (float32_t)(int)p_feat->count;
 
     if (p_out->energy > AUDIO_ENERGY_LOUD)
     {
@@ -68,9 +69,9 @@ void audio_feat_finish(const audio_feat_t* p_feat, uint32_t sample_rate, audio_r
         p_out->p_label = "AMBIENT_NOISE";
     }
 
-    float rms = sqrtf(p_out->energy);
+    float32_t rms = sqrtf(p_out->energy);
     p_out->rms = (uint16_t)(rms > 65534.0f ? 65534.0f : rms + 0.5f);
-    float zps = p_out->zcr * (float)sample_rate;
+    float32_t zps = p_out->zcr * (float32_t)sample_rate;
     p_out->zcr_per_s = (uint16_t)(zps > 65534.0f ? 65534.0f : zps + 0.5f);
     p_out->mean_adc = (uint16_t)(p_feat->sum / p_feat->count);
 }

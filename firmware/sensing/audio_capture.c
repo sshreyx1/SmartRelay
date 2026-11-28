@@ -6,6 +6,7 @@
  * hardware stops by itself. This task reads behind the DMA write position and feeds the samples
  * to audio_feat_add(). It only has to come back within ~0.5 s (8192 samples) to lose nothing.
  */
+#include "float_types.h"
 #include "audio_capture.h"
 
 #include "board.h"
@@ -43,7 +44,7 @@ bool audio_capture_sf(uint32_t seconds, void (*p_wait_ms)(uint32_t msec), audio_
 
     adc_select_input(BOARD_MIC_ADC);
     adc_fifo_setup(true, true, 1, false, false); /* FIFO on, DREQ on, threshold 1, no error bit, 12-bit */
-    adc_set_clkdiv(48000000.0f / (float)AUDIO_SAMPLE_RATE - 1.0f); /* one sample every (1+div) 48 MHz clocks */
+    adc_set_clkdiv(48000000.0f / (float32_t)AUDIO_SAMPLE_RATE - 1.0f); /* one sample every (1+div) 48 MHz clocks */
     adc_fifo_drain();
 
     dma_channel_config dma_cfg = dma_channel_get_default_config((uint)chan);

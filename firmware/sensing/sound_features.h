@@ -33,6 +33,7 @@
 #ifndef SOUND_FEATURES_H
 #define SOUND_FEATURES_H
 
+#include "float_types.h"
 #include <stdint.h>
 
 #define SF_VERSION 1
@@ -54,18 +55,18 @@ typedef struct
     uint32_t n_samples;   /* every sample added, including a last partial frame */
     uint64_t sum;
     uint64_t sum_sq; /* raw samples, for the DC-corrected RMS */
-    double band_mean[SF_N_BANDS];
-    double band_m2[SF_N_BANDS];
-    double cen_mean;
-    double cen_m2;
-    double zcr_mean;
-    double zcr_m2;
-    double loud_mean;
-    double loud_m2;
-    float loud_min;
-    float loud_max;
-    double flux_sum;
-    float prev_shape[SF_N_BANDS];
+    float64_t band_mean[SF_N_BANDS];
+    float64_t band_m2[SF_N_BANDS];
+    float64_t cen_mean;
+    float64_t cen_m2;
+    float64_t zcr_mean;
+    float64_t zcr_m2;
+    float64_t loud_mean;
+    float64_t loud_m2;
+    float32_t loud_min;
+    float32_t loud_max;
+    float64_t flux_sum;
+    float32_t prev_shape[SF_N_BANDS];
     uint16_t hist[SF_HIST_BUCKETS];
 } sf_t;
 
@@ -74,10 +75,10 @@ extern const char* const g_sf_feature_names[SF_N_FEATURES];
 void sf_reset(sf_t* p_feat);
 void sf_add(sf_t* p_feat, const uint16_t* p_samples, uint32_t count);
 /* out: SF_N_FEATURES values, always finite (all 0 if no complete frame was seen). */
-void sf_finish(const sf_t* p_feat, float out[SF_N_FEATURES]);
+void sf_finish(const sf_t* p_feat, float32_t out[SF_N_FEATURES]);
 
 /* For capture_meta: RMS around the capture's own mean (ADC counts), and zero crossings per second. */
-float sf_rms_dc_corrected(const sf_t* p_feat);
-float sf_zcr_per_s(const sf_t* p_feat);
+float32_t sf_rms_dc_corrected(const sf_t* p_feat);
+float32_t sf_zcr_per_s(const sf_t* p_feat);
 
 #endif

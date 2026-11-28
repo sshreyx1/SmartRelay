@@ -1,3 +1,4 @@
+#include "float_types.h"
 #include "mic.h"
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
@@ -21,7 +22,7 @@ void mic_record_buffer(uint16_t *p_buffer, int num_samples) {
 
 SoundAnalysis mic_analyze_buffer(uint16_t *p_buffer, int num_samples) {
     SoundAnalysis analysis;
-    double energy_acc = 0.0;
+    float64_t energy_acc = 0.0;
     int zero_crossings = 0;
 
     // Remove DC offset (~2048 for 1.65V center)
@@ -37,8 +38,8 @@ SoundAnalysis mic_analyze_buffer(uint16_t *p_buffer, int num_samples) {
         }
     }
 
-    analysis.energy = (float)(energy_acc / num_samples);
-    analysis.zcr = (float)zero_crossings / num_samples;
+    analysis.energy = (float32_t)(energy_acc / num_samples);
+    analysis.zcr = (float32_t)zero_crossings / num_samples;
 
     // Decision Tree Logic
     if (analysis.energy > 50000.0f) {

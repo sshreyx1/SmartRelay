@@ -14,6 +14,7 @@
  *
  * Portable C99: no mmap, getopt or unistd.h, so it builds with MSVC too.
  */
+#include "float_types.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -160,16 +161,16 @@ int main(int argc, char** pp_argv)
             sf_add(&s_sf, s_buf + off, len);
             audio_feat_add(&legacy, s_buf + off, len);
         }
-        float features[SF_N_FEATURES];
+        float32_t features[SF_N_FEATURES];
         sf_finish(&s_sf, features);
         audio_result_t audio;
         audio_feat_finish(&legacy, SF_SAMPLE_RATE, &audio);
         printf("%s", pp_argv[idx]);
         for (int kdx = 0; kdx < SF_N_FEATURES; kdx++)
         {
-            printf(",%.9g", (double)features[kdx]);
+            printf(",%.9g", (float64_t)features[kdx]);
         }
-        printf(",%.9g,%.9g\n", (double)audio.energy, (double)audio.zcr);
+        printf(",%.9g,%.9g\n", (float64_t)audio.energy, (float64_t)audio.zcr);
     }
     if ((!files) && (!header))
     {

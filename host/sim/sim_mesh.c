@@ -1,6 +1,7 @@
 /*
  * sim_mesh.c - see sim_mesh.h.
  */
+#include "float_types.h"
 #include "sim_mesh.h"
 
 #include <math.h>
@@ -64,7 +65,7 @@ typedef struct
     uint32_t end_ms;
     uint32_t backoff_until;
     uint16_t pkt_id;
-    float drop_rate;
+    float32_t drop_rate;
     uint32_t next_hb;
     mesh_stats_t stats;
 } radio_t;
@@ -98,9 +99,9 @@ uint32_t sim_rand(void)
     return (uint32_t)((world.rng * 2685821657736338717ULL) >> 32);
 }
 
-float sim_frand(void)
+float32_t sim_frand(void)
 {
-    return (float)(sim_rand() >> 8) / (float)(1u << 24);
+    return (float32_t)(sim_rand() >> 8) / (float32_t)(1u << 24);
 }
 
 /* ---- config ------------------------------------------------------------------------------ */
@@ -184,12 +185,12 @@ void sim_set_link(int kind, uint8_t node_a, uint8_t node_b, bool b_link_up)
     world.cfg.adj[kind][node_a][node_b] = world.cfg.adj[kind][node_b][node_a] = b_link_up;
 }
 
-void sim_set_link_loss(int kind, float loss)
+void sim_set_link_loss(int kind, float32_t loss)
 {
     world.cfg.kind[kind].link_loss = loss;
 }
 
-void sim_set_corrupt_rate(int kind, float rate)
+void sim_set_corrupt_rate(int kind, float32_t rate)
 {
     world.cfg.kind[kind].corrupt_rate = rate;
 }
@@ -206,15 +207,15 @@ uint32_t sim_now(void)
 
 /* ---- airtime ----------------------------------------------------------------------------- */
 
-double sim_lora_airtime_ms(uint16_t len)
+float64_t sim_lora_airtime_ms(uint16_t len)
 {
     const int spread = 7, coding_rate = 1, implicit_hdr = 0, low_rate = 0, crc = 1, npre = 8;
-    const double bandwidth = 125000.0;
-    double time_spec = (double)(1 << spread) / bandwidth * 1000.0;
-    double tpre = (npre + 4.25) * time_spec;
-    double num = 8.0 * len - 4.0 * spread + 28 + 16 * crc - 20 * implicit_hdr;
-    double den = 4.0 * (spread - 2 * low_rate);
-    double sym = ceil(num / den) * (coding_rate + 4);
+    const float64_t bandwidth = 125000.0;
+    float64_t time_spec = (float64_t)(1 << spread) / bandwidth * 1000.0;
+    float64_t tpre = (npre + 4.25) * time_spec;
+    float64_t num = 8.0 * len - 4.0 * spread + 28 + 16 * crc - 20 * implicit_hdr;
+    float64_t den = 4.0 * (spread - 2 * low_rate);
+    float64_t sym = ceil(num / den) * (coding_rate + 4);
     if (sym < 0)
     {
         sym = 0;
@@ -232,7 +233,7 @@ static void airtime(int kind, uint16_t frame_len, uint32_t* p_uart_ms, uint32_t*
     else
     {
         /* Pico -> ESP8266: [0xAA][len][payload][crc8] at 10 bits per byte. */
-        double uniform = (frame_len + 3.0) * 10.0 / (double)world.cfg.kind[kind].uart_baud * 1000.0;
+        float64_t uniform = (frame_len + 3.0) * 10.0 / (float64_t)world.cfg.kind[kind].uart_baud * 1000.0;
         *p_uart_ms = (uint32_t)ceil(uniform);
         /* ESP-NOW at 1 Mbit/s plus preamble/MAC overhead (~0.5 ms). */
         *p_air_ms = (uint32_t)ceil(frame_len * 8.0 / 1000.0 + 0.5);
@@ -582,7 +583,7 @@ static bool m_tx_busy(int kind)
     static bool NAME##_heard(uint8_t n, uint32_t* ms) { return m_last_heard(KIND, n, ms); }             \
     static bool NAME##_busy(void) { return m_tx_busy(KIND); }                                           \
     static void NAME##_stats(mesh_stats_t* o) { *o = world.radios[world.cur][KIND].stats; }                             \
-    static void NAME##_drop(float r) { world.radios[world.cur][KIND].drop_rate = r; }                                \
+    static void NAME##_drop(float32_t r) { world.radios[world.cur][KIND].drop_rate = r; }                                \
     const mesh_radio_t g_sim_##NAME = {STR,           NAME##_send,  NAME##_recv,  NAME##_poll, NAME##_maxp, \
                                      NAME##_heard,  NAME##_busy,  NAME##_stats, NAME##_drop};
 
@@ -594,7 +595,7 @@ void sim_get_stats(uint8_t node_id, int kind, mesh_stats_t* p_out)
     *p_out = world.radios[node_id][kind].stats;
 }
 
-void sim_set_drop_rate(uint8_t node_id, int kind, float rate)
+void sim_set_drop_rate(uint8_t node_id, int kind, float32_t rate)
 {
     world.radios[node_id][kind].drop_rate = rate;
 }

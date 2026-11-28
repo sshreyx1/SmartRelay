@@ -13,6 +13,8 @@
  *
  * This proves the SD code, the protocol and the RAM budget on real hardware before any radio works.
  */
+#include "float_types.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -120,11 +122,11 @@ static void sd_speed(const alfp_storage_t* p_store)
     uint32_t end_t_ms = now_ms();
     p_store->p_close(p_store->p_ctx, handle);
     p_store->p_remove(p_store->p_ctx, "selftest/speed.bin");
-    printf("sd: 136 x 241 B writes %lu ms (%.2f ms each), random reads %lu ms (%.2f ms each)\n",
-           (unsigned long)(mid_t - start_t), (mid_t - start_t) / 136.0, (unsigned long)(end_t_ms - mid_t), (end_t_ms - mid_t) / 136.0);
+    printf("sd: 136 x 241 B writes %" PRIu32 " ms (%.2f ms each), random reads %" PRIu32 " ms (%.2f ms each)\n",
+           (uint32_t)(mid_t - start_t), (mid_t - start_t) / 136.0, (uint32_t)(end_t_ms - mid_t), (end_t_ms - mid_t) / 136.0);
 }
 
-static bool run_once(const alfp_storage_t* p_store, const char* p_src, float loss)
+static bool run_once(const alfp_storage_t* p_store, const char* p_src, float32_t loss)
 {
     loopback_init(now_ms, rnd, 250, 40, 20);
     loopback_set_loss(loss);
@@ -159,9 +161,9 @@ static bool run_once(const alfp_storage_t* p_store, const char* p_src, float los
     uint32_t crc_a = file_crc(p_store, p_src, &size_a);
     uint32_t crc_b = gb_rx_done ? file_crc(p_store, g_rx_path, &size_b) : 0;
     bool b_is_ok = gb_tx_done && (ALFP_TX_DONE == g_tx_rep.result) && gb_rx_done && (crc_a == crc_b) && (size_a == size_b);
-    printf("%s: loss %2.0f%%, %ld bytes, %u frags, %u rounds, %u resent, %.1f s, crc %08lx/%08lx\n",
-           b_is_ok ? "PASS" : "FAIL", loss * 100, (long)size_a, g_tx_rep.frag_count, g_tx_rep.rounds, g_tx_rep.data_resent,
-           (g_tx_rep.finished_ms - g_tx_rep.started_ms) / 1000.0, (unsigned long)crc_a, (unsigned long)crc_b);
+    printf("%s: loss %2.0f%%, %" PRId32 " bytes, %u frags, %u rounds, %u resent, %.1f s, crc %08" PRIx32 "/%08" PRIx32 "\n",
+           b_is_ok ? "PASS" : "FAIL", loss * 100, (int32_t)size_a, g_tx_rep.frag_count, g_tx_rep.rounds, g_tx_rep.data_resent,
+           (g_tx_rep.finished_ms - g_tx_rep.started_ms) / 1000.0, (uint32_t)crc_a, (uint32_t)crc_b);
     return b_is_ok;
 }
 
@@ -206,7 +208,7 @@ int main(void)
         printf("no samples/img_00.jpg, using generated %s\n", p_src);
     }
 
-    const float losses[] = {0.0f, 0.2f, 0.4f};
+    const float32_t losses[] = {0.0f, 0.2f, 0.4f};
     int pass = 0;
     for (int idx = 0; idx < 3; idx++)
     {

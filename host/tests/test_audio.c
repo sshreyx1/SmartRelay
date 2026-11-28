@@ -3,6 +3,7 @@
  * exactly what Rhaylene's mic_analyze_buffer() gives on the same samples, however the samples
  * are split into blocks (the DMA ring hands them over in pieces).
  */
+#include "float_types.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +22,7 @@ static void gen(int kind, unsigned seed)
     srand(seed);
     for (int idx = 0; idx < N; idx++)
     {
-        double value = 2048;
+        float64_t value = 2048;
         switch (kind)
         {
         case 0: /* quiet room: small noise around mid-scale */

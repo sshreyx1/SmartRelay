@@ -1,6 +1,7 @@
 #ifndef MIC_H
 #define MIC_H
 
+#include "float_types.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -10,8 +11,8 @@
 #define NUM_SAMPLES (SAMPLE_RATE * DURATION_SEC)
 
 typedef struct {
-    float energy;
-    float zcr;
+    float32_t energy;
+    float32_t zcr;
     int class_id;
     const char *p_label;
 } SoundAnalysis;

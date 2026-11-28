@@ -1,6 +1,7 @@
 /*
  * alfp_outbox.c - see alfp_outbox.h.
  */
+#include <inttypes.h>
 #include "alfp_outbox.h"
 
 #include <stdio.h>
@@ -44,8 +45,8 @@ static void log_size_choice(alfp_outbox_t* p_outbox, const char* p_path, int32_t
         return;
     }
     char line[160];
-    snprintf(line, sizeof(line), "tx %s size=%ld thr=%lu radio=%s reason=%s", p_path, (long)size_bytes,
-             (unsigned long)p_outbox->size_threshold, (NULL != p_radio->p_name) ? p_radio->p_name : "?", p_reason);
+    snprintf(line, sizeof(line), "tx %s size=%" PRId32 " thr=%" PRIu32 " radio=%s reason=%s", p_path, (int32_t)size_bytes,
+             (uint32_t)p_outbox->size_threshold, (NULL != p_radio->p_name) ? p_radio->p_name : "?", p_reason);
     p_plat->p_log(p_plat->p_ctx, line);
 }
 
@@ -63,7 +64,7 @@ static bool parse_seq(const char* p_name, uint32_t* p_seq)
 
 static void job_path(const alfp_outbox_t* p_outbox, uint32_t seq, char* p_out, size_t cap)
 {
-    snprintf(p_out, cap, "%s/q%08lu.job", p_outbox->p_dir, (unsigned long)seq);
+    snprintf(p_out, cap, "%s/q%08" PRIu32 ".job", p_outbox->p_dir, (uint32_t)seq);
 }
 
 typedef struct
@@ -155,8 +156,8 @@ bool alfp_outbox_add(alfp_outbox_t* p_outbox, const char* p_image_path, const ui
         if ((NULL != p_plat) && (NULL != p_plat->p_log))
         {
             char line[96];
-            snprintf(line, sizeof(line), "outbox: FULL (%u jobs), dropped oldest job q%08lu (%lu dropped so far)",
-                     (unsigned)ALFP_OUTBOX_MAX, (unsigned long)victim, (unsigned long)p_outbox->dropped_full);
+            snprintf(line, sizeof(line), "outbox: FULL (%u jobs), dropped oldest job q%08" PRIu32 " (%" PRIu32 " dropped so far)",
+                     (unsigned)ALFP_OUTBOX_MAX, (uint32_t)victim, (uint32_t)p_outbox->dropped_full);
             p_plat->p_log(p_plat->p_ctx, line);
         }
     }

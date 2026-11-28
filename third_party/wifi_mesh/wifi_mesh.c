@@ -15,6 +15,7 @@
  *
  * Nothing here blocks: send() only queues, poll() does the work.
  */
+#include "float_types.h"
 #include "wifi_mesh.h"
 #include "wifi_mesh_config.h"
 #include "wst_link.h"
@@ -60,7 +61,7 @@ typedef struct {
     uint8_t  self_id;
     uint16_t next_id;
     bool     b_filter_on;
-    float    drop_rate;
+    float32_t    drop_rate;
     uint32_t next_heartbeat;
 
     dup_entry_t dup[WIFI_MESH_DUP_CACHE];
@@ -162,7 +163,7 @@ static void handle_packet(const wst_rx_pkt_t *p_rx_pkt) {
 
     /* 3. Simulated packet loss (demo) */
     if ((p_state->drop_rate > 0.0f) &&
-        ((float)(wm_rand() % 10000) < p_state->drop_rate * 10000.0f)) {
+        ((float32_t)(wm_rand() % 10000) < p_state->drop_rate * 10000.0f)) {
         p_state->stats.drop_injected++;
         return;
     }
@@ -294,7 +295,7 @@ static void wm_get_stats(mesh_stats_t *p_out) {
     p_out->rx_error = p_state->malformed + link_stats.rx_crc_err + link_stats.rx_queue_full + link_stats.uart_overflow;
 }
 
-static void wm_set_drop_rate(float rate) {
+static void wm_set_drop_rate(float32_t rate) {
     if (rate < 0.0f) rate = 0.0f;
     if (rate > 1.0f) rate = 1.0f;
     p_state->drop_rate = rate;

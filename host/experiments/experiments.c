@@ -7,6 +7,7 @@
  * Keys for "one": radio=lora|wifi hops=2 loss=0.1 gap=500 pollto=3000 polls=5 copies=1
  *                 cs=0 (LoRa listen-before-talk) trials=30 size=8000 baseline=0 hb=3000 seed=1
  */
+#include "float_types.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +21,7 @@ typedef struct
 {
     int radio; /* SIM_LORA / SIM_WIFI */
     int hops;
-    float loss;
+    float32_t loss;
     uint32_t gap;
     uint32_t gapmax;
     uint32_t pollto;
@@ -41,13 +42,13 @@ typedef struct
 {
     int trials;
     int ok_flag;
-    double t_sum;
-    double t_sq;
-    double rounds_sum;
-    double sent_sum;
-    double frag_sum;
-    double air_sum;
-    double t_ok[512];
+    float64_t t_sum;
+    float64_t t_sq;
+    float64_t rounds_sum;
+    float64_t sent_sum;
+    float64_t frag_sum;
+    float64_t air_sum;
+    float64_t t_ok[512];
     int n_ok;
     int why[4];
     int mismatched; /* DONE reported but the bridge's file differs: must stay 0 */
@@ -73,7 +74,7 @@ static void parse_kv(params_t* p_params, const char* p_key_value)
     else if (!strcmp(kdx, "hops"))
         p_params->hops = atoi(val_str);
     else if (!strcmp(kdx, "loss"))
-        p_params->loss = (float)atof(val_str);
+        p_params->loss = (float32_t)atof(val_str);
     else if (!strcmp(kdx, "gap"))
         p_params->gap = (uint32_t)atoi(val_str);
     else if (!strcmp(kdx, "gapmax"))
@@ -111,7 +112,7 @@ static bool sender_done(net_t* p_net)
 
 static int cmp_d(const void* p_lhs, const void* p_rhs)
 {
-    double value_x = *(const double*)p_lhs, value_y = *(const double*)p_rhs;
+    float64_t value_x = *(const float64_t*)p_lhs, value_y = *(const float64_t*)p_rhs;
     return (value_x > value_y) - (value_x < value_y);
 }
 
@@ -174,7 +175,7 @@ static result_t run(const params_t* p_params)
             {
                 res.mismatched++;
             }
-            double secs = (p_rep->finished_ms - p_rep->started_ms) / 1000.0;
+            float64_t secs = (p_rep->finished_ms - p_rep->started_ms) / 1000.0;
             res.ok_flag++;
             res.t_sum += secs;
             res.t_sq += secs * secs;
@@ -196,22 +197,22 @@ static result_t run(const params_t* p_params)
     return res;
 }
 
-static double mean(double total, int count)
+static float64_t mean(float64_t total, int count)
 {
     return count ? total / count : NAN;
 }
 
-static double median(result_t* p_res)
+static float64_t median(result_t* p_res)
 {
     if (!p_res->n_ok)
     {
         return NAN;
     }
-    qsort(p_res->t_ok, (size_t)p_res->n_ok, sizeof(double), cmp_d);
+    qsort(p_res->t_ok, (size_t)p_res->n_ok, sizeof(float64_t), cmp_d);
     return p_res->n_ok % 2 ? p_res->t_ok[p_res->n_ok / 2] : (p_res->t_ok[p_res->n_ok / 2 - 1] + p_res->t_ok[p_res->n_ok / 2]) / 2;
 }
 
-static double pct(result_t* p_res, double queue)
+static float64_t pct(result_t* p_res, float64_t queue)
 {
     if (!p_res->n_ok)
     {
@@ -250,10 +251,10 @@ static FILE* csv(const char* p_dir, const char* p_name, const char* p_header)
     return p_file;
 }
 
-static void row(FILE* p_file, const char* p_label, double value_x, const params_t* p_params, result_t* p_res)
+static void row(FILE* p_file, const char* p_label, float64_t value_x, const params_t* p_params, result_t* p_res)
 {
     fprintf(p_file, "%s,%g,%d,%d,%.4f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", p_label, value_x, p_res->ok_flag, p_res->trials,
-            (double)p_res->ok_flag / p_res->trials, median(p_res), pct(p_res, 0.1), pct(p_res, 0.9), mean(p_res->rounds_sum, p_res->ok_flag),
+            (float64_t)p_res->ok_flag / p_res->trials, median(p_res), pct(p_res, 0.1), pct(p_res, 0.9), mean(p_res->rounds_sum, p_res->ok_flag),
             p_res->frag_sum ? p_res->sent_sum / p_res->frag_sum : NAN, mean(p_res->air_sum, p_res->ok_flag));
     fflush(p_file);
     print_one(p_params, p_res);
@@ -277,7 +278,7 @@ static params_t tuned(int radio)
 
 static void suite(const char* p_dir, int trials)
 {
-    const float loss_axis[] = {0.0f, 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f};
+    const float32_t loss_axis[] = {0.0f, 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f};
     const unsigned name_len = sizeof(loss_axis) / sizeof(loss_axis[0]);
 
     /* E1 LoRa pacing gap vs hops (half-duplex relays and hidden terminals), 10% loss per hop */
@@ -371,7 +372,7 @@ static void suite(const char* p_dir, int trials)
 
     /* E5 final protocol, loss sweep, both radios, 1-3 hops */
     p_file = csv(p_dir, "e5_loss_sweep.csv", HDR);
-    const float loss_axis5[] = {0.0f, 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.35f, 0.4f};
+    const float32_t loss_axis5[] = {0.0f, 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.35f, 0.4f};
     for (int radio = 0; radio < 2; radio++)
     {
         for (int hops = 1; hops <= 3; hops++)

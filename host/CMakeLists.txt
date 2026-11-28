@@ -59,7 +59,7 @@ target_compile_options(test_uplink PRIVATE -Wall -Wextra ${SAN} -O1 -g)
 
 # Rhaylene's mic.c (unchanged) vs the streaming version the firmware uses
 add_executable(test_audio tests/test_audio.c ${ROOT}/firmware/sensing/audio_features.c ${ROOT}/third_party/sensors/mic.c)
-target_include_directories(test_audio PRIVATE ${ROOT}/firmware/sensing ${ROOT}/third_party/sensors tests/fake_sdk)
+target_include_directories(test_audio PRIVATE ${ROOT}/common ${ROOT}/firmware/sensing ${ROOT}/third_party/sensors tests/fake_sdk)
 target_link_libraries(test_audio m)
 target_compile_options(test_audio PRIVATE -Wall ${SAN} -O1 -g)
 target_link_options(test_audio PRIVATE ${SAN})

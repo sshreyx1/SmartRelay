@@ -13,6 +13,7 @@
 #ifndef CAPTURE_ID_H
 #define CAPTURE_ID_H
 
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -24,13 +25,13 @@
 /* "N2-000042"; returns the length snprintf would write */
 static inline int capture_id_format(char* p_out, size_t cap, uint8_t node, uint32_t cap_id)
 {
-    return snprintf(p_out, cap, "N%u-%06lu", (unsigned)node, (unsigned long)cap_id);
+    return snprintf(p_out, cap, "N%u-%06" PRIu32, (unsigned)node, (uint32_t)cap_id);
 }
 
 /* "N2_000042" */
 static inline int capture_id_file_stem(char* p_out, size_t cap, uint8_t node, uint32_t cap_id)
 {
-    return snprintf(p_out, cap, "N%u_%06lu", (unsigned)node, (unsigned long)cap_id);
+    return snprintf(p_out, cap, "N%u_%06" PRIu32, (unsigned)node, (uint32_t)cap_id);
 }
 
 /* Parses "N2-000042" or "N2_000042", optionally followed by more text (e.g. "_full.scl").

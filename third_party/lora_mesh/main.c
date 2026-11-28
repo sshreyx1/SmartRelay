@@ -10,6 +10,7 @@
  *   d  toggle drop_rate 0 <-> 0.3    b  burst 12 sends (queue-full test)
  *   h  toggle 5 s heartbeat (bridge)
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
@@ -67,27 +68,27 @@ static void check_test_packet( uint8_t src, const uint8_t* p_buf, int len )
 
     int8_t rssi, snr;
     lora_mesh_last_link_quality( &rssi, &snr );
-    printf( "RX from %u seq %lu, %d bytes, %s (last hop RSSI %d dBm, SNR %d dB) [ok %lu, bad %lu]\n", src,
-            ( unsigned long ) seq, len, b_is_ok ? "byte-exact OK" : "MISMATCH", rssi, snr, ( unsigned long ) rx_ok,
-            ( unsigned long ) rx_bad );
+    printf( "RX from %u seq %" PRIu32 ", %d bytes, %s (last hop RSSI %d dBm, SNR %d dB) [ok %" PRIu32 ", bad %" PRIu32 "]\n", src,
+            (uint32_t) seq, len, b_is_ok ? "byte-exact OK" : "MISMATCH", rssi, snr, (uint32_t) rx_ok,
+            (uint32_t) rx_bad );
 }
 
 static void print_stats( void )
 {
     mesh_stats_t stats;
     p_mesh->p_get_stats( &stats );
-    printf( "STATS node %d: tx %lu rx %lu delivered %lu relayed %lu dup_dropped %lu hop_dropped %lu tx_fail %lu "
-            "rx_error %lu rx_overflow %lu relay_overflow %lu drop_injected %lu\n",
-            NODE_ID, ( unsigned long ) stats.tx_count, ( unsigned long ) stats.rx_count, ( unsigned long ) stats.delivered,
-            ( unsigned long ) stats.relayed, ( unsigned long ) stats.dup_dropped, ( unsigned long ) stats.hop_dropped,
-            ( unsigned long ) stats.tx_fail, ( unsigned long ) stats.rx_error, ( unsigned long ) stats.rx_overflow,
-            ( unsigned long ) stats.relay_overflow, ( unsigned long ) stats.drop_injected );
+    printf( "STATS node %d: tx %" PRIu32 " rx %" PRIu32 " delivered %" PRIu32 " relayed %" PRIu32 " dup_dropped %" PRIu32 " hop_dropped %" PRIu32 " tx_fail %" PRIu32 " "
+            "rx_error %" PRIu32 " rx_overflow %" PRIu32 " relay_overflow %" PRIu32 " drop_injected %" PRIu32 "\n",
+            NODE_ID, (uint32_t) stats.tx_count, (uint32_t) stats.rx_count, (uint32_t) stats.delivered,
+            (uint32_t) stats.relayed, (uint32_t) stats.dup_dropped, (uint32_t) stats.hop_dropped,
+            (uint32_t) stats.tx_fail, (uint32_t) stats.rx_error, (uint32_t) stats.rx_overflow,
+            (uint32_t) stats.relay_overflow, (uint32_t) stats.drop_injected );
     for( uint8_t node_id = 1; node_id <= 5; node_id++ )
     {
         uint32_t heard_ms;
         if( (NODE_ID != node_id) && (p_mesh->p_last_heard( node_id, &heard_ms )) )
         {
-            printf( "  last heard node %u: %lu ms ago\n", node_id, ( unsigned long ) ( now_ms( ) - heard_ms ) );
+            printf( "  last heard node %u: %" PRIu32 " ms ago\n", node_id, (uint32_t) ( now_ms( ) - heard_ms ) );
         }
     }
 }
@@ -107,8 +108,8 @@ int main( void )
         printf( "LoRa init failed - check wiring/power. Retrying in 2 s\n" );
         sleep_ms( 2000 );
     }
-    printf( "max_payload = %u bytes, 250-byte packet time on air = %lu ms\n", p_mesh->p_max_payload( ),
-            ( unsigned long ) lora_radio_time_on_air_ms( 255 ) );
+    printf( "max_payload = %u bytes, 250-byte packet time on air = %" PRIu32 " ms\n", p_mesh->p_max_payload( ),
+            (uint32_t) lora_radio_time_on_air_ms( 255 ) );
     printf( "Keys: p pause/resume, s stats, d drop 30%%, b burst, h heartbeat\n\n" );
 
     bool     b_sending      = TEST_SEND_AT_BOOT;
@@ -135,12 +136,12 @@ int main( void )
             next_send = now + TEST_INTERVAL_MS + get_rand_32( ) % 1000;
             if( p_mesh->p_send( TEST_DST, buf, build_test_packet( buf, tx_seq ) ) )
             {
-                printf( "TX seq %lu to %u\n", ( unsigned long ) tx_seq, TEST_DST );
+                printf( "TX seq %" PRIu32 " to %u\n", (uint32_t) tx_seq, TEST_DST );
                 tx_seq++;
             }
             else
             {
-                printf( "TX seq %lu: send queue full\n", ( unsigned long ) tx_seq );
+                printf( "TX seq %" PRIu32 ": send queue full\n", (uint32_t) tx_seq );
             }
         }
 

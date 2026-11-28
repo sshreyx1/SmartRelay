@@ -8,6 +8,7 @@
  *
  * Keys (USB serial, 115200):  m = record 5 s of audio now   q = 1 s quick mic level
  */
+#include <inttypes.h>
 #include <stdio.h>
 
 #include "audio_capture.h"
@@ -23,15 +24,15 @@ static void wait_ms(uint32_t msec)
 static void record(uint32_t seconds)
 {
     audio_result_t audio;
-    printf("recording %lus...\n", (unsigned long)seconds);
+    printf("recording %" PRIu32 "s...\n", (uint32_t)seconds);
     if (!sensing_record_sound(seconds, &audio))
     {
         printf("no DMA channel\n");
         return;
     }
-    printf("[AUDIO] %s (class %d) energy %.1f zcr %.3f (%u crossings/s) rms %u, mean ADC %u, %lu samples, %lu lost\n",
-           audio.p_label, audio.class_id, audio.energy, audio.zcr, audio.zcr_per_s, audio.rms, audio.mean_adc, (unsigned long)audio.samples,
-           (unsigned long)sensing_last_sound()->lost);
+    printf("[AUDIO] %s (class %d) energy %.1f zcr %.3f (%u crossings/s) rms %u, mean ADC %u, %" PRIu32 " samples, %" PRIu32 " lost\n",
+           audio.p_label, audio.class_id, audio.energy, audio.zcr, audio.zcr_per_s, audio.rms, audio.mean_adc, (uint32_t)audio.samples,
+           (uint32_t)sensing_last_sound()->lost);
     sensing_log_sound();
     if ((audio.mean_adc < 1700) || (audio.mean_adc > 2400))
     {
@@ -64,14 +65,14 @@ int main(void)
             const sensing_env_t* p_env = sensing_env();
             if (p_env->b_dht_ok)
             {
-                printf("PIR %d | sound %d | light %4u | %.1f C %.1f %%RH | weather %s | dht ok %lu fail %lu\n",
+                printf("PIR %d | sound %d | light %4u | %.1f C %.1f %%RH | weather %s | dht ok %" PRIu32 " fail %" PRIu32 "\n",
                        sensing_pir(), sensing_sound_trigger(), p_env->light, p_env->temp_c, p_env->hum_pct,
-                       sensing_weather_name(p_env->weather), (unsigned long)p_env->dht_good, (unsigned long)p_env->dht_fail);
+                       sensing_weather_name(p_env->weather), (uint32_t)p_env->dht_good, (uint32_t)p_env->dht_fail);
             }
             else
             {
-                printf("PIR %d | sound %d | light %4u | DHT22 no reading yet | dht ok %lu fail %lu\n", sensing_pir(),
-                       sensing_sound_trigger(), p_env->light, (unsigned long)p_env->dht_good, (unsigned long)p_env->dht_fail);
+                printf("PIR %d | sound %d | light %4u | DHT22 no reading yet | dht ok %" PRIu32 " fail %" PRIu32 "\n", sensing_pir(),
+                       sensing_sound_trigger(), p_env->light, (uint32_t)p_env->dht_good, (uint32_t)p_env->dht_fail);
             }
         }
         if (sensing_dual_trigger(now))

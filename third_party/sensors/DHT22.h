@@ -6,6 +6,7 @@ extern "C"
 {
 #endif
 
+#include "float_types.h"
 #include "pico/stdlib.h"
 
 #define DHT_OK 0
@@ -13,7 +14,7 @@ extern "C"
 #define DHT_ERROR_CHECKSUM -2
 
 void DHT_init();
-bool DHT_read(float *p_temperature, float *p_humidity);
+bool DHT_read(float32_t *p_temperature, float32_t *p_humidity);
 
 /* Called around the ~5 ms bit-timing part of DHT_read() (not the 20 ms start pulse). Weak no-ops
  * in DHT22.c; the dual-core firmware (firmware_smp/app/main_smp.c) masks interrupts on the

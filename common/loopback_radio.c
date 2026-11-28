@@ -1,6 +1,7 @@
 /*
  * loopback_radio.c - see loopback_radio.h.
  */
+#include "float_types.h"
 #include "loopback_radio.h"
 
 #include <string.h>
@@ -23,7 +24,7 @@ typedef struct
     uint32_t busy_until;
     uint8_t node_id;
     mesh_stats_t stats;
-    float drop;
+    float32_t drop;
 } end_t;
 
 static struct
@@ -34,7 +35,7 @@ static struct
     uint16_t maxp;
     uint32_t air;
     uint32_t lat;
-    float loss;
+    float32_t loss;
 } loopback;
 
 void loopback_init(uint32_t (*p_now_ms)(void), uint32_t (*p_rand32)(void), uint16_t max_payload, uint32_t airtime_ms,
@@ -50,14 +51,14 @@ void loopback_init(uint32_t (*p_now_ms)(void), uint32_t (*p_rand32)(void), uint1
     loopback.ends[1].node_id = 1;
 }
 
-void loopback_set_loss(float loss)
+void loopback_set_loss(float32_t loss)
 {
     loopback.loss = loss;
 }
 
-static float frand(void)
+static float32_t frand(void)
 {
-    return (float)(loopback.p_rnd() >> 8) / 16777216.0f;
+    return (float32_t)(loopback.p_rnd() >> 8) / 16777216.0f;
 }
 
 static bool l_send(int self_id, uint8_t dst, const uint8_t* p_buf, uint16_t len)
@@ -162,7 +163,7 @@ static bool l_busy(int self_id)
     {                                                                                                                  \
         *o = loopback.ends[I].stats;                                                                                                \
     }                                                                                                                  \
-    static void N##_drop(float r)                                                                                      \
+    static void N##_drop(float32_t r)                                                                                      \
     {                                                                                                                  \
         loopback.ends[I].drop = r;                                                                                               \
     }                                                                                                                  \

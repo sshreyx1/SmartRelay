@@ -4,6 +4,7 @@
  * Every test sends real files between simulated nodes, each with its own "SD card" directory,
  * and checks the bridge's copy is byte-for-byte identical to the original.
  */
+#include "float_types.h"
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
@@ -156,7 +157,7 @@ static void test_wifi_clean_link_one_round(void)
 
 static void test_lora_loss_sweep_multihop(void)
 {
-    const float losses[] = {0.1f, 0.2f, 0.3f};
+    const float32_t losses[] = {0.1f, 0.2f, 0.3f};
     for (unsigned idx = 0; idx < 3; idx++)
     {
         setup(1, 1, 3, false, 10 + idx); /* chain: 3 -> 2 -> 1, two hops */
